@@ -44,7 +44,7 @@ export default function Enquiry({ prefill }) {
   };
 
   return (
-    <div className="enquiry-section">
+    <div className="enquiry-section" style={{ paddingBottom: '20px', marginBottom: '-60px', position: 'relative', zIndex: 10 }}>
       <div className="enquiry-grid">
         <div className="enquiry-info">
           <div className="section-tag">Get In Touch</div>

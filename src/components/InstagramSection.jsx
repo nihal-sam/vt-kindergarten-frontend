@@ -1,49 +1,32 @@
-﻿const posts = [
-  { emoji: "\u{1F3A8}", bg: '#FFE8D6', label: 'Art Class Fun!' },
-  { emoji: "\u{1F3B5}", bg: '#D6FFFB', label: 'Music Time' },
-  { emoji: "\u{1F33F}", bg: '#D6FFE8', label: 'Nature Walk' },
-  { emoji: "\u{1F3C6}", bg: '#FFF3CD', label: 'Sports Day 2024' },
-  { emoji: "\u{1F4DA}", bg: '#F3E8FF', label: 'Story Time' },
-  { emoji: "\u{1F3AD}", bg: '#FFE0F0', label: 'Drama Class' },
-  { emoji: "\u{1F938}", bg: '#E8F5FF', label: 'Yoga for Kids' },
-  { emoji: "\u{1F34E}", bg: '#FFF9E6', label: 'Healthy Lunch' },
+const photos = [
+  '/assets/taking-care/IMG_1186.JPG.jpeg',
+  '/assets/taking-care/IMG_1253.JPG.jpeg',
+  '/assets/taking-care/IMG_1390.JPG.jpeg',
+  '/assets/taking-care/IMG_1436.JPG.jpeg',
+  '/assets/taking-care/IMG_1589.JPG.jpeg',
+  '/assets/taking-care/IMG_9647.JPG.jpeg',
 ];
 
 export default function InstagramSection() {
   return (
-    <div className="instagram-section">
+    <div className="instagram-section" style={{ marginTop: '-40px', paddingBottom: '10px', marginBottom: '-80px', position: 'relative', zIndex: 10 }}>
       <div className="section-header">
-        <div className="section-tag">{"\u{1F4F8}"} Instagram</div>
-        <h2 className="section-title">Follow Our <span>Journey</span> on Instagram</h2>
+        <div className="section-tag">{"\u{1F4F8}"} Our Journey</div>
+        <h2 className="section-title">Follow Our Journey <span>on Instagram</span></h2>
         <p className="section-desc">
           Stay connected with daily activities, events, and joyful moments from VT Kindergarten.
         </p>
       </div>
 
-      <div className="insta-grid">
-        {posts.map((post, index) => (
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '24px', maxWidth: '1100px', margin: '0 auto', padding: '0 24px 20px' }}>
+        {photos.map((src, index) => (
           <div
             key={index}
-            className="insta-card"
-            style={{ background: post.bg }}
-            onClick={() => window.open('https://www.instagram.com/reel/DVTheAzDlsU/', '_blank')}
-            title={post.label}
+            style={{ borderRadius: '24px', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', aspectRatio: '1', background: '#f0f0f0', border: '6px solid white' }}
           >
-            <span style={{ fontSize: 56 }}>{post.emoji}</span>
+            <img src={src} alt="Kindergarten Activity" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.4s ease' }} onMouseOver={e => e.currentTarget.style.transform = 'scale(1.05)'} onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'} />
           </div>
         ))}
-      </div>
-
-      <div style={{ textAlign: 'center' }}>
-        <a
-          href="https://www.instagram.com/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="insta-follow-btn"
-        >
-          <span style={{ fontSize: 20 }}>{"\u{1F4F8}"}</span>
-          Follow @VTKindergarten on Instagram
-        </a>
       </div>
     </div>
   );

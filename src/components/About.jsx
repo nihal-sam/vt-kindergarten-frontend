@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const features = [
   { icon: '👩‍🏫', title: 'Expert Teachers', desc: 'Trained & certified early childhood educators' },
@@ -18,6 +18,21 @@ const highlights = [
 
 export default function About() {
   const sectionRef = useRef();
+  const videoRef = useRef();
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+
+  const togglePlay = () => {
+    if (videoRef.current) {
+      if (videoRef.current.paused) {
+        videoRef.current.play();
+        setIsPlaying(true);
+      } else {
+        videoRef.current.pause();
+        setIsPlaying(false);
+      }
+    }
+  };
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -34,31 +49,37 @@ export default function About() {
     <div className="about-section" ref={sectionRef}>
       <div className="about-grid">
         <div className="about-visual reveal">
-          <div className="about-image-wrap">
-            🏫
-            <div className="about-badge-float about-badge-1">
-              <span>⭐</span>
-              <div>
-                <strong style={{fontSize:'15px',display:'block'}}>4.9/5 Rating</strong>
-                <span style={{fontSize:'12px',color:'#888'}}>Parent Reviews</span>
-              </div>
+          <div style={{ width: '100%', maxWidth: '340px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div 
+              style={{ width: '100%', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', border: '6px solid white', aspectRatio: '9/16', background: '#000', position: 'relative', cursor: 'pointer' }}
+              onClick={togglePlay}
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
+            >
+              <video 
+                ref={videoRef}
+                src="/assets/about-video.mp4" 
+                loop 
+                muted 
+                playsInline
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                onPlay={() => setIsPlaying(true)}
+                onPause={() => setIsPlaying(false)}
+              />
+              {!isPlaying && (
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'white', transition: 'all 0.3s ease' }}>
+                  <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', fontSize: '28px', paddingLeft: '6px', marginBottom: '12px', boxShadow: '0 10px 20px rgba(0,0,0,0.2)' }}>
+                    ▶
+                  </div>
+                  <div style={{ fontSize: '14px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', opacity: isHovered ? 1 : 0, transform: isHovered ? 'translateY(0)' : 'translateY(10px)', transition: 'all 0.3s ease' }}>
+                    Tap video to play
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="about-badge-float about-badge-2">
-              <span>🏆</span>
-              <div>
-                <strong style={{fontSize:'15px',display:'block'}}>Best Play School</strong>
-                <span style={{fontSize:'12px',color:'#888'}}>Karaikudi 2024</span>
-              </div>
+            <div style={{ background: 'linear-gradient(135deg, var(--primary), var(--accent))', color: 'white', padding: '18px 24px', borderRadius: '16px', textAlign: 'center', boxShadow: '0 10px 30px rgba(255,107,53,0.3)' }}>
+              <h3 style={{ fontFamily: "'Fredoka One', cursive", fontSize: '24px', margin: 0, textShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>☀️ Summer Camp</h3>
             </div>
-          </div>
-          <div className="about-features">
-            {features.map((f, i) => (
-              <div className="feature-card" key={i}>
-                <span className="feature-icon">{f.icon}</span>
-                <h4>{f.title}</h4>
-                <p>{f.desc}</p>
-              </div>
-            ))}
           </div>
         </div>
 
@@ -66,7 +87,7 @@ export default function About() {
           <div className="section-tag">About Us</div>
           <h2>Where Every Child <span>Blossoms</span> 🌸</h2>
           <p>
-            VT Kindergarten Play School is located at 11, 7th Street, South Extension, Vairavapuram,
+            VT Kindergarten Pre School is located at 11, 7th Street, South Extension, Vairavapuram,
             Subramaniapuram, Karaikudi — 630002. Situated conveniently near Reliance Smart Bazaar,
             we are one of Karaikudi's most trusted early childhood education centers.
           </p>

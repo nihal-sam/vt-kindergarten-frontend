@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "./components/Navbar";
 import Hero from "./components/HeroClean";
 import AgeEligibilityCalculator from "./components/AgeEligibilityCalculator";
@@ -183,11 +183,9 @@ function LoadingScreen() {
   return (
     <div className="loading-screen">
       <div className="loading-logo">
-        <div className="loading-sun" aria-hidden="true">
-          <span className="loading-sun-core" />
-        </div>
+        <img src="/assets/loading-sun.png" alt="Loading" className="loading-sun-img" />
         <h1>VT Kindergarten</h1>
-        <p>Play School</p>
+        <p>Pre School</p>
         <div className="loading-dots">
           <span></span><span></span><span></span>
         </div>

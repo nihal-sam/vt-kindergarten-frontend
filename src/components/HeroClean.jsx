@@ -78,10 +78,6 @@ export default function HeroClean() {
       <div className="hero-bg-overlay" />
 
       <div className="hero-content">
-        <div className="hero-badge">
-          <span>STAR</span>
-          <span>Karaikudi's Trusted Play School Since 2015</span>
-        </div>
         <h1>
           Where Little
           <br />
@@ -90,7 +86,7 @@ export default function HeroClean() {
           <span>{phrases[phraseIdx]}</span>
         </h1>
         <p className="hero-desc">
-          VT Kindergarten Play School, near Reliance Smart Bazaar, Subramaniapuram, Karaikudi.
+          VT Kindergarten Pre School, near Reliance Smart Bazaar, Subramaniapuram, Karaikudi.
           We nurture every child's cognitive, social, and creative development with love and expert care.
         </p>
         <div className="hero-btns">
@@ -101,11 +97,12 @@ export default function HeroClean() {
             Learn More
           </button>
         </div>
-        <div className="hero-stats">
-          <div className="hero-stat"><h3>500+</h3><p>Happy Students</p></div>
-          <div className="hero-stat"><h3>10+</h3><p>Years of Care</p></div>
-          <div className="hero-stat"><h3>4</h3><p>Programs</p></div>
-          <div className="hero-stat"><h3>100%</h3><p>Safe Environment</p></div>
+        <div className="hero-stats" style={{ display: 'flex', gap: '20px', alignItems: 'center', background: 'rgba(255,255,255,0.6)', padding: '16px 24px', borderRadius: '20px', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.4)' }}>
+          <div style={{ fontSize: '48px', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))' }}>🛡️</div>
+          <div style={{ textAlign: 'left' }}>
+            <h3 style={{ fontFamily: "'Fredoka One', cursive", fontSize: '26px', color: 'var(--primary)', margin: 0 }}>Save Environment</h3>
+            <p style={{ fontSize: '15px', color: '#555', fontWeight: 700, margin: '4px 0 0 0' }}>CCTV monitored, child-proof facilities</p>
+          </div>
         </div>
       </div>
 
@@ -113,49 +110,14 @@ export default function HeroClean() {
         <div className="hero-glow-orb" style={orbStyle} />
 
         <div className="hero-brand-stage" style={stageStyle}>
-          <div className="hero-ring hero-ring-one" style={ringOneStyle} />
-          <div className="hero-ring hero-ring-two" style={ringTwoStyle} />
-          <div className="hero-depth-shadow" />
 
-          <div className="hero-brand-card">
-            <div className="hero-brand-mark hero-mascot-mark">
-              <span className="hero-brand-star">*</span>
-              <div className="hero-mascot-face">
-                <div className="hero-eye"><span className="hero-pupil" style={pupilStyle} /></div>
-                <div className="hero-eye"><span className="hero-pupil" style={pupilStyle} /></div>
-              </div>
-              <div className="hero-mascot-smile" />
-              <span className="hero-brand-vt hero-brand-badge">VT</span>
-            </div>
-            <div className="hero-brand-text">
-              <p>VT Kindergarten</p>
-              <h3>Play. Learn. Shine.</h3>
-            </div>
-            <div className="hero-brand-floor">
-              <span>Interactive 3D hero scene</span>
-            </div>
-          </div>
-
-          <div className="hero-chip hero-chip-top" style={topChipStyle}>
-            <strong>Safe Campus</strong>
-            <span>Warm, protected learning spaces</span>
-          </div>
-
-          <div className="hero-chip hero-chip-left" style={leftChipStyle}>
-            <strong>Creative Play</strong>
-            <span>Music, stories and movement</span>
-          </div>
-
-          <div className="hero-chip hero-chip-right" style={rightChipStyle}>
-            <strong>Expert Care</strong>
-            <span>Personal attention for every child</span>
-          </div>
-
-          <div className="hero-scroll-meter">
-            <span>Scroll</span>
-            <div className="hero-scroll-track">
-              <div className="hero-scroll-fill" style={{ height: `${18 + (scene.scroll * 82)}%` }} />
-            </div>
+          <div className="hero-brand-card" style={{ padding: 0, background: 'transparent', border: 'none', boxShadow: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <img 
+              src="/assets/hero-elephant-bgless-v2.png" 
+              alt="VT Kindergarten 3D Elephant" 
+              className="hero-brand-img"
+              style={{ width: '130%', height: '130%', objectFit: 'contain', filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.2))' }}
+            />
           </div>
         </div>
 

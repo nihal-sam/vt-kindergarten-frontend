@@ -105,7 +105,7 @@ export default function HeroTomScene() {
       <div className="hero-content">
         <div className="hero-badge">
           <span>Tom and Jerry Motion</span>
-          <span>Karaikudi's Trusted Play School Since 2015</span>
+          <span>Karaikudi's Trusted Pre School Since 2015</span>
         </div>
         <h1>
           Where Little
@@ -115,7 +115,7 @@ export default function HeroTomScene() {
           <span>{phrases[phraseIdx]}</span>
         </h1>
         <p className="hero-desc">
-          VT Kindergarten Play School near Reliance Smart Bazaar, Subramaniapuram, Karaikudi.
+          VT Kindergarten Pre School near Reliance Smart Bazaar, Subramaniapuram, Karaikudi.
           Explore a premium homepage scene where Tom stands tall while Jerry runners chase your cursor.
         </p>
         <div className="hero-btns">

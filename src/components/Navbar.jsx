@@ -22,10 +22,12 @@ export default function Navbar() {
   return (
     <nav className={`navbar ${scrolled ? 'scrolled' : ''}`}>
       <a href="#home" className="nav-logo" onClick={(e) => { e.preventDefault(); scrollTo('home'); }}>
-        <div className="nav-logo-icon">VT</div>
+        <div className="nav-logo-icon" aria-hidden="true">
+          <img src="/assets/vt-logo.png" alt="" />
+        </div>
         <div className="nav-logo-text">
           <h2>VT Kindergarten</h2>
-          <span>Play School · Karaikudi</span>
+          <span>Pre School - Karaikudi</span>
         </div>
       </a>
 

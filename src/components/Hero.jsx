@@ -19,7 +19,7 @@ export default function Hero() {
       <div className="hero-content">
         <div className="hero-badge">
           <span>VT</span>
-          <span>Karaikudi's Trusted Play School Since 2015</span>
+          <span>Karaikudi's Trusted Pre School Since 2015</span>
         </div>
         <h1>
           Where Little<br/>
@@ -27,7 +27,7 @@ export default function Hero() {
           <span>{phrases[phraseIdx]}</span>
         </h1>
         <p className="hero-desc">
-          VT Kindergarten Play School - located near Reliance Smart Bazaar, Subramaniapuram, Karaikudi.
+          VT Kindergarten Pre School - located near Reliance Smart Bazaar, Subramaniapuram, Karaikudi.
           We nurture every child's cognitive, social, and creative development with love and expert care.
         </p>
         <div className="hero-btns">

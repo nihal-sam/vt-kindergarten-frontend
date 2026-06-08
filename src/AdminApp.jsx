@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const LOGO_SRC = '/assets/vt-logo.png';
 
 const initialAdmissionForm = {
   child_name: '', dob: '', gender: '',
@@ -56,7 +57,7 @@ function LoginPage({ onLogin }) {
     <div style={s.loginWrap}>
       <div style={s.loginCard}>
         <div style={{ textAlign: 'center', marginBottom: 36 }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>VT</div>
+          <img style={s.loginLogo} src={LOGO_SRC} alt="VT Kindergarten Pre School logo" />
           <h1 style={{ fontFamily: 'sans-serif', fontSize: 28, color: '#FF6B35', margin: '0 0 6px' }}>VT Kindergarten</h1>
           <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, margin: 0 }}>Admin Portal</p>
         </div>
@@ -314,7 +315,7 @@ function Dashboard({ token, admin, logout }) {
     <div style={s.wrap}>
       <aside style={s.sidebar}>
         <div style={s.sideTop}>
-          <span style={{ fontSize: 32 }}>VT</span>
+          <img style={s.sideLogo} src={LOGO_SRC} alt="VT Kindergarten Pre School logo" />
           <div>
             <div style={{ fontWeight: 800, fontSize: 15, color: 'white' }}>VT Kindergarten</div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>Admin Panel</div>
@@ -510,6 +511,7 @@ export default function AdminApp() {
 const s = {
   loginWrap: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,#1a1a2e,#16213e)', fontFamily: "'Nunito',sans-serif" },
   loginCard: { background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 24, padding: '48px 40px', width: 420, maxWidth: '95vw' },
+  loginLogo: { width: 112, height: 112, display: 'block', margin: '0 auto 16px', padding: 4, borderRadius: '50%', background: 'white', objectFit: 'contain', boxShadow: '0 12px 32px rgba(255,107,53,0.24)', boxSizing: 'border-box' },
   fg: { marginBottom: 20 },
   label: { display: 'block', marginBottom: 8, fontWeight: 700, fontSize: 14, color: 'rgba(255,255,255,0.8)' },
   inp: { width: '100%', background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.15)', borderRadius: 12, padding: '14px 18px', color: 'white', fontSize: 15, fontFamily: "'Nunito',sans-serif", outline: 'none', boxSizing: 'border-box' },
@@ -518,6 +520,7 @@ const s = {
   wrap: { display: 'flex', minHeight: '100vh', fontFamily: "'Nunito',sans-serif", background: '#f0f2f5' },
   sidebar: { width: 260, background: 'linear-gradient(180deg,#1a1a2e,#16213e)', padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: 8, position: 'fixed', top: 0, left: 0, bottom: 0, overflowY: 'auto', zIndex: 100 },
   sideTop: { display: 'flex', alignItems: 'center', gap: 12, padding: '8px 8px 24px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: 8 },
+  sideLogo: { width: 46, height: 46, display: 'block', padding: 3, borderRadius: '50%', background: 'white', objectFit: 'contain', boxShadow: '0 8px 22px rgba(255,107,53,0.22)', flexShrink: 0, boxSizing: 'border-box' },
   navBtn: { display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', background: 'transparent', border: 'none', borderRadius: 12, color: 'rgba(255,255,255,0.65)', fontFamily: "'Nunito',sans-serif", fontSize: 15, fontWeight: 700, cursor: 'pointer', textAlign: 'left', width: '100%' },
   navActive: { background: 'rgba(255,107,53,0.18)', color: 'white', borderLeft: '3px solid #FF6B35' },
   adminBox: { display: 'flex', alignItems: 'center', gap: 12, padding: '14px 8px', borderTop: '1px solid rgba(255,255,255,0.08)', marginTop: 8 },

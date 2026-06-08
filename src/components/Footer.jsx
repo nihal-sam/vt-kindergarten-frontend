@@ -1,11 +1,14 @@
-﻿function Footer() {
+function Footer() {
   const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
 
   return (
     <footer className="footer">
       <div className="footer-top">
         <div className="footer-brand">
-          <h2>VT <span>Kindergarten</span></h2>
+          <div className="footer-brand-heading">
+            <img src="/assets/vt-logo.png" alt="VT Kindergarten Pre School logo" />
+            <h2>VT <span>Kindergarten</span></h2>
+          </div>
           <p>
             A nurturing, play-based learning environment where every child discovers
             their potential and builds the foundation for a bright future. Trusted by
@@ -20,15 +23,6 @@
               style={{ background: 'linear-gradient(45deg,#f09433,#dc2743,#bc1888)' }}
             >
               {"\u{1F4F8}"}
-            </a>
-            <a
-              href="https://facebook.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="social-btn"
-              style={{ background: '#1877f2' }}
-            >
-              {"\u{1F4D8}"}
             </a>
             <a href="tel:+919876543210" className="social-btn" style={{ background: '#25d366' }}>
               {"\u260E"}
@@ -79,10 +73,6 @@
         </div>
       </div>
 
-      <div className="footer-bottom">
-        <p>(c) 2025 VT Kindergarten Play School, Karaikudi. All rights reserved.</p>
-        <p>Designed for little learners</p>
-      </div>
     </footer>
   );
 }

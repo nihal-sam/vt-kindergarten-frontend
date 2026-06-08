@@ -42,7 +42,7 @@ export default function Admissions() {
         <div className="section-tag">Admissions 2025-26</div>
         <h2 className="section-title">Enroll Your <span>Little Star</span> Today</h2>
         <p className="section-desc" style={{ color: 'rgba(255,255,255,0.6)' }}>
-          Fill in the form below to start your child's journey with VT Kindergarten Play School.
+          Fill in the form below to start your child's journey with VT Kindergarten Pre School.
         </p>
       </div>
 

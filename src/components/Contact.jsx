@@ -10,11 +10,16 @@ export default function Contact() {
       </div>
       <div className="contact-grid">
         <div>
-          <div className="map-wrap">
-            🗺️
-            <div className="map-overlay">
-              📍 Subramaniapuram, Karaikudi - 630002
-            </div>
+          <div className="map-wrap" style={{ padding: 0, overflow: 'hidden', minHeight: '300px', display: 'flex' }}>
+            <iframe 
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15729.805568461746!2d78.761009!3d10.067341!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3b005d5c5f4b0001%3A0x2a3e0f76!2sSubramaniapuram%2C%20Karaikudi%2C%20Tamil%20Nadu%20630002!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin" 
+              width="100%" 
+              height="100%" 
+              style={{ border: 0, flex: 1 }} 
+              allowFullScreen="" 
+              loading="lazy" 
+              referrerPolicy="no-referrer-when-downgrade"
+            ></iframe>
           </div>
           <div style={{ marginTop: 16 }}>
             <a
