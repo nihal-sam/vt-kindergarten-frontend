@@ -12,7 +12,7 @@ export default function Contact() {
         <div>
           <div className="map-wrap" style={{ padding: 0, overflow: 'hidden', minHeight: '300px', display: 'flex' }}>
             <iframe 
-              src="https://maps.google.com/maps?q=7th+Street,+Subramaniapuram,+Karaikudi&t=&z=16&ie=UTF8&output=embed" 
+              src="https://maps.google.com/maps?q=VT+Kindergarten,+Play+school+and+Pre+school,+11,+7th+St,+near+Reliance+Smart+Bazaar,+Subramaniapuram,+south+extension,+Vairavapuram,+Karaikkudi+(M.Corp),+Tamil+Nadu+630002&t=&z=16&ie=UTF8&output=embed" 
               width="100%" 
               height="100%" 
               style={{ border: 0, flex: 1 }} 
@@ -23,7 +23,7 @@ export default function Contact() {
           </div>
           <div style={{ marginTop: 16 }}>
             <a
-              href="https://maps.google.com/?q=11,+7th+Street,+South+Extension,+Vairavapuram,+Subramaniapuram,+Karaikudi+-+630002"
+              href="https://maps.google.com/?q=VT+Kindergarten,+Play+school+and+Pre+school,+11,+7th+St,+near+Reliance+Smart+Bazaar,+Subramaniapuram,+south+extension,+Vairavapuram,+Karaikkudi+(M.Corp),+Tamil+Nadu+630002"
               target="_blank"
               rel="noopener noreferrer"
               className="btn-primary"
@@ -41,7 +41,7 @@ export default function Contact() {
           <div className="info-grid">
             <div className="info-box">
               <h4>📍 Address</h4>
-              <p>11, 7th Street, South Extension, Vairavapuram, Subramaniapuram, Karaikudi - 630002</p>
+              <p>VT Kindergarten, Play school and Pre school, 11, 7th St, near Reliance Smart Bazaar, Subramaniapuram, south extension, Vairavapuram, Karaikkudi (M.Corp), Tamil Nadu 630002</p>
             </div>
             <div className="info-box">
               <h4>📞 Phone</h4>

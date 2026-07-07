@@ -86,9 +86,8 @@ export default function About() {
           <div className="section-tag">About Us</div>
           <h2>Where Every Child <span>Blossoms</span> 🌸</h2>
           <p>
-            VT Kindergarten Pre School is located at 11, 7th Street, South Extension, Vairavapuram,
-            Subramaniapuram, Karaikudi — 630002. Situated conveniently near Reliance Smart Bazaar,
-            we are one of Karaikudi's most trusted early childhood education centers.
+            VT Kindergarten, Play school and Pre school is located at 11, 7th St, near Reliance Smart Bazaar, Subramaniapuram, south extension, Vairavapuram, Karaikkudi (M.Corp), Tamil Nadu 630002.
+            We are one of Karaikudi's most trusted early childhood education centers.
           </p>
           <p>
             Our school offers a nurturing, stimulating environment where children from 2+ to 5+ years
