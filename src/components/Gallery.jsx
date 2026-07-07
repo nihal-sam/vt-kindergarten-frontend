@@ -2,7 +2,9 @@ const images = [
   '/images/acivites/IMG_0133.JPG.jpeg',
   '/images/acivites/IMG_1243.JPG.jpeg',
   '/images/acivites/IMG_1263.JPG.jpeg',
-  '/images/acivites/IMG_1429.JPG.jpeg'
+  '/images/acivites/IMG_1429.JPG.jpeg',
+  '/images/acivites/IMG_0172.JPG.jpeg',
+  '/images/acivites/IMG_0241.JPG.jpeg'
 ];
 
 export default function Gallery() {

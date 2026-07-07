@@ -9,7 +9,6 @@ import Enquiry from "./components/Enquiry";
 import Contact from "./components/Contact";
 import { Footer } from "./components/Footer.jsx";
 import FloatingBubbles from "./components/FloatingBubbles";
-import AdmissionBanner from "./components/AdmissionBanner";
 import InstagramSection from "./components/InstagramSection";
 import ScrollProgress from "./components/ScrollProgress";
 
@@ -114,7 +113,6 @@ export default function App() {
       <Navbar />
       <main>
         <section id="home"><Hero /></section>
-        <AdmissionBanner />
         <section id="eligibility">
           <AgeEligibilityCalculator
             onApply={goToEnquiry}

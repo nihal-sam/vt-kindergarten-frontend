@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-const links = ['home','eligibility','about','programs','gallery','enquiry','contact'];
+const links = ['home','eligibility','about','programs','gallery','contact'];
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -14,7 +14,12 @@ export default function Navbar() {
   }, []);
 
   const scrollTo = (id) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+    const el = document.getElementById(id);
+    if (el) {
+      const navbarOffset = 90;
+      const targetTop = el.getBoundingClientRect().top + window.scrollY - navbarOffset;
+      window.scrollTo({ top: Math.max(targetTop, 0), behavior: 'smooth' });
+    }
     setActive(id);
     setMenuOpen(false);
   };
@@ -47,7 +52,7 @@ export default function Navbar() {
         ))}
         <li>
           <a href="#enquiry" className="nav-cta" onClick={(e) => { e.preventDefault(); scrollTo('enquiry'); }}>
-            Enquire Now
+            Enquiry Now
           </a>
         </li>
       </ul>

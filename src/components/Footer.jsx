@@ -24,11 +24,11 @@ function Footer() {
             >
               {"\u{1F4F8}"}
             </a>
-            <a href="tel:+919876543210" className="social-btn" style={{ background: '#25d366' }}>
+            <a href="tel:+917358293839" className="social-btn" style={{ background: '#25d366' }}>
               {"\u260E"}
             </a>
             <a
-              href="https://wa.me/919876543210"
+              href="https://wa.me/917358293839"
               target="_blank"
               rel="noopener noreferrer"
               className="social-btn"
@@ -65,7 +65,7 @@ function Footer() {
         <div className="footer-col">
           <h4>Contact</h4>
           <ul>
-            <li><a href="tel:+919876543210">+91 98765 43210</a></li>
+            <li><a href="tel:+917358293839">+91 73582 93839</a></li>
             <li><a href="mailto:vtkindergarten@gmail.com">Email Us</a></li>
             <li><a href="https://maps.google.com" target="_blank" rel="noopener noreferrer">Subramaniapuram, Karaikudi</a></li>
             <li><a href="#home">Mon-Sat: 9AM-1PM</a></li>

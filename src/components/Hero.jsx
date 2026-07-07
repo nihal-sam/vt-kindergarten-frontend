@@ -32,7 +32,7 @@ export default function Hero() {
         </p>
         <div className="hero-btns">
           <button className="btn-primary" onClick={() => scrollTo('enquiry')}>
-            Enquire Now
+            Enquiry
           </button>
           <button className="btn-secondary" onClick={() => scrollTo('about')}>
             Learn More

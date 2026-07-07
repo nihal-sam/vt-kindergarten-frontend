@@ -53,29 +53,7 @@ export default function Enquiry({ prefill }) {
             We'd love to hear from you! Whether you want to schedule a school visit, ask about our programs,
             or learn about admissions, our friendly team is here to help.
           </p>
-          <div className="contact-cards">
-            <div className="contact-card">
-              <div className="contact-icon orange">{"\u260E"}</div>
-              <div className="contact-card-text">
-                <h4>Call Us</h4>
-                <p>+91 98765 43210</p>
-              </div>
-            </div>
-            <div className="contact-card">
-              <div className="contact-icon teal">{"\u{1F4CD}"}</div>
-              <div className="contact-card-text">
-                <h4>Visit Us</h4>
-                <p>11, 7th St, South Extension, Vairavapuram, Subramaniapuram, Karaikudi - 630002</p>
-              </div>
-            </div>
-            <div className="contact-card">
-              <div className="contact-icon purple">{"\u23F0"}</div>
-              <div className="contact-card-text">
-                <h4>School Hours</h4>
-                <p>Mon-Sat: 9:00 AM - 1:00 PM</p>
-              </div>
-            </div>
-          </div>
+
         </div>
 
         <div className="enquiry-form">
@@ -90,7 +68,6 @@ export default function Enquiry({ prefill }) {
             </div>
           ) : (
             <>
-              <h3>Send an Enquiry</h3>
               <form onSubmit={submit}>
                 <div className="form-row">
                   <div className="form-group">

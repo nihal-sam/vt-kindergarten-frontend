@@ -1,31 +1,23 @@
-﻿const programs = [
+const programs = [
   {
-    emoji: "\u{1F331}",
+    emoji: "🌱",
     name: 'Play Group',
     age: 'Age: 2+ Years',
-    desc: 'Introduction to school life through sensory play, songs, and social interaction.',
-    features: ['Sensory activities', 'Circle time', 'Story telling', 'Music & movement'],
   },
   {
-    emoji: "\u{1F338}",
+    emoji: "🌸",
     name: 'Pre KG',
     age: 'Age: 3+ Years',
-    desc: 'Foundation of language, numbers, and social skills through play-based activities.',
-    features: ['Pre-reading skills', 'Number awareness', 'Art & craft', 'Outdoor play'],
   },
   {
-    emoji: "\u{1F4D6}",
+    emoji: "📖",
     name: 'LKG',
     age: 'Age: 4+ Years',
-    desc: 'Structured learning of alphabets, numbers, and motor skill development.',
-    features: ['Alphabet learning', 'Writing practice', 'Science activities', 'Sports'],
   },
   {
-    emoji: "\u{1F393}",
+    emoji: "🎓",
     name: 'UKG',
     age: 'Age: 5+ Years',
-    desc: 'School readiness with advanced literacy, numeracy, and critical thinking.',
-    features: ['Reading readiness', 'Math concepts', 'Environmental studies', 'Leadership'],
   },
 ];
 
@@ -45,10 +37,6 @@ export default function Programs() {
             <span className="program-emoji" style={{ animationDelay: `${index * 0.2}s` }}>{program.emoji}</span>
             <h3>{program.name}</h3>
             <span className="program-age">{program.age}</span>
-            <p>{program.desc}</p>
-            <ul className="program-features">
-              {program.features.map((feature, featureIndex) => <li key={featureIndex}>{feature}</li>)}
-            </ul>
           </div>
         ))}
       </div>

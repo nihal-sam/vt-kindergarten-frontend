@@ -11,7 +11,6 @@ const highlights = [
   'Play-based learning methodology',
   'Activity-enriched curriculum',
   'Motor skills development programs',
-  'Nutritious meal & snack time',
   'Parent-teacher communication',
   'Air-conditioned classrooms',
 ];

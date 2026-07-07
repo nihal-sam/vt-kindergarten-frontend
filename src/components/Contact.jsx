@@ -12,7 +12,7 @@ export default function Contact() {
         <div>
           <div className="map-wrap" style={{ padding: 0, overflow: 'hidden', minHeight: '300px', display: 'flex' }}>
             <iframe 
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15729.805568461746!2d78.761009!3d10.067341!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3b005d5c5f4b0001%3A0x2a3e0f76!2sSubramaniapuram%2C%20Karaikudi%2C%20Tamil%20Nadu%20630002!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin" 
+              src="https://maps.google.com/maps?q=7th+Street,+Subramaniapuram,+Karaikudi&t=&z=16&ie=UTF8&output=embed" 
               width="100%" 
               height="100%" 
               style={{ border: 0, flex: 1 }} 
@@ -23,7 +23,7 @@ export default function Contact() {
           </div>
           <div style={{ marginTop: 16 }}>
             <a
-              href="https://maps.google.com/?q=Subramaniapuram,Karaikudi"
+              href="https://maps.google.com/?q=11,+7th+Street,+South+Extension,+Vairavapuram,+Subramaniapuram,+Karaikudi+-+630002"
               target="_blank"
               rel="noopener noreferrer"
               className="btn-primary"
@@ -45,23 +45,11 @@ export default function Contact() {
             </div>
             <div className="info-box">
               <h4>📞 Phone</h4>
-              <p>+91 98765 43210<br/>+91 94321 09876</p>
-            </div>
-            <div className="info-box">
-              <h4>⏰ Timings</h4>
-              <p>Monday – Saturday<br/>9:00 AM – 1:00 PM</p>
+              <p>+91 73582 93839</p>
             </div>
             <div className="info-box">
               <h4>🏫 Programs</h4>
               <p>Play Group · Pre KG<br/>LKG · UKG</p>
-            </div>
-            <div className="info-box">
-              <h4>📧 Email</h4>
-              <p>vtkindergarten@gmail.com</p>
-            </div>
-            <div className="info-box">
-              <h4>🌟 Landmark</h4>
-              <p>Near Reliance Smart Bazaar, Subramaniapuram</p>
             </div>
           </div>
         </div>
