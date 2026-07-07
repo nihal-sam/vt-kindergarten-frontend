@@ -2193,6 +2193,12 @@ body {
   background-color: #f0f0f0; /* Fallback placeholder */
 }
 
+@media (min-width: 901px) {
+  .gallery-image-wrapper:last-child:nth-child(4) {
+    grid-column: 2;
+  }
+}
+
 .gallery-image-wrapper::after {
   content: '';
   position: absolute;

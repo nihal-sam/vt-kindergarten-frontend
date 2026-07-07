@@ -5,7 +5,6 @@ import AgeEligibilityCalculator from "./components/AgeEligibilityCalculator";
 import About from "./components/About";
 import Programs from "./components/Programs";
 import Gallery from "./components/Gallery";
-import Enquiry from "./components/Enquiry";
 import Contact from "./components/Contact";
 import { Footer } from "./components/Footer.jsx";
 import FloatingBubbles from "./components/FloatingBubbles";
@@ -16,7 +15,6 @@ const ELIGIBILITY_PROMPT_ASSETS = ["/assets/jerry-enquiry.png", "/assets/tom-enq
 
 export default function App() {
   const [loading, setLoading] = useState(true);
-  const [enquiryPrefill, setEnquiryPrefill] = useState(null);
   const [showEligibilityPrompt, setShowEligibilityPrompt] = useState(false);
   const [ageCalculatorTouched, setAgeCalculatorTouched] = useState(false);
 
@@ -81,29 +79,6 @@ export default function App() {
     }, 650);
   };
 
-  const goToEnquiry = (prefill = null) => {
-    if (prefill) setEnquiryPrefill({ ...prefill, requestedAt: Date.now() });
-
-    const enquirySection = document.getElementById("enquiry");
-    if (!enquirySection) return;
-
-    const navbarOffset = 90;
-    const targetTop = enquirySection.getBoundingClientRect().top + window.scrollY - navbarOffset;
-
-    window.scrollTo({
-      top: Math.max(targetTop, 0),
-      behavior: "smooth",
-    });
-    window.history.replaceState(null, "", "#enquiry");
-
-    window.setTimeout(() => {
-      const firstField =
-        enquirySection.querySelector('input[name="phone"]') ||
-        enquirySection.querySelector("input, select, textarea");
-      firstField?.focus({ preventScroll: true });
-    }, 650);
-  };
-
   if (loading) return <LoadingScreen />;
 
   return (
@@ -115,7 +90,6 @@ export default function App() {
         <section id="home"><Hero /></section>
         <section id="eligibility">
           <AgeEligibilityCalculator
-            onApply={goToEnquiry}
             onInteraction={markAgeCalculatorTouched}
           />
         </section>
@@ -123,7 +97,6 @@ export default function App() {
         <section id="programs"><Programs /></section>
         <section id="gallery"><Gallery /></section>
         <section id="instagram"><InstagramSection /></section>
-        <section id="enquiry"><Enquiry prefill={enquiryPrefill} /></section>
         <section id="contact"><Contact /></section>
       </main>
       {showEligibilityPrompt && (

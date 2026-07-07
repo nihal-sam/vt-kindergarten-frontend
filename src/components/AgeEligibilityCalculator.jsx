@@ -59,13 +59,18 @@ function formatAge(age) {
   return parts.join(" ");
 }
 
-export default function AgeEligibilityCalculator({ onApply, onInteraction }) {
+const API = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+
+export default function AgeEligibilityCalculator({ onInteraction }) {
   const [childName, setChildName] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const normalizedName = childName.trim();
 
@@ -74,7 +79,7 @@ export default function AgeEligibilityCalculator({ onApply, onInteraction }) {
     return result.grade;
   }, [result]);
 
-  const calculateEligibility = (event) => {
+  const calculateEligibility = async (event) => {
     event.preventDefault();
     const birthDate = parseLocalDate(dateOfBirth);
 
@@ -89,7 +94,6 @@ export default function AgeEligibilityCalculator({ onApply, onInteraction }) {
       setError("Please select the child date of birth.");
       return;
     }
-
 
     if (birthDate > CUTOFF_DATE) {
       setResult(null);
@@ -109,26 +113,33 @@ export default function AgeEligibilityCalculator({ onApply, onInteraction }) {
     });
 
     if (grade) {
-      setTimeout(() => {
-        onApply({
+      setLoading(true);
+      try {
+        const payload = {
           name: normalizedName,
-          phone: phone,
-          email: email,
+          phone,
+          email,
           program: grade.grade,
-          message: `Admission enquiry for ${normalizedName}. Eligible grade: ${grade.grade}. Age on ${CUTOFF_LABEL}: ${formatAge(age)}.`,
+          message: `${message}\n\n(System Note: Eligible for ${grade.grade}, Age on cutoff: ${formatAge(age)})`,
+        };
+        const res = await fetch(`${API}/enquiries`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify(payload)
         });
-      }, 1200);
+        const data = await res.json();
+        if (res.ok) {
+          setSuccess(true);
+          setChildName(''); setDateOfBirth(''); setPhone(''); setEmail(''); setMessage('');
+        } else {
+          setError(data.message || 'Submission failed.');
+        }
+      } catch (err) {
+        setError('Network error. Please try again.');
+      } finally {
+        setLoading(false);
+      }
     }
-  };
-
-  const fillEnquiry = () => {
-    if (!result?.eligible) return;
-
-    onApply({
-      name: normalizedName,
-      program: result.grade,
-      message: `Admission enquiry for ${normalizedName}. Eligible grade: ${result.grade}. Age on ${CUTOFF_LABEL}: ${formatAge(result.age)}.`,
-    });
   };
 
   return (
@@ -205,52 +216,80 @@ export default function AgeEligibilityCalculator({ onApply, onInteraction }) {
               </div>
             </div>
 
+            <div className="form-group">
+              <label>Message (Optional)</label>
+              <textarea
+                value={message}
+                onFocus={onInteraction}
+                onPointerDown={onInteraction}
+                onChange={(event) => setMessage(event.target.value)}
+                placeholder="Any questions you have?"
+                rows="3"
+                style={{ width: '100%', resize: 'vertical' }}
+              />
+            </div>
+
             {error && <div className="eligibility-error">{error}</div>}
 
-            <button className="btn-primary eligibility-submit" type="submit">
-              Check & Send Enquiry
+            <button className="btn-primary eligibility-submit" type="submit" disabled={loading}>
+              {loading ? 'Sending...' : 'Check & Send Enquiry'}
             </button>
           </form>
         </div>
 
         <div className="eligibility-result-area">
-          <div className={`eligibility-result-card ${result ? "has-result" : ""}`}>
-            <div className="eligibility-panel-heading">
-              <span className="eligibility-step-number">2</span>
-              <div>
-                <h3>Eligible Grade</h3>
-                <p>Cutoff date: {CUTOFF_LABEL}</p>
+          <div className={`eligibility-result-card ${result || success ? "has-result" : ""}`}>
+            {success ? (
+              <div style={{ textAlign: 'center', padding: '20px' }}>
+                <span style={{ fontSize: 48, display: 'block', marginBottom: 16 }}>{"\u2705"}</span>
+                <h3 style={{ fontFamily: "'Fredoka One', cursive", fontSize: 24, marginBottom: 8 }}>Enquiry Sent!</h3>
+                <p>We've received your details and will contact you shortly.</p>
+                {result?.grade && (
+                  <p style={{ marginTop: 12, fontSize: 14, color: 'var(--primary)' }}>
+                    (Eligible for {result.grade})
+                  </p>
+                )}
+                <button className="btn-primary" style={{ marginTop: 20 }} onClick={() => { setSuccess(false); setResult(null); }}>
+                  Check Another
+                </button>
               </div>
-            </div>
-
-            {result ? (
+            ) : (
               <>
-                <div className="eligibility-age-display">
-                  <span>Age on cutoff</span>
-                  <strong>{formatAge(result.age)}</strong>
+                <div className="eligibility-panel-heading">
+                  <span className="eligibility-step-number">2</span>
+                  <div>
+                    <h3>Eligible Grade</h3>
+                    <p>Cutoff date: {CUTOFF_LABEL}</p>
+                  </div>
                 </div>
 
-                {result.eligible ? (
-                  <div className="eligibility-grade-result">
-                    <span>{result.minYears}+ years</span>
-                    <strong>{result.grade}</strong>
-                    <p>{normalizedName} can apply for {result.grade}.</p>
-                    <button className="btn-primary" type="button" onClick={fillEnquiry}>
-                      Yes, Fill Enquiry Form
-                    </button>
-                  </div>
+                {result ? (
+                  <>
+                    <div className="eligibility-age-display">
+                      <span>Age on cutoff</span>
+                      <strong>{formatAge(result.age)}</strong>
+                    </div>
+
+                    {result.eligible ? (
+                      <div className="eligibility-grade-result">
+                        <span>{result.minYears}+ years</span>
+                        <strong>{result.grade}</strong>
+                        <p>{normalizedName} is eligible for {result.grade}.</p>
+                      </div>
+                    ) : (
+                      <div className="eligibility-not-ready">
+                        <strong>Not eligible yet</strong>
+                        <p>The child must complete 2 years on {CUTOFF_LABEL} for Play Group.</p>
+                      </div>
+                    )}
+                  </>
                 ) : (
-                  <div className="eligibility-not-ready">
-                    <strong>Not eligible yet</strong>
-                    <p>The child must complete 2 years on {CUTOFF_LABEL} for Play Group.</p>
+                  <div className="eligibility-empty">
+                    <strong>Ready to check</strong>
+                    <p>The result will appear here after calculation.</p>
                   </div>
                 )}
               </>
-            ) : (
-              <div className="eligibility-empty">
-                <strong>Ready to check</strong>
-                <p>The result will appear here after calculation.</p>
-              </div>
             )}
           </div>
 
