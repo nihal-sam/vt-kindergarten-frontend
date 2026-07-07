@@ -7,8 +7,8 @@ function Footer() {
         <div className="footer-brand" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <div className="footer-brand-heading" style={{ justifyContent: 'center', alignItems: 'center' }}>
             <img src="/assets/vt-logo.png" alt="VT Kindergarten Pre School logo" />
-            <h2 style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: '1' }}>
-              VT <span>Kindergarten</span>
+            <h2 style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: '1', fontFamily: '"Comic Sans MS", "Comic Sans", cursive' }}>
+              <span style={{ fontSize: '1.2em' }}>VT</span> <span style={{ fontSize: '0.85em' }}>Kindergarten</span>
             </h2>
           </div>
           <p style={{ maxWidth: '600px', margin: '0 auto 24px' }}>
@@ -22,7 +22,7 @@ function Footer() {
           <h4 style={{ fontWeight: 800, fontSize: '18px', color: 'white', marginBottom: '16px' }}>Contact Us</h4>
           
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', marginBottom: '20px', color: 'rgba(255,255,255,0.7)', fontSize: '15px' }}>
-            <strong style={{ color: 'white' }}>VT Kindergarten Pre school</strong>
+            <strong style={{ color: 'white' }}>VT Kindergarten</strong>
             <a href="tel:+917358293839" style={{ color: 'inherit', textDecoration: 'none' }}>+91 73582 93839</a>
             <a href="mailto:vtkindergarten@gmail.com" style={{ color: 'inherit', textDecoration: 'none' }}>vtkindergarten@gmail.com</a>
           </div>
