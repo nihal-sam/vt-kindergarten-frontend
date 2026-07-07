@@ -53,8 +53,29 @@ export default function Enquiry({ prefill }) {
             We'd love to hear from you! Whether you want to schedule a school visit, ask about our programs,
             or learn about admissions, our friendly team is here to help.
           </p>
-
-        </div>
+          <div className="contact-cards" style={{ marginTop: '32px' }}>
+            <div className="contact-card">
+              <div className="contact-icon orange" style={{ fontSize: '28px' }}>📍</div>
+              <div className="contact-card-text">
+                <h4 style={{ color: 'var(--primary)', marginBottom: '4px' }}>Address</h4>
+                <p>VT Kindergarten, Play school and Pre school, 11, 7th St, near Reliance Smart Bazaar, Subramaniapuram, south extension, Vairavapuram, Karaikkudi (M.Corp), Tamil Nadu 630002</p>
+              </div>
+            </div>
+            <div className="contact-card">
+              <div className="contact-icon teal" style={{ fontSize: '28px' }}>📞</div>
+              <div className="contact-card-text">
+                <h4 style={{ color: '#4ecdc4', marginBottom: '4px' }}>Phone Number</h4>
+                <p>+91 73582 93839</p>
+              </div>
+            </div>
+            <div className="contact-card">
+              <div className="contact-icon purple" style={{ fontSize: '28px' }}>🏫</div>
+              <div className="contact-card-text">
+                <h4 style={{ color: '#a78bfa', marginBottom: '4px' }}>Programs</h4>
+                <p>Play Group · Pre KG · LKG · UKG</p>
+              </div>
+            </div>
+          </div>
 
         <div className="enquiry-form">
           {success ? (

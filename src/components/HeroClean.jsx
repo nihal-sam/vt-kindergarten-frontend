@@ -99,7 +99,7 @@ export default function HeroClean() {
         </div>
         <div className="hero-stats" style={{ display: 'flex', gap: '16px', alignItems: 'center', background: 'rgba(255,255,255,0.7)', padding: '16px 20px', borderRadius: '20px', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.4)', maxWidth: '100%' }}>
           <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg viewBox="0 0 24 24" fill="var(--primary)" width="42" height="42" style={{ filter: 'drop-shadow(0 4px 8px rgba(255,107,53,0.3))' }}>
+            <svg viewBox="0 0 24 24" fill="#3b82f6" width="42" height="42" style={{ filter: 'drop-shadow(0 4px 8px rgba(59,130,246,0.3))' }}>
               <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
             </svg>
           </div>
