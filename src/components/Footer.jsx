@@ -8,7 +8,7 @@ function Footer() {
           <div className="footer-brand-heading" style={{ justifyContent: 'center', alignItems: 'center' }}>
             <img src="/assets/vt-logo.png" alt="VT Kindergarten Pre School logo" />
             <h2 style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: '1', fontFamily: '"Comic Sans MS", "Comic Sans", cursive' }}>
-              <span style={{ fontSize: '1.2em' }}>VT</span> <span style={{ fontSize: '0.85em' }}>Kindergarten</span>
+              <span style={{ fontSize: '2em', color: 'white' }}>VT</span> <span style={{ fontSize: '1.2em' }}>Kindergarten</span>
             </h2>
           </div>
           <p style={{ maxWidth: '600px', margin: '0 auto 24px' }}>
