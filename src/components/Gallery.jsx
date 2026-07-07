@@ -1,5 +1,5 @@
 const images = [
-  '/images/acivites/IMG_1243.JPG.jpeg',
+  '/images/acivites/f82ff7e5-dfbf-4bf1-9058-ec135ce539f2.jpg',
   '/images/acivites/IMG_1263.JPG.jpeg',
   '/images/acivites/IMG_0172.JPG.jpeg'
 ];
