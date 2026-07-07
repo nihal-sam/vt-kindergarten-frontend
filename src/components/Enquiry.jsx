@@ -55,26 +55,26 @@ export default function Enquiry({ prefill }) {
             We'd love to hear from you! Whether you want to schedule a school visit, ask about our programs,
             or learn about admissions, our friendly team is here to help.
           </p>
-          <div className="contact-cards" style={{ marginTop: '32px', display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <div className="contact-card" style={{ flex: '1 1 250px', maxWidth: '300px' }}>
-              <div className="contact-icon orange" style={{ fontSize: '28px' }}>📍</div>
-              <div className="contact-card-text">
-                <h4 style={{ color: 'var(--primary)', marginBottom: '4px' }}>Address</h4>
-                <p>VT Kindergarten, 11, 7th St, Subramaniapuram, Karaikkudi</p>
+          <div className="contact-cards" style={{ marginTop: '32px', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
+            <div className="contact-card" style={{ width: '100%', maxWidth: '440px', padding: '24px' }}>
+              <div className="contact-icon orange" style={{ fontSize: '28px', flexShrink: 0 }}>📍</div>
+              <div className="contact-card-text" style={{ textAlign: 'left' }}>
+                <h4 style={{ color: 'var(--primary)', marginBottom: '4px', fontSize: '16px' }}>Address</h4>
+                <p style={{ margin: 0, fontSize: '15px' }}>VT Kindergarten, 11, 7th St, Subramaniapuram, Karaikkudi</p>
               </div>
             </div>
-            <div className="contact-card" style={{ flex: '1 1 250px', maxWidth: '300px' }}>
-              <div className="contact-icon teal" style={{ fontSize: '28px' }}>📞</div>
-              <div className="contact-card-text">
-                <h4 style={{ color: '#4ecdc4', marginBottom: '4px' }}>Phone Number</h4>
-                <p>+91 73582 93839</p>
+            <div className="contact-card" style={{ width: '100%', maxWidth: '440px', padding: '24px' }}>
+              <div className="contact-icon teal" style={{ fontSize: '28px', flexShrink: 0 }}>📞</div>
+              <div className="contact-card-text" style={{ textAlign: 'left' }}>
+                <h4 style={{ color: '#4ecdc4', marginBottom: '4px', fontSize: '16px' }}>Phone Number</h4>
+                <p style={{ margin: 0, fontSize: '15px' }}>+91 73582 93839</p>
               </div>
             </div>
-            <div className="contact-card" style={{ flex: '1 1 250px', maxWidth: '300px' }}>
-              <div className="contact-icon purple" style={{ fontSize: '28px' }}>🏫</div>
-              <div className="contact-card-text">
-                <h4 style={{ color: '#a78bfa', marginBottom: '4px' }}>Programs</h4>
-                <p>Play Group · Pre KG<br/>LKG · UKG</p>
+            <div className="contact-card" style={{ width: '100%', maxWidth: '440px', padding: '24px' }}>
+              <div className="contact-icon purple" style={{ fontSize: '28px', flexShrink: 0 }}>🏫</div>
+              <div className="contact-card-text" style={{ textAlign: 'left' }}>
+                <h4 style={{ color: '#a78bfa', marginBottom: '4px', fontSize: '16px' }}>Programs</h4>
+                <p style={{ margin: 0, fontSize: '15px' }}>Play Group · Pre KG<br/>LKG · UKG</p>
               </div>
             </div>
           </div>
