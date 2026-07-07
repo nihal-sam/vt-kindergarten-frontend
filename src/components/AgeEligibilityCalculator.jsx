@@ -211,7 +211,7 @@ export default function AgeEligibilityCalculator({ onInteraction }) {
                   onFocus={onInteraction}
                   onPointerDown={onInteraction}
                   onChange={(event) => setEmail(event.target.value)}
-                  placeholder="email@example.com"
+                  placeholder="Enter the email ID"
                 />
               </div>
             </div>

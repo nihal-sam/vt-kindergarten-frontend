@@ -950,19 +950,26 @@ body {
 
 .eligibility-section .form-group label { color: var(--text); }
 
-.eligibility-section .form-group input {
+.eligibility-section .form-group input,
+.eligibility-section .form-group textarea {
   width: 100%;
   background: var(--light);
   border: 1.5px solid #e8e8e8;
   color: var(--text);
+  font-family: inherit;
+  padding: 14px 16px;
+  border-radius: 12px;
 }
 
-.eligibility-section .form-group input::placeholder { color: #aab2bd; }
+.eligibility-section .form-group input::placeholder,
+.eligibility-section .form-group textarea::placeholder { color: #aab2bd; }
 
-.eligibility-section .form-group input:focus {
+.eligibility-section .form-group input:focus,
+.eligibility-section .form-group textarea:focus {
   border-color: var(--primary);
   background: white;
   box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.08);
+  outline: none;
 }
 
 .eligibility-error {

@@ -5,9 +5,11 @@ function Footer() {
     <footer className="footer">
       <div className="footer-top" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '32px' }}>
         <div className="footer-brand" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <div className="footer-brand-heading" style={{ justifyContent: 'center' }}>
+          <div className="footer-brand-heading" style={{ justifyContent: 'center', alignItems: 'center' }}>
             <img src="/assets/vt-logo.png" alt="VT Kindergarten Pre School logo" />
-            <h2>VT <span>Kindergarten</span></h2>
+            <h2 style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: '1' }}>
+              VT <span>Kindergarten</span>
+            </h2>
           </div>
           <p style={{ maxWidth: '600px', margin: '0 auto 24px' }}>
             A nurturing, play-based learning environment where every child discovers
