@@ -76,6 +76,7 @@ export default function Enquiry({ prefill }) {
               </div>
             </div>
           </div>
+        </div>
 
         <div className="enquiry-form">
           {success ? (
