@@ -25,13 +25,6 @@ export default function Contact() {
                 <p style={{ margin: 0, fontSize: '15px', color: '#888' }}>+91 73582 93839</p>
               </div>
             </div>
-            <div className="contact-card" style={{ width: '100%', maxWidth: '440px', padding: '24px', display: 'flex', alignItems: 'center', gap: '16px', background: 'white', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-soft)' }}>
-              <div className="contact-icon purple" style={{ fontSize: '28px', flexShrink: 0, width: '52px', height: '52px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '14px', background: 'rgba(167,139,250,0.1)' }}>🏫</div>
-              <div className="contact-card-text" style={{ textAlign: 'left' }}>
-                <h4 style={{ color: '#a78bfa', marginBottom: '4px', fontSize: '16px', fontWeight: 800 }}>Programs</h4>
-                <p style={{ margin: 0, fontSize: '15px', color: '#888' }}>Play Group · Pre KG<br/>LKG · UKG</p>
-              </div>
-            </div>
           </div>
         </div>
 
