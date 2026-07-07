@@ -20,7 +20,7 @@ function Footer() {
           <h4 style={{ fontWeight: 800, fontSize: '18px', color: 'white', marginBottom: '16px' }}>Contact Us</h4>
           
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', marginBottom: '20px', color: 'rgba(255,255,255,0.7)', fontSize: '15px' }}>
-            <strong style={{ color: 'white' }}>VT Kindergarten, Play school and Pre school</strong>
+            <strong style={{ color: 'white' }}>VT Kindergarten Pre school</strong>
             <a href="tel:+917358293839" style={{ color: 'inherit', textDecoration: 'none' }}>+91 73582 93839</a>
             <a href="mailto:vtkindergarten@gmail.com" style={{ color: 'inherit', textDecoration: 'none' }}>vtkindergarten@gmail.com</a>
           </div>
