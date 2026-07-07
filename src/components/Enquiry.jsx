@@ -46,41 +46,43 @@ export default function Enquiry({ prefill }) {
   };
 
   return (
-    <div className="enquiry-section" style={{ paddingBottom: '20px', marginBottom: '-60px', position: 'relative', zIndex: 10 }}>
-      <div className="enquiry-grid">
-        <div className="enquiry-info">
-          <div className="section-tag">Get In Touch</div>
+    <div className="enquiry-section" style={{ paddingBottom: '60px', marginBottom: '0', position: 'relative', zIndex: 10 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '64px', maxWidth: '900px', margin: '0 auto' }}>
+        <div className="enquiry-info" style={{ textAlign: 'center' }}>
+          <div className="section-tag" style={{ margin: '0 auto 16px' }}>Get In Touch</div>
           <h2>Have Questions? <span>Ask Us!</span></h2>
-          <p>
+          <p style={{ maxWidth: '600px', margin: '0 auto' }}>
             We'd love to hear from you! Whether you want to schedule a school visit, ask about our programs,
             or learn about admissions, our friendly team is here to help.
           </p>
-          <div className="contact-cards" style={{ marginTop: '32px' }}>
-            <div className="contact-card">
+          <div className="contact-cards" style={{ marginTop: '32px', display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <div className="contact-card" style={{ flex: '1 1 250px', maxWidth: '300px' }}>
               <div className="contact-icon orange" style={{ fontSize: '28px' }}>📍</div>
               <div className="contact-card-text">
                 <h4 style={{ color: 'var(--primary)', marginBottom: '4px' }}>Address</h4>
-                <p>VT Kindergarten, Play school and Pre school, 11, 7th St, near Reliance Smart Bazaar, Subramaniapuram, south extension, Vairavapuram, Karaikkudi (M.Corp), Tamil Nadu 630002</p>
+                <p>VT Kindergarten, 11, 7th St, Subramaniapuram, Karaikkudi</p>
               </div>
             </div>
-            <div className="contact-card">
+            <div className="contact-card" style={{ flex: '1 1 250px', maxWidth: '300px' }}>
               <div className="contact-icon teal" style={{ fontSize: '28px' }}>📞</div>
               <div className="contact-card-text">
                 <h4 style={{ color: '#4ecdc4', marginBottom: '4px' }}>Phone Number</h4>
                 <p>+91 73582 93839</p>
               </div>
             </div>
-            <div className="contact-card">
+            <div className="contact-card" style={{ flex: '1 1 250px', maxWidth: '300px' }}>
               <div className="contact-icon purple" style={{ fontSize: '28px' }}>🏫</div>
               <div className="contact-card-text">
                 <h4 style={{ color: '#a78bfa', marginBottom: '4px' }}>Programs</h4>
-                <p>Play Group · Pre KG · LKG · UKG</p>
+                <p>Play Group · Pre KG<br/>LKG · UKG</p>
               </div>
             </div>
           </div>
         </div>
 
         <div className="enquiry-form">
+          <div className="section-tag" style={{ margin: '0 auto 16px' }}>Send an Enquiry</div>
+          <h2 style={{ textAlign: 'center', marginBottom: '32px' }}>Fill the <span>Form</span></h2>
           {success ? (
             <div style={{ textAlign: 'center', padding: '40px 20px' }}>
               <span style={{ fontSize: 64, display: 'block', marginBottom: 16 }}>{"\u2705"}</span>
