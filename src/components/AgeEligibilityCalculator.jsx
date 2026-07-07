@@ -62,6 +62,8 @@ function formatAge(age) {
 export default function AgeEligibilityCalculator({ onApply, onInteraction }) {
   const [childName, setChildName] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
 
@@ -105,6 +107,18 @@ export default function AgeEligibilityCalculator({ onApply, onInteraction }) {
       grade: grade?.grade || "",
       minYears: grade?.minYears || null,
     });
+
+    if (grade) {
+      setTimeout(() => {
+        onApply({
+          name: normalizedName,
+          phone: phone,
+          email: email,
+          program: grade.grade,
+          message: `Admission enquiry for ${normalizedName}. Eligible grade: ${grade.grade}. Age on ${CUTOFF_LABEL}: ${formatAge(age)}.`,
+        });
+      }, 1200);
+    }
   };
 
   const fillEnquiry = () => {
@@ -138,36 +152,63 @@ export default function AgeEligibilityCalculator({ onApply, onInteraction }) {
           </div>
 
           <form className="eligibility-form" onSubmit={calculateEligibility}>
-            <div className="form-group">
-              <label>Child Name *</label>
-              <input
-                value={childName}
-                onFocus={onInteraction}
-                onPointerDown={onInteraction}
-                onChange={(event) => setChildName(event.target.value)}
-                placeholder="Enter child name"
-                autoComplete="name"
-                required
-              />
+            <div className="form-row">
+              <div className="form-group">
+                <label>Child Name *</label>
+                <input
+                  value={childName}
+                  onFocus={onInteraction}
+                  onPointerDown={onInteraction}
+                  onChange={(event) => setChildName(event.target.value)}
+                  placeholder="Child name"
+                  autoComplete="name"
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Date of Birth *</label>
+                <input
+                  type="date"
+                  value={dateOfBirth}
+                  max="2026-03-31"
+                  onFocus={onInteraction}
+                  onPointerDown={onInteraction}
+                  onChange={(event) => setDateOfBirth(event.target.value)}
+                  required
+                />
+              </div>
             </div>
 
-            <div className="form-group">
-              <label>Child Date of Birth *</label>
-              <input
-                type="date"
-                value={dateOfBirth}
-                max="2026-03-31"
-                onFocus={onInteraction}
-                onPointerDown={onInteraction}
-                onChange={(event) => setDateOfBirth(event.target.value)}
-                required
-              />
+            <div className="form-row">
+              <div className="form-group">
+                <label>Phone Number *</label>
+                <input
+                  type="tel"
+                  value={phone}
+                  onFocus={onInteraction}
+                  onPointerDown={onInteraction}
+                  onChange={(event) => setPhone(event.target.value)}
+                  placeholder="+91 XXXXX XXXXX"
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Email Address</label>
+                <input
+                  type="email"
+                  value={email}
+                  onFocus={onInteraction}
+                  onPointerDown={onInteraction}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="email@example.com"
+                />
+              </div>
             </div>
 
             {error && <div className="eligibility-error">{error}</div>}
 
             <button className="btn-primary eligibility-submit" type="submit">
-              Calculate Eligibility
+              Check & Send Enquiry
             </button>
           </form>
         </div>

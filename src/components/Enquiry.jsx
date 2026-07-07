@@ -17,6 +17,8 @@ export default function Enquiry({ prefill }) {
     setForm((current) => ({
       ...current,
       name: prefill.name || current.name,
+      phone: prefill.phone || current.phone,
+      email: prefill.email || current.email,
       program: prefill.program || current.program,
       message: prefill.message || current.message,
     }));
