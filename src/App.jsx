@@ -3,6 +3,7 @@ import Navbar from "./components/Navbar";
 import Hero from "./components/HeroClean";
 import AgeEligibilityCalculator from "./components/AgeEligibilityCalculator";
 import About from "./components/About";
+import Founder from "./components/Founder";
 import Programs from "./components/Programs";
 import Gallery from "./components/Gallery";
 import Contact from "./components/Contact";
@@ -94,6 +95,7 @@ export default function App() {
           />
         </section>
         <section id="about"><About /></section>
+        <section id="founder"><Founder /></section>
         <section id="programs"><Programs /></section>
         <section id="gallery"><Gallery /></section>
         <section id="instagram"><InstagramSection /></section>

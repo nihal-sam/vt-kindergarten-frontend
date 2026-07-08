@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-const links = ['home','eligibility','about','programs','gallery','contact'];
+const links = ['home','eligibility','about','founder','programs','gallery','contact'];
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -43,6 +43,7 @@ export default function Navbar() {
               href={`#${link}`}
               className={active === link ? 'active' : ''}
               onClick={(e) => { e.preventDefault(); scrollTo(link); }}
+              style={link === 'founder' ? { color: 'var(--primary)', fontWeight: 'bold' } : {}}
             >
               {link === 'enquiry' ? 'Enquiry' :
                link === 'eligibility' ? 'Age Check' :
