@@ -1154,6 +1154,10 @@ body {
 }
 
 /* ===== ABOUT ===== */
+.founder-section {
+  padding: 100px 80px;
+}
+
 .about-section {
   padding: 100px 80px;
   background: white;
@@ -2086,7 +2090,7 @@ body {
   .hero-visual { display: none; }
   .about-section, .eligibility-section, .programs-section, .gallery-section,
   .admissions-section, .enquiry-section, .contact-section,
-  .instagram-section { padding: 60px 24px; }
+  .instagram-section, .founder-section { padding: 60px 24px; }
   .about-grid, .enquiry-grid, .contact-grid { grid-template-columns: 1fr; }
   .eligibility-panel,
   .eligibility-result-card { padding: 26px; }

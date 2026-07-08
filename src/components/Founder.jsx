@@ -1,6 +1,6 @@
 export default function Founder() {
   return (
-    <div className="founder-section" style={{ padding: '80px 20px', background: 'var(--light)' }}>
+    <div className="founder-section" style={{ background: 'var(--light)' }}>
       <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
         <div className="section-tag" style={{ margin: '0 auto 16px' }}>Founders' Note</div>
         <h2 style={{ marginBottom: '32px' }}>Welcome to <span>VT Kindergarten</span> ✨</h2>
