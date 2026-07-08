@@ -148,11 +148,7 @@ export default function About() {
               allowtransparency="true"
               style={{ display: 'block', marginTop: '-54px', pointerEvents: 'none' }}
             ></iframe>
-            <a href={`https://www.instagram.com/reel/${reelId}/`} target="_blank" rel="noopener noreferrer" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10, background: 'linear-gradient(to top, rgba(0,0,0,0.4) 0%, transparent 40%)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: '20px' }}>
-               <div style={{ color: 'white', fontWeight: 'bold', fontSize: '15px', textShadow: '0 2px 4px rgba(0,0,0,0.5)', background: 'rgba(255,255,255,0.2)', padding: '8px 20px', borderRadius: '30px', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                 <span>📷</span> View Full Post
-               </div>
-            </a>
+            <a href={`https://www.instagram.com/reel/${reelId}/`} target="_blank" rel="noopener noreferrer" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10 }}></a>
           </div>
         ))}
       </div>
