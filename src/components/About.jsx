@@ -108,14 +108,37 @@ export default function About() {
       </div>
 
       {/* Instagram Reels Row */}
-      <div style={{ marginTop: '60px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '24px', width: '100%' }}>
+      <div style={{ marginTop: '100px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '32px', width: '100%' }}>
         {[
           'DYkClf4PE5-',
           'DWvdnvWDGvY',
-          'DV0KTx1Dc90',
-          'DO8B9krD59D'
+          'DV0KTx1Dc90'
         ].map((reelId, index) => (
-          <div key={index} style={{ width: '100%', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', border: '6px solid white', background: '#000', height: '432px', position: 'relative' }}>
+          <div 
+            key={index} 
+            style={{ 
+              width: '100%', 
+              borderRadius: '24px', 
+              overflow: 'hidden', 
+              boxShadow: '0 15px 35px rgba(0,0,0,0.1)', 
+              border: '6px solid white', 
+              background: '#000', 
+              height: '400px', 
+              position: 'relative', 
+              transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)', 
+              cursor: 'pointer' 
+            }}
+            onMouseEnter={(e) => { 
+              e.currentTarget.style.transform = 'translateY(-12px)'; 
+              e.currentTarget.style.boxShadow = '0 30px 60px rgba(255,107,53,0.3)'; 
+              e.currentTarget.style.borderColor = 'var(--primary)';
+            }}
+            onMouseLeave={(e) => { 
+              e.currentTarget.style.transform = 'translateY(0)'; 
+              e.currentTarget.style.boxShadow = '0 15px 35px rgba(0,0,0,0.1)'; 
+              e.currentTarget.style.borderColor = 'white';
+            }}
+          >
             <iframe 
               src={`https://www.instagram.com/reel/${reelId}/embed`}
               width="100%" 
@@ -125,7 +148,11 @@ export default function About() {
               allowtransparency="true"
               style={{ display: 'block', marginTop: '-54px', pointerEvents: 'none' }}
             ></iframe>
-            <a href={`https://www.instagram.com/reel/${reelId}/`} target="_blank" rel="noopener noreferrer" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10 }}></a>
+            <a href={`https://www.instagram.com/reel/${reelId}/`} target="_blank" rel="noopener noreferrer" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10, background: 'linear-gradient(to top, rgba(0,0,0,0.4) 0%, transparent 40%)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: '20px' }}>
+               <div style={{ color: 'white', fontWeight: 'bold', fontSize: '15px', textShadow: '0 2px 4px rgba(0,0,0,0.5)', background: 'rgba(255,255,255,0.2)', padding: '8px 20px', borderRadius: '30px', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                 <span>📷</span> View Full Post
+               </div>
+            </a>
           </div>
         ))}
       </div>
