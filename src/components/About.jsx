@@ -50,31 +50,17 @@ export default function About() {
         <div className="about-visual reveal">
           <div style={{ width: '100%', maxWidth: '340px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
             <div 
-              style={{ width: '100%', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', border: '6px solid white', aspectRatio: '9/16', background: '#000', position: 'relative', cursor: 'pointer' }}
-              onClick={togglePlay}
-              onMouseEnter={() => setIsHovered(true)}
-              onMouseLeave={() => setIsHovered(false)}
+              style={{ width: '100%', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', border: '6px solid white', background: '#fff', position: 'relative' }}
             >
-              <video 
-                ref={videoRef}
-                src="/assets/about-video.mp4" 
-                loop 
-                muted 
-                playsInline
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                onPlay={() => setIsPlaying(true)}
-                onPause={() => setIsPlaying(false)}
-              />
-              {!isPlaying && (
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'white', transition: 'all 0.3s ease' }}>
-                  <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', fontSize: '28px', paddingLeft: '6px', marginBottom: '12px', boxShadow: '0 10px 20px rgba(0,0,0,0.2)' }}>
-                    ▶
-                  </div>
-                  <div style={{ fontSize: '14px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', opacity: isHovered ? 1 : 0, transform: isHovered ? 'translateY(0)' : 'translateY(10px)', transition: 'all 0.3s ease' }}>
-                    Tap video to play
-                  </div>
-                </div>
-              )}
+              <iframe 
+                src="https://www.instagram.com/reel/DYkClf4PE5-/embed" 
+                width="100%" 
+                height="580" 
+                frameBorder="0" 
+                scrolling="no" 
+                allowtransparency="true"
+                style={{ display: 'block' }}
+              ></iframe>
             </div>
 
           </div>
