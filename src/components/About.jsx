@@ -76,9 +76,7 @@ export default function About() {
                 </div>
               )}
             </div>
-            <div style={{ background: 'linear-gradient(135deg, var(--primary), var(--accent))', color: 'white', padding: '18px 24px', borderRadius: '16px', textAlign: 'center', boxShadow: '0 10px 30px rgba(255,107,53,0.3)' }}>
-              <h3 style={{ fontFamily: "'Fredoka One', cursive", fontSize: '24px', margin: 0, textShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>☀️ Summer Camp</h3>
-            </div>
+
           </div>
         </div>
 
