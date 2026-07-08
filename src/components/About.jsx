@@ -107,18 +107,27 @@ export default function About() {
         </div>
       </div>
 
-      <div style={{ marginTop: '60px', width: '100%', maxWidth: '340px', margin: '60px auto 0', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', border: '6px solid white', background: '#000', height: '432px', position: 'relative' }}>
-        <iframe 
-          src="https://www.instagram.com/reel/DYkClf4PE5-/embed" 
-          width="100%" 
-          height="580" 
-          frameBorder="0" 
-          scrolling="no" 
-          allowtransparency="true"
-          style={{ display: 'block', marginTop: '-54px', pointerEvents: 'none' }}
-        ></iframe>
-        {/* We add an invisible overlay so clicking anywhere on the cropped box goes to the Instagram link since the iframe pointer events are disabled to prevent scrolling or misclicks on the clipped areas */}
-        <a href="https://www.instagram.com/reel/DYkClf4PE5-/" target="_blank" rel="noopener noreferrer" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10 }}></a>
+      {/* Instagram Reels Row */}
+      <div style={{ marginTop: '60px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '24px', width: '100%' }}>
+        {[
+          'DYkClf4PE5-',
+          'DWvdnvWDGvY',
+          'DV0KTx1Dc90',
+          'DO8B9krD59D'
+        ].map((reelId, index) => (
+          <div key={index} style={{ width: '100%', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', border: '6px solid white', background: '#000', height: '432px', position: 'relative' }}>
+            <iframe 
+              src={`https://www.instagram.com/reel/${reelId}/embed`}
+              width="100%" 
+              height="580" 
+              frameBorder="0" 
+              scrolling="no" 
+              allowtransparency="true"
+              style={{ display: 'block', marginTop: '-54px', pointerEvents: 'none' }}
+            ></iframe>
+            <a href={`https://www.instagram.com/reel/${reelId}/`} target="_blank" rel="noopener noreferrer" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10 }}></a>
+          </div>
+        ))}
       </div>
     </div>
   );
