@@ -123,7 +123,7 @@ export default function About() {
               boxShadow: '0 15px 35px rgba(0,0,0,0.1)', 
               border: '6px solid white', 
               background: '#000', 
-              height: '400px', 
+              height: '520px', 
               position: 'relative', 
               transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)', 
               cursor: 'pointer' 
@@ -142,7 +142,7 @@ export default function About() {
             <iframe 
               src={`https://www.instagram.com/reel/${reelId}/embed`}
               width="100%" 
-              height="580" 
+              height="680" 
               frameBorder="0" 
               scrolling="no" 
               allowtransparency="true"
