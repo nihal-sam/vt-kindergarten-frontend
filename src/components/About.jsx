@@ -107,7 +107,7 @@ export default function About() {
         </div>
       </div>
 
-      <div style={{ marginTop: '60px', width: '100%', maxWidth: '340px', margin: '60px auto 0', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', border: '6px solid white', background: '#fff' }}>
+      <div style={{ marginTop: '60px', width: '100%', maxWidth: '340px', margin: '60px auto 0', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', border: '6px solid white', background: '#000', height: '432px', position: 'relative' }}>
         <iframe 
           src="https://www.instagram.com/reel/DYkClf4PE5-/embed" 
           width="100%" 
@@ -115,8 +115,10 @@ export default function About() {
           frameBorder="0" 
           scrolling="no" 
           allowtransparency="true"
-          style={{ display: 'block' }}
+          style={{ display: 'block', marginTop: '-54px', pointerEvents: 'none' }}
         ></iframe>
+        {/* We add an invisible overlay so clicking anywhere on the cropped box goes to the Instagram link since the iframe pointer events are disabled to prevent scrolling or misclicks on the clipped areas */}
+        <a href="https://www.instagram.com/reel/DYkClf4PE5-/" target="_blank" rel="noopener noreferrer" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10 }}></a>
       </div>
     </div>
   );
