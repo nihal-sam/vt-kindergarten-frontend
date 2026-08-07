@@ -7,8 +7,8 @@ function Footer() {
         <div className="footer-brand" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <div className="footer-brand-heading" style={{ justifyContent: 'center', alignItems: 'center', gap: '16px' }}>
             <img src="/assets/vt-logo.png" alt="VT Kindergarten Pre School logo" />
-            <h2 style={{ color: 'white', margin: 0, fontSize: '1.5em', fontWeight: 'bold' }}>
-              VT Kindergarten
+            <h2 style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: '1', margin: 0, fontWeight: '800', color: 'white' }}>
+              <span style={{ fontSize: '2em' }}>VT</span> <span style={{ fontSize: '1.2em' }}>Kindergarten</span>
             </h2>
           </div>
           <p style={{ maxWidth: '600px', margin: '0 auto 24px' }}>
