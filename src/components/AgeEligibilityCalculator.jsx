@@ -12,7 +12,12 @@ const eligibilityLevels = [
 
 function parseLocalDate(value) {
   if (!value) return null;
-  const [year, month, day] = value.split("-").map(Number);
+  let year, month, day;
+  if (value.includes("-")) {
+    [year, month, day] = value.split("-").map(Number);
+  } else if (value.includes("/")) {
+    [day, month, year] = value.split("/").map(Number);
+  }
   if (!year || !month || !day) return null;
   return new Date(year, month - 1, day);
 }
@@ -179,12 +184,18 @@ export default function AgeEligibilityCalculator({ onInteraction }) {
               <div className="form-group">
                 <label>Date of Birth *</label>
                 <input
-                  type="date"
+                  type="text"
+                  placeholder="DD/MM/YYYY"
                   value={dateOfBirth}
-                  max="2026-03-31"
                   onFocus={onInteraction}
                   onPointerDown={onInteraction}
-                  onChange={(event) => setDateOfBirth(event.target.value)}
+                  onChange={(event) => {
+                    let val = event.target.value.replace(/\D/g, '');
+                    let formatted = val;
+                    if (val.length > 2) formatted = val.slice(0, 2) + '/' + val.slice(2);
+                    if (val.length > 4) formatted = formatted.slice(0, 5) + '/' + val.slice(4, 8);
+                    setDateOfBirth(formatted);
+                  }}
                   required
                 />
               </div>

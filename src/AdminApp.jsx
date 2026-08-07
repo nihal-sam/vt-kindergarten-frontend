@@ -158,7 +158,14 @@ function AdmissionApplicationBox({ onSubmitted }) {
                 </div>
                 <div style={s.admissionFormGroup}>
                   <label style={s.admissionLabel}>Date of Birth *</label>
-                  <input style={s.admissionInput} type="date" name="dob" value={form.dob} onChange={handle} required />
+                  <input style={s.admissionInput} type="text" name="dob" placeholder="DD/MM/YYYY" value={form.dob} onChange={(e) => {
+                    let val = e.target.value.replace(/\D/g, '');
+                    let formatted = val;
+                    if (val.length > 2) formatted = val.slice(0, 2) + '/' + val.slice(2);
+                    if (val.length > 4) formatted = formatted.slice(0, 5) + '/' + val.slice(4, 8);
+                    e.target.value = formatted;
+                    handle(e);
+                  }} required />
                 </div>
               </div>
               <div style={s.admissionFormRow}>
