@@ -41,24 +41,6 @@ export default function About() {
       { threshold: 0.1 }
     );
     sectionRef.current?.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-    
-    // Load Instagram embed script
-    const processInsta = () => {
-      if (window.instgrm && window.instgrm.Embeds) {
-        window.instgrm.Embeds.process();
-      }
-    };
-    if (!document.getElementById('instagram-embed-script')) {
-      const script = document.createElement("script");
-      script.id = "instagram-embed-script";
-      script.src = "https://www.instagram.com/embed.js";
-      script.async = true;
-      script.onload = processInsta;
-      document.body.appendChild(script);
-    } else {
-      processInsta();
-    }
-
     return () => observer.disconnect();
   }, []);
 
@@ -139,30 +121,34 @@ export default function About() {
               borderRadius: '24px', 
               overflow: 'hidden', 
               boxShadow: '0 15px 35px rgba(0,0,0,0.1)', 
-              background: '#fff', 
-              transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+              border: '6px solid white', 
+              background: '#000', 
+              height: '520px', 
+              position: 'relative', 
+              transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)', 
+              cursor: 'pointer' 
             }}
             onMouseEnter={(e) => { 
               e.currentTarget.style.transform = 'translateY(-12px)'; 
               e.currentTarget.style.boxShadow = '0 30px 60px rgba(255,107,53,0.3)'; 
+              e.currentTarget.style.borderColor = 'var(--primary)';
             }}
             onMouseLeave={(e) => { 
               e.currentTarget.style.transform = 'translateY(0)'; 
               e.currentTarget.style.boxShadow = '0 15px 35px rgba(0,0,0,0.1)'; 
+              e.currentTarget.style.borderColor = 'white';
             }}
           >
-            <blockquote 
-              className="instagram-media" 
-              data-instgrm-permalink={`https://www.instagram.com/reel/${reelId}/?utm_source=ig_embed`}
-              data-instgrm-version="14" 
-              style={{ background: '#FFF', border: 0, margin: 0, padding: 0, width: '100%' }}
-            >
-              <div style={{ padding: '16px', textAlign: 'center' }}>
-                <a href={`https://www.instagram.com/reel/${reelId}/`} target="_blank" rel="noopener noreferrer" style={{ color: '#0095f6', textDecoration: 'none', fontWeight: 'bold' }}>
-                  View this video on Instagram
-                </a>
-              </div>
-            </blockquote>
+            <iframe 
+              src={`https://www.instagram.com/reel/${reelId}/embed`}
+              width="100%" 
+              height="680" 
+              frameBorder="0" 
+              scrolling="no" 
+              allowtransparency="true"
+              style={{ display: 'block', marginTop: '-54px', pointerEvents: 'none' }}
+            ></iframe>
+            <a href={`https://www.instagram.com/reel/${reelId}/`} target="_blank" rel="noopener noreferrer" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10 }}></a>
           </div>
         ))}
       </div>
