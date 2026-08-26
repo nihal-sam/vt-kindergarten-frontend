@@ -2279,6 +2279,60 @@ body {
     scroll-snap-align: center;
     max-width: 340px;
   }
+
+  /* Compact 4-Column Horizontal Layout for Mobile */
+  .eligibility-ladder {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 6px !important;
+  }
+  .eligibility-class-pill {
+    padding: 10px 4px !important;
+    min-height: 70px !important;
+    border-radius: 12px !important;
+    gap: 4px !important;
+  }
+  .eligibility-class-pill span {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 11px !important;
+    margin: 0 auto !important;
+  }
+  .eligibility-class-pill strong {
+    font-size: 10.5px !important;
+    text-align: center !important;
+    line-height: 1.1 !important;
+  }
+
+  .programs-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 6px !important;
+  }
+  .program-card {
+    padding: 14px 4px !important;
+    border-radius: 12px !important;
+  }
+  .program-emoji {
+    font-size: 28px !important;
+    margin-bottom: 6px !important;
+  }
+  .program-card h3 {
+    font-size: 11px !important;
+    margin-bottom: 4px !important;
+    word-break: break-word !important;
+    line-height: 1.1 !important;
+  }
+  .program-age {
+    font-size: 9px !important;
+    padding: 2px 4px !important;
+    margin-bottom: 0 !important;
+    letter-spacing: -0.2px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .eligibility-ladder {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
 }
 
 
