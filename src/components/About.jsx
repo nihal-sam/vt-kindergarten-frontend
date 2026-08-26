@@ -140,13 +140,13 @@ export default function About() {
             }}
           >
             <iframe 
-              src={`https://www.instagram.com/reel/${reelId}/embed`}
+              src={`https://www.instagram.com/p/${reelId}/embed/`}
               width="100%" 
               height="680" 
               frameBorder="0" 
               scrolling="no" 
               allowtransparency="true"
-              style={{ display: 'block', marginTop: '-54px', pointerEvents: 'none' }}
+              style={{ display: 'block', marginTop: '-54px', pointerEvents: 'none', background: 'white' }}
             ></iframe>
             <a href={`https://www.instagram.com/reel/${reelId}/`} target="_blank" rel="noopener noreferrer" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10 }}></a>
           </div>
