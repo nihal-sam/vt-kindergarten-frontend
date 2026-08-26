@@ -2252,4 +2252,33 @@ body {
   }
 }
 
+/* ===== PREMIUM MOBILE HORIZONTAL CAROUSEL ===== */
+@media (max-width: 768px) {
+  .mobile-carousel {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scroll-padding: 24px;
+    padding-bottom: 32px !important;
+    margin-right: -24px !important;
+    margin-left: -24px !important;
+    padding-left: 24px !important;
+    padding-right: 24px !important;
+    scrollbar-width: none;
+    grid-template-columns: none !important;
+  }
+  .mobile-carousel::-webkit-scrollbar {
+    display: none;
+  }
+  .mobile-carousel > * {
+    flex: 0 0 82% !important;
+    scroll-snap-align: center;
+    max-width: 340px;
+  }
+}
+
 

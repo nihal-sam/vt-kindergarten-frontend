@@ -14,7 +14,7 @@ export default function Gallery() {
           A glimpse into our joyful, activity-filled school environment where memories are made.
         </p>
       </div>
-      <div className="gallery-image-row">
+      <div className="gallery-image-row mobile-carousel">
         {images.map((src, index) => (
           <div key={index} className="gallery-image-wrapper">
             <img src={src} alt={`VT Kindergarten Activity ${index + 1}`} loading="lazy" />

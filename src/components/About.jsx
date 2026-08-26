@@ -108,7 +108,7 @@ export default function About() {
       </div>
 
       {/* Instagram Reels Row */}
-      <div style={{ marginTop: '100px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '32px', width: '100%' }}>
+      <div className="mobile-carousel" style={{ marginTop: '100px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '32px', width: '100%' }}>
         {[
           'DYkClf4PE5-',
           'DWvdnvWDGvY',
