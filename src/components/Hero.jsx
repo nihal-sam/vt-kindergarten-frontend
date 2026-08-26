@@ -27,7 +27,7 @@ export default function Hero() {
           <span>{phrases[phraseIdx]}</span>
         </h1>
         <p className="hero-desc">
-          VT Kindergarten Pre School - located near Reliance Smart Bazaar, Subramaniapuram, Karaikudi.
+          VT Kindergarten Pre School.
           We nurture every child's cognitive, social, and creative development with love and expert care.
         </p>
         <div className="hero-btns">
