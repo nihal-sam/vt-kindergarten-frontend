@@ -2335,4 +2335,123 @@ body {
   }
 }
 
+/* ===== SHARE MODAL ===== */
+.share-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: fadeIn 0.3s ease;
+}
+
+.share-modal-content {
+  background: white;
+  width: 100%;
+  max-width: 420px;
+  border-radius: 28px;
+  padding: 40px 32px;
+  text-align: center;
+  position: relative;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.15);
+  animation: scaleUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.share-modal-close {
+  position: absolute;
+  top: 16px; right: 16px;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: #f1f3f5;
+  border: none;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #666;
+  transition: all 0.2s;
+}
+.share-modal-close:hover {
+  background: #e9ecef;
+  color: #000;
+  transform: rotate(90deg);
+}
+
+.share-modal-icon {
+  font-size: 52px;
+  margin-bottom: 20px;
+  animation: bounce 2s infinite;
+}
+
+.share-modal-content h3 {
+  font-family: 'Fredoka One', cursive;
+  font-size: 28px;
+  color: var(--dark);
+  margin-bottom: 12px;
+}
+
+.share-modal-content p {
+  color: #667085;
+  font-size: 16px;
+  line-height: 1.6;
+  margin-bottom: 32px;
+}
+
+.share-modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.share-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px 24px;
+  border-radius: 16px;
+  font-weight: 800;
+  font-size: 16px;
+  text-decoration: none;
+  transition: all 0.3s;
+  border: 2px solid transparent;
+}
+
+.share-btn.whatsapp {
+  background: #25d366;
+  color: white;
+  box-shadow: 0 10px 24px rgba(37, 211, 102, 0.3);
+}
+.share-btn.whatsapp:hover {
+  background: #1ebc5a;
+  transform: translateY(-3px);
+  box-shadow: 0 14px 30px rgba(37, 211, 102, 0.4);
+}
+
+.share-btn.gmail {
+  background: #fff;
+  color: #ea4335;
+  border-color: #f1f3f5;
+}
+.share-btn.gmail:hover {
+  border-color: #ea4335;
+  background: rgba(234, 67, 53, 0.05);
+  transform: translateY(-3px);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleUp {
+  from { opacity: 0; transform: scale(0.9) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
 
