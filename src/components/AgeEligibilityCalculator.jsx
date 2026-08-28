@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { supabase } from "../supabaseClient";
 
 const CUTOFF_DATE = new Date(2026, 2, 31);
 const CUTOFF_LABEL = "31 March 2026";
@@ -74,8 +75,16 @@ export default function AgeEligibilityCalculator({ onInteraction }) {
   const [message, setMessage] = useState("");
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
+  const [hasChecked, setHasChecked] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const normalizedName = childName.trim();
+
+  const resetCheck = () => {
+    setHasChecked(false);
+    setSuccess(false);
+  };
 
   const highlightedGrade = useMemo(() => {
     if (!result?.eligible) return "";
@@ -84,53 +93,77 @@ export default function AgeEligibilityCalculator({ onInteraction }) {
 
   const calculateEligibility = async (event) => {
     event.preventDefault();
-    const birthDate = parseLocalDate(dateOfBirth);
 
-    if (!normalizedName) {
-      setResult(null);
-      setError("Please enter the child name.");
-      return;
-    }
+    if (!hasChecked) {
+      const birthDate = parseLocalDate(dateOfBirth);
 
-    if (!birthDate) {
-      setResult(null);
-      setError("Please select the child date of birth.");
-      return;
-    }
+      if (!normalizedName) {
+        setResult(null);
+        setError("Please enter the child name.");
+        return;
+      }
 
-    if (birthDate > CUTOFF_DATE) {
-      setResult(null);
-      setError(`Date of birth must be on or before ${CUTOFF_LABEL}.`);
-      return;
-    }
+      if (!birthDate) {
+        setResult(null);
+        setError("Please select the child date of birth.");
+        return;
+      }
 
-    const age = getAgeOnCutoff(birthDate);
-    const grade = getEligibleGrade(age);
+      if (birthDate > CUTOFF_DATE) {
+        setResult(null);
+        setError(`Date of birth must be on or before ${CUTOFF_LABEL}.`);
+        return;
+      }
 
-    setError("");
-    setResult({
-      age,
-      eligible: Boolean(grade),
-      grade: grade?.grade || "",
-      minYears: grade?.minYears || null,
-    });
+      const age = getAgeOnCutoff(birthDate);
+      const grade = getEligibleGrade(age);
 
-    if (grade) {
-      // 1. Scroll down to result area
-      setTimeout(() => {
-        const resultArea = document.querySelector('.eligibility-result-area');
-        if (resultArea) {
-          resultArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setError("");
+      setResult({
+        age,
+        eligible: Boolean(grade),
+        grade: grade?.grade || "",
+        minYears: grade?.minYears || null,
+      });
+
+      if (grade) {
+        setHasChecked(true);
+        setTimeout(() => {
+          const resultArea = document.querySelector('.eligibility-result-area');
+          if (resultArea) {
+            resultArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
+      }
+    } else {
+      // Send Enquiry to Supabase
+      setLoading(true);
+      try {
+        const { error: supabaseError } = await supabase
+          .from('admissions')
+          .insert([{
+            child_name: normalizedName,
+            dob: dateOfBirth,
+            phone,
+            email,
+            program: result?.grade || '',
+            message: `${message}\n\n(System Note: Age Eligibility Enquiry)`
+          }]);
+
+        if (supabaseError) {
+          console.error('Supabase error:', supabaseError);
+          setError('Submission failed. Please try again.');
+        } else {
+          setSuccess(true);
+          setHasChecked(false);
+          setChildName(''); setDateOfBirth(''); setPhone(''); setEmail(''); setMessage('');
         }
-      }, 100);
-
-      // 2. Wait 3 seconds, then automatically open WhatsApp
-      setTimeout(() => {
-        const text = encodeURIComponent(
-          `Hello, I would like to inquire about admissions.\n\nChild Name: ${normalizedName}\nDate of Birth: ${dateOfBirth}\nPhone: ${phone}\nEligible Grade: ${grade.grade}${message ? `\nMessage: ${message}` : ''}`
-        );
-        window.open(`https://wa.me/917358293839?text=${text}`, '_blank');
-      }, 3000);
+      } catch (err) {
+        console.error('Network error:', err);
+        setError('Network error. Please try again.');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -162,7 +195,7 @@ export default function AgeEligibilityCalculator({ onInteraction }) {
                   value={childName}
                   onFocus={onInteraction}
                   onPointerDown={onInteraction}
-                  onChange={(event) => setChildName(event.target.value)}
+                  onChange={(event) => { setChildName(event.target.value); resetCheck(); }}
                   placeholder="Child name"
                   autoComplete="name"
                   required
@@ -182,6 +215,7 @@ export default function AgeEligibilityCalculator({ onInteraction }) {
                     if (val.length > 2) formatted = val.slice(0, 2) + '/' + val.slice(2);
                     if (val.length > 4) formatted = formatted.slice(0, 5) + '/' + val.slice(4, 8);
                     setDateOfBirth(formatted);
+                    resetCheck();
                   }}
                   required
                 />
@@ -196,7 +230,7 @@ export default function AgeEligibilityCalculator({ onInteraction }) {
                   value={phone}
                   onFocus={onInteraction}
                   onPointerDown={onInteraction}
-                  onChange={(event) => setPhone(event.target.value)}
+                  onChange={(event) => { setPhone(event.target.value); resetCheck(); }}
                   placeholder="+91 XXXXX XXXXX"
                   required
                 />
@@ -208,7 +242,7 @@ export default function AgeEligibilityCalculator({ onInteraction }) {
                   value={email}
                   onFocus={onInteraction}
                   onPointerDown={onInteraction}
-                  onChange={(event) => setEmail(event.target.value)}
+                  onChange={(event) => { setEmail(event.target.value); resetCheck(); }}
                   placeholder="Enter the email ID"
                 />
               </div>
@@ -220,7 +254,7 @@ export default function AgeEligibilityCalculator({ onInteraction }) {
                 value={message}
                 onFocus={onInteraction}
                 onPointerDown={onInteraction}
-                onChange={(event) => setMessage(event.target.value)}
+                onChange={(event) => { setMessage(event.target.value); resetCheck(); }}
                 placeholder="Any questions you have?"
                 rows="3"
                 style={{ width: '100%', resize: 'vertical' }}
@@ -229,8 +263,14 @@ export default function AgeEligibilityCalculator({ onInteraction }) {
 
             {error && <div className="eligibility-error">{error}</div>}
 
-            <button className="btn-primary eligibility-submit" type="submit">
-              Check Eligibility
+            {success && (
+              <div style={{ background: 'rgba(78,205,196,0.1)', color: '#16a085', padding: '12px', borderRadius: '8px', marginBottom: '16px', textAlign: 'center', fontWeight: 'bold' }}>
+                ✅ Enquiry sent successfully! We will contact you soon.
+              </div>
+            )}
+
+            <button className="btn-primary eligibility-submit" type="submit" disabled={loading}>
+              {loading ? 'Sending...' : hasChecked ? 'Send Enquiry' : 'Check Eligibility'}
             </button>
           </form>
         </div>
