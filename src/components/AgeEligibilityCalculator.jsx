@@ -75,14 +75,11 @@ export default function AgeEligibilityCalculator({ onInteraction }) {
   const [message, setMessage] = useState("");
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
-  const [hasChecked, setHasChecked] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
   const normalizedName = childName.trim();
 
   const resetCheck = () => {
-    setHasChecked(false);
     setSuccess(false);
   };
 
@@ -94,76 +91,71 @@ export default function AgeEligibilityCalculator({ onInteraction }) {
   const calculateEligibility = async (event) => {
     event.preventDefault();
 
-    if (!hasChecked) {
-      const birthDate = parseLocalDate(dateOfBirth);
+    const birthDate = parseLocalDate(dateOfBirth);
 
-      if (!normalizedName) {
-        setResult(null);
-        setError("Please enter the child name.");
-        return;
+    if (!normalizedName) {
+      setResult(null);
+      setError("Please enter the child name.");
+      return;
+    }
+
+    if (!birthDate) {
+      setResult(null);
+      setError("Please select the child date of birth.");
+      return;
+    }
+
+    if (birthDate > CUTOFF_DATE) {
+      setResult(null);
+      setError(`Date of birth must be on or before ${CUTOFF_LABEL}.`);
+      return;
+    }
+
+    const age = getAgeOnCutoff(birthDate);
+    const grade = getEligibleGrade(age);
+
+    setError("");
+    setResult({
+      age,
+      eligible: Boolean(grade),
+      grade: grade?.grade || "",
+      minYears: grade?.minYears || null,
+    });
+
+    setTimeout(() => {
+      const resultArea = document.querySelector('.eligibility-result-area');
+      if (resultArea) {
+        resultArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
+    }, 100);
 
-      if (!birthDate) {
-        setResult(null);
-        setError("Please select the child date of birth.");
-        return;
+    // Send Enquiry to Supabase
+    setLoading(true);
+    try {
+      const { error: supabaseError } = await supabase
+        .from('admissions')
+        .insert([{
+          child_name: normalizedName,
+          dob: dateOfBirth,
+          phone,
+          email,
+          program: grade?.grade || '',
+          message: `${message}\n\n(System Note: Age Eligibility Enquiry)`
+        }]);
+
+      if (supabaseError) {
+        console.error('Supabase error:', supabaseError);
+        setError('Submission failed. Please try again.');
+      } else {
+        setSuccess(true);
+        setChildName(''); setDateOfBirth(''); setPhone(''); setEmail(''); setMessage('');
+        setTimeout(() => setSuccess(false), 5000);
       }
-
-      if (birthDate > CUTOFF_DATE) {
-        setResult(null);
-        setError(`Date of birth must be on or before ${CUTOFF_LABEL}.`);
-        return;
-      }
-
-      const age = getAgeOnCutoff(birthDate);
-      const grade = getEligibleGrade(age);
-
-      setError("");
-      setResult({
-        age,
-        eligible: Boolean(grade),
-        grade: grade?.grade || "",
-        minYears: grade?.minYears || null,
-      });
-
-      if (grade) {
-        setHasChecked(true);
-        setTimeout(() => {
-          const resultArea = document.querySelector('.eligibility-result-area');
-          if (resultArea) {
-            resultArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }
-        }, 100);
-      }
-    } else {
-      // Send Enquiry to Supabase
-      setLoading(true);
-      try {
-        const { error: supabaseError } = await supabase
-          .from('admissions')
-          .insert([{
-            child_name: normalizedName,
-            dob: dateOfBirth,
-            phone,
-            email,
-            program: result?.grade || '',
-            message: `${message}\n\n(System Note: Age Eligibility Enquiry)`
-          }]);
-
-        if (supabaseError) {
-          console.error('Supabase error:', supabaseError);
-          setError('Submission failed. Please try again.');
-        } else {
-          setSuccess(true);
-          setHasChecked(false);
-          setChildName(''); setDateOfBirth(''); setPhone(''); setEmail(''); setMessage('');
-        }
-      } catch (err) {
-        console.error('Network error:', err);
-        setError('Network error. Please try again.');
-      } finally {
-        setLoading(false);
-      }
+    } catch (err) {
+      console.error('Network error:', err);
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -263,14 +255,8 @@ export default function AgeEligibilityCalculator({ onInteraction }) {
 
             {error && <div className="eligibility-error">{error}</div>}
 
-            {success && (
-              <div style={{ background: 'rgba(78,205,196,0.1)', color: '#16a085', padding: '12px', borderRadius: '8px', marginBottom: '16px', textAlign: 'center', fontWeight: 'bold' }}>
-                ✅ Enquiry sent successfully! We will contact you soon.
-              </div>
-            )}
-
             <button className="btn-primary eligibility-submit" type="submit" disabled={loading}>
-              {loading ? 'Sending...' : hasChecked ? 'Send Enquiry' : 'Check Eligibility'}
+              {loading ? 'Processing...' : 'Check Eligibility & Send Enquiry'}
             </button>
           </form>
         </div>
@@ -328,6 +314,27 @@ export default function AgeEligibilityCalculator({ onInteraction }) {
           </div>
         </div>
       </div>
+
+      {success && (
+        <div style={{ 
+          position: 'fixed', bottom: '30px', right: '30px', 
+          background: 'linear-gradient(135deg, #FF6B35, #FFD93D)', 
+          color: 'white', padding: '16px 24px', borderRadius: '14px', 
+          boxShadow: '0 10px 40px rgba(255, 107, 53, 0.4)', 
+          zIndex: 9999, display: 'flex', alignItems: 'center', gap: '14px', 
+          fontWeight: 800, fontFamily: "'Nunito', sans-serif", fontSize: '16px',
+          animation: 'toastSlide 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+        }}>
+          <span style={{ fontSize: '24px', background: 'rgba(255,255,255,0.2)', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%' }}>✨</span> 
+          Enquiry sent successfully! We will contact you soon.
+          <style>{`
+            @keyframes toastSlide {
+              from { transform: translateX(120%); opacity: 0; }
+              to { transform: translateX(0); opacity: 1; }
+            }
+          `}</style>
+        </div>
+      )}
     </div>
   );
 }

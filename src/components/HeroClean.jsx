@@ -90,7 +90,7 @@ export default function HeroClean() {
           We nurture every child's cognitive, social, and creative development with love and expert care.
         </p>
         <div className="hero-btns">
-          <button className="btn-primary" onClick={() => scrollTo("enquiry")}>
+          <button className="btn-primary" onClick={() => scrollTo("eligibility")}>
             Enquire Now
           </button>
           <button className="btn-secondary" onClick={() => scrollTo("about")}>
