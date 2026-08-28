@@ -1,6 +1,5 @@
 import { useState } from "react";
-
-const API = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+import { supabase } from "../supabaseClient";
 
 const initialState = {
   child_name: '', dob: '', gender: '',
@@ -21,15 +20,19 @@ export default function Admissions() {
     e.preventDefault();
     setLoading(true); setError('');
     try {
-      const res = await fetch(`${API}/admissions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify(form)
-      });
-      const data = await res.json();
-      if (res.ok) setSuccess(true);
-      else setError(data.message || 'Submission failed. Please try again.');
-    } catch {
+      const { error: supabaseError } = await supabase
+        .from('admissions')
+        .insert([form]);
+
+      if (supabaseError) {
+        console.error('Supabase error:', supabaseError);
+        setError('Submission failed. Please try again.');
+      } else {
+        setSuccess(true);
+        setForm(initialState);
+      }
+    } catch (err) {
+      console.error('Network error:', err);
       setError('Network error. Please check your connection and try again.');
     } finally {
       setLoading(false);
