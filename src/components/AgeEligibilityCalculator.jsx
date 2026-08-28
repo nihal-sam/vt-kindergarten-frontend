@@ -75,6 +75,7 @@ export default function AgeEligibilityCalculator({ onInteraction }) {
   const [message, setMessage] = useState("");
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
   const normalizedName = childName.trim();
