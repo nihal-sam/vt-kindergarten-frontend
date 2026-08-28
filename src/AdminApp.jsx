@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
+import { supabase } from "./supabaseClient";
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 const LOGO_SRC = '/assets/vt-logo.png';
 
 const initialAdmissionForm = {
@@ -11,45 +11,40 @@ const initialAdmissionForm = {
 };
 
 function useAuth() {
-  const [token, setToken] = useState(() => localStorage.getItem('admin_token'));
-  const [admin, setAdmin] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('admin_user') || 'null'); } catch { return null; }
-  });
-  const login = (tok, user) => {
-    localStorage.setItem('admin_token', tok);
-    localStorage.setItem('admin_user', JSON.stringify(user));
-    setToken(tok); setAdmin(user);
-  };
-  const logout = () => {
-    localStorage.removeItem('admin_token');
-    localStorage.removeItem('admin_user');
-    setToken(null); setAdmin(null);
-  };
+  const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    if (!token) {
-      localStorage.removeItem('admin_user');
-      setAdmin(null);
-    }
-  }, [token]);
-  return { token, admin, login, logout, isAuth: !!token };
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const logout = () => supabase.auth.signOut();
+
+  return { session, admin: session?.user, logout, isAuth: !!session, loading };
 }
 
-function LoginPage({ onLogin }) {
-  const [form, setForm] = useState({ email: '', password: '' });
+function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const submit = async (e) => {
     e.preventDefault(); setLoading(true); setError('');
     try {
-      const res = await fetch(`${API}/admin/login`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form)
+      const { error } = await supabase.auth.signInWithPassword({
+        email: form.email,
+        password: form.password,
       });
-      const data = await res.json();
-      if (res.ok) onLogin(data.token, data.admin);
-      else setError(data.message || 'Invalid credentials');
-    } catch { setError('Connection failed. Is the backend running on port 8000?'); }
+      if (error) setError(error.message);
+    } catch { setError('Connection failed.'); }
     finally { setLoading(false); }
   };
 
@@ -78,8 +73,7 @@ function LoginPage({ onLogin }) {
           </button>
         </form>
         <p style={{ textAlign: 'center', marginTop: 16, fontSize: 12, color: '#888' }}>
-          Admin 1: admin@vtkindergarten.com / admin123<br />
-          Admin 2: admin2@vtkindergarten.com / admin123
+          Log in with your secure Supabase account.
         </p>
       </div>
     </div>
@@ -99,22 +93,19 @@ function AdmissionApplicationBox({ onSubmitted }) {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`${API}/admissions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify(form)
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok) {
+      const { error: supabaseError } = await supabase
+        .from('admissions')
+        .insert([form]);
+
+      if (supabaseError) {
+        setError(supabaseError.message || 'Submission failed. Please try again.');
+      } else {
         setSuccess(true);
         setForm({ ...initialAdmissionForm });
         onSubmitted?.();
-      } else {
-        const validationMessage = data.errors ? Object.values(data.errors).flat().join(' ') : '';
-        setError(validationMessage || data.message || 'Submission failed. Please try again.');
       }
     } catch {
-      setError('Network error. Please check the backend connection and try again.');
+      setError('Network error. Please check the connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -245,7 +236,7 @@ function AdmissionApplicationBox({ onSubmitted }) {
   );
 }
 
-function Dashboard({ token, admin, logout }) {
+function Dashboard({ admin, logout }) {
   const [tab, setTab] = useState('overview');
   const [admissions, setAdmissions] = useState([]);
   const [enquiries, setEnquiries] = useState([]);
@@ -255,24 +246,34 @@ function Dashboard({ token, admin, logout }) {
   const [filterProgram, setFilterProgram] = useState('');
   const [viewItem, setViewItem] = useState(null);
 
-  const headers = { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' };
-
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const [aRes, eRes, stRes] = await Promise.all([
-        fetch(`${API}/admin/admissions`, { headers }),
-        fetch(`${API}/admin/enquiries`, { headers }),
-        fetch(`${API}/admin/stats`, { headers }),
-      ]);
-      if ([aRes.status, eRes.status, stRes.status].some(status => status === 401)) {
-        logout();
+      const { data, error } = await supabase
+        .from('admissions')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error(error);
+        if (error.message.includes('JWT')) logout();
         return;
       }
-      const [a, e, st] = await Promise.all([aRes.json(), eRes.json(), stRes.json()]);
-      setAdmissions(Array.isArray(a.data) ? a.data : (Array.isArray(a) ? a : []));
-      setEnquiries(Array.isArray(e.data) ? e.data : (Array.isArray(e) ? e : []));
-      setStats(st);
+
+      const allData = data || [];
+      
+      const adm = allData.filter(d => d.parent_name && d.parent_name.trim() !== '');
+      const enq = allData
+        .filter(d => !d.parent_name || d.parent_name.trim() === '')
+        .map(d => ({ ...d, name: d.child_name }));
+
+      setAdmissions(adm);
+      setEnquiries(enq);
+      
+      setStats({
+        this_month: allData.filter(d => new Date(d.created_at).getMonth() === new Date().getMonth()).length,
+        pending: adm.filter(d => !d.status || d.status === 'pending').length
+      });
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
@@ -289,7 +290,7 @@ function Dashboard({ token, admin, logout }) {
 
   const deleteRecord = async (type, id) => {
     if (!confirm('Delete this record permanently?')) return;
-    await fetch(`${API}/admin/${type}/${id}`, { method: 'DELETE', headers });
+    await supabase.from('admissions').delete().eq('id', id);
     fetchAll();
   };
 
@@ -503,7 +504,7 @@ function Dashboard({ token, admin, logout }) {
 }
 
 export default function AdminApp() {
-  const { token, admin, login, logout, isAuth } = useAuth();
+  const { session, admin, logout, isAuth, loading } = useAuth();
   useEffect(() => {
     if (!window.XLSX) {
       const sc = document.createElement('script');
@@ -511,8 +512,10 @@ export default function AdminApp() {
       document.head.appendChild(sc);
     }
   }, []);
-  if (!isAuth) return <LoginPage onLogin={login} />;
-  return <Dashboard token={token} admin={admin} logout={logout} />;
+  
+  if (loading) return <div style={s.loginWrap}><h2 style={{color:'white'}}>Loading securely...</h2></div>;
+  if (!isAuth) return <LoginPage />;
+  return <Dashboard admin={admin} logout={logout} />;
 }
 
 const s = {
