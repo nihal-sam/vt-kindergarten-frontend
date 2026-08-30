@@ -338,8 +338,23 @@ function Dashboard({ admin, logout }) {
     <div style={{ ...s.wrap, flexDirection: 'column' }} className="admin-wrap-top">
       <style>{`
         @media (max-width: 768px) {
-          .admin-main { padding: 16px !important; margin-top: 20px !important; }
-          .admin-stats-row { grid-template-columns: 1fr 1fr !important; gap: 12px !important; }
+          .admin-main { padding: 16px !important; margin-top: 10px !important; }
+          .admin-stats-row { 
+            display: flex !important; 
+            flex-wrap: nowrap !important; 
+            overflow-x: auto !important; 
+            gap: 12px !important; 
+            padding-bottom: 12px !important;
+            -webkit-overflow-scrolling: touch;
+          }
+          .admin-stats-row > div {
+            min-width: 140px !important;
+            flex: 0 0 auto !important;
+            padding: 16px 12px !important;
+          }
+          .admin-stats-row .stat-num { font-size: 28px !important; margin: 4px 0 !important; }
+          .admin-stats-row .stat-lbl { font-size: 11px !important; }
+          
           .admin-topbar { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; }
           .admin-topbar-actions { width: 100% !important; justify-content: flex-start !important; flex-wrap: wrap !important; }
           .admin-filter-row { flex-direction: column !important; align-items: stretch !important; }
@@ -348,9 +363,17 @@ function Dashboard({ admin, logout }) {
           .admin-table-wrapper { overflow-x: auto !important; -webkit-overflow-scrolling: touch; border-radius: 8px; border: 1px solid #eee; }
         }
         @media (max-width: 480px) {
-          .admin-stats-row { grid-template-columns: 1fr !important; }
+          .admin-nav button { flex: 1 1 100% !important; }
         }
-        .admin-wrap-top .navbar { position: sticky; top: 0; z-index: 100; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+        .admin-wrap-top .navbar { 
+          position: sticky; 
+          top: 0; 
+          z-index: 100; 
+          width: 100%; 
+          box-sizing: border-box; 
+          background: rgba(255,255,255,0.98); 
+          box-shadow: 0 4px 20px rgba(0,0,0,0.05); 
+        }
       `}</style>
 
       <nav className="navbar">
@@ -419,8 +442,8 @@ function Dashboard({ admin, logout }) {
             <div style={s.statsRow} className="admin-stats-row">
               {statCards.map((c, i) => (
                 <div key={i} style={{ ...s.statCard, borderTop: `4px solid ${c.color}` }}>
-                  <div style={{ ...s.statNum, color: c.color }}>{c.value}</div>
-                  <div style={s.statLbl}>{c.label}</div>
+                  <div className="stat-num" style={{ ...s.statNum, color: c.color }}>{c.value}</div>
+                  <div className="stat-lbl" style={s.statLbl}>{c.label}</div>
                 </div>
               ))}
             </div>
