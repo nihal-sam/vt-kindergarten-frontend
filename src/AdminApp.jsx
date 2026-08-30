@@ -361,14 +361,22 @@ function Dashboard({ admin, logout }) {
           .admin-table-wrapper { overflow-x: auto !important; -webkit-overflow-scrolling: touch; border-radius: 8px; border: 1px solid #eee; }
           
           .admin-wrap-top .navbar { 
+            position: sticky !important;
+            width: 100% !important;
+            max-width: 100vw !important;
+            align-self: stretch !important;
+            margin: 0 !important;
+            left: 0 !important; right: 0 !important; top: 0 !important;
+            border-radius: 0 !important;
             padding: 12px 16px !important; 
             justify-content: center !important; 
+            align-items: center !important;
           }
-          .admin-wrap-top .nav-logo { flex: 1 !important; justify-content: center !important; }
+          .admin-wrap-top .nav-logo { flex: 1 !important; justify-content: center !important; margin: 0 auto !important; }
           .admin-wrap-top .nav-logo-icon { width: 40px !important; height: 40px !important; }
           .admin-wrap-top .nav-logo-text h2 { font-size: 16px !important; }
           .admin-wrap-top .nav-logo-text span { font-size: 10px !important; }
-          .admin-wrap-top .nav-hamburger { position: absolute !important; right: 16px !important; top: 18px !important; }
+          .admin-wrap-top .nav-hamburger { position: absolute !important; right: 16px !important; top: 50% !important; transform: translateY(-50%) !important; margin: 0 !important; }
         }
         @media (max-width: 480px) {
           .admin-nav button { flex: 1 1 100% !important; }
