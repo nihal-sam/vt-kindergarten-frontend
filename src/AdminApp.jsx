@@ -500,7 +500,9 @@ function Dashboard({ admin, logout }) {
                     <span style={{ fontWeight: 800, fontSize: 11, color: '#888', minWidth: 140, textTransform: 'uppercase', letterSpacing: '0.5px', paddingTop: 2 }}>
                       {k.replace(/_/g, ' ')}
                     </span>
-                    <span style={{ fontSize: 15, color: '#333', flex: 1, wordBreak: 'break-word' }}>{String(v) || '-'}</span>
+                    <span style={{ fontSize: 15, color: '#333', flex: 1, wordBreak: 'break-word' }}>
+                      {k === 'created_at' ? formatDate(v) : (String(v) || '-')}
+                    </span>
                   </div>
                 ))}
             </div>
