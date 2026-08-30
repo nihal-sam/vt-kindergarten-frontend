@@ -259,6 +259,7 @@ function Dashboard({ admin, logout }) {
   const [search, setSearch] = useState('');
   const [filterProgram, setFilterProgram] = useState('');
   const [viewItem, setViewItem] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -334,19 +335,10 @@ function Dashboard({ admin, logout }) {
   ];
 
   return (
-    <div style={s.wrap} className="admin-wrap">
+    <div style={{ ...s.wrap, flexDirection: 'column' }} className="admin-wrap-top">
       <style>{`
         @media (max-width: 768px) {
-          .admin-wrap { flex-direction: column !important; }
-          .admin-sidebar { 
-            width: 100% !important; position: relative !important; padding: 16px !important; 
-            flex-direction: column !important; gap: 16px !important; 
-          }
-          .admin-side-top { margin-bottom: 0 !important; padding-bottom: 0 !important; border-bottom: none !important; justify-content: center !important; }
-          .admin-nav { flex-direction: row !important; flex-wrap: wrap !important; justify-content: center !important; }
-          .admin-nav button { width: auto !important; flex: 1 1 calc(33.333% - 8px) !important; justify-content: center !important; padding: 10px 12px !important; font-size: 13px !important; text-align: center !important; }
-          .admin-user-box { display: none !important; }
-          .admin-main { margin-left: 0 !important; padding: 16px !important; }
+          .admin-main { padding: 16px !important; margin-top: 20px !important; }
           .admin-stats-row { grid-template-columns: 1fr 1fr !important; gap: 12px !important; }
           .admin-topbar { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; }
           .admin-topbar-actions { width: 100% !important; justify-content: flex-start !important; flex-wrap: wrap !important; }
@@ -357,37 +349,50 @@ function Dashboard({ admin, logout }) {
         }
         @media (max-width: 480px) {
           .admin-stats-row { grid-template-columns: 1fr !important; }
-          .admin-nav button { flex: 1 1 100% !important; }
         }
+        .admin-wrap-top .navbar { position: sticky; top: 0; z-index: 100; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
       `}</style>
-      <aside style={s.sidebar} className="admin-sidebar">
-        <div style={s.sideTop} className="admin-side-top">
-          <img style={s.sideLogo} src={LOGO_SRC} alt="VT Kindergarten Pre School logo" />
-          <div>
-            <div style={{ fontWeight: 800, fontSize: 15, color: 'white' }}>VT Kindergarten</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>Admin Panel</div>
-          </div>
-        </div>
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: 4 }} className="admin-nav">
-          {navItems.map(n => (
-            <button key={n.id}
-              style={{ ...s.navBtn, ...(tab === n.id ? s.navActive : {}) }}
-              onClick={() => { setTab(n.id); setSearch(''); setFilterProgram(''); }}>
-              {n.label}
-            </button>
-          ))}
-        </nav>
-        <div style={{ flex: 1 }} />
-        <div style={s.adminBox} className="admin-user-box">
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 13, color: 'white' }}>{admin?.name || 'Admin'}</div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{admin?.email}</div>
-          </div>
-        </div>
-        <button style={s.logoutBtn} onClick={logout}>Logout</button>
-      </aside>
 
-      <main style={s.main} className="admin-main">
+      <nav className="navbar">
+        <div className="nav-logo" style={{ cursor: 'default' }}>
+          <div className="nav-logo-icon" aria-hidden="true">
+            <img src={LOGO_SRC} alt="" />
+          </div>
+          <div className="nav-logo-text">
+            <h2>VT Kindergarten</h2>
+            <span>Admin Panel</span>
+          </div>
+        </div>
+
+        <ul className={`nav-links ${menuOpen ? 'open' : ''}`}>
+          {navItems.map(n => (
+            <li key={n.id}>
+              <a
+                href={`#${n.id}`}
+                className={tab === n.id ? 'active' : ''}
+                onClick={(e) => { e.preventDefault(); setTab(n.id); setSearch(''); setFilterProgram(''); setMenuOpen(false); }}
+              >
+                {n.label}
+              </a>
+            </li>
+          ))}
+          <li>
+            <a href="#logout" className="nav-cta" onClick={(e) => { e.preventDefault(); logout(); }}>
+              Logout ({admin?.name?.split(' ')[0] || 'Admin'})
+            </a>
+          </li>
+        </ul>
+
+        <button
+          className={`nav-hamburger ${menuOpen ? 'open' : ''}`}
+          type="button"
+          onClick={() => setMenuOpen(!menuOpen)}
+        >
+          <span></span><span></span><span></span>
+        </button>
+      </nav>
+
+      <main style={{ padding: '32px', margin: '30px auto 0', maxWidth: 1400, width: '100%', boxSizing: 'border-box' }} className="admin-main">
         <div style={s.topBar} className="admin-topbar">
           <h1 style={s.pageH} className="admin-page-h">
             {tab === 'overview' ? 'Dashboard Overview' : tab === 'admissions' ? 'Admission Applications' : 'Enquiry Messages'}
@@ -446,7 +451,7 @@ function Dashboard({ admin, logout }) {
                 </tr></thead>
                 <tbody>
                   {fAdmissions.map((a, i) => (
-                    <tr key={i} style={s.tr}>
+                    <tr key={i} style={{ ...s.tr, cursor: 'pointer' }} onClick={() => setViewItem({ type: 'admission', data: a })} className="hover-row">
                       <td style={s.td}>{i + 1}</td>
                       <td style={{ ...s.td, fontWeight: 700, whiteSpace: 'nowrap' }}>{a.child_name}</td>
                       <td style={{ ...s.td, whiteSpace: 'nowrap' }}>{a.dob}</td>
@@ -459,8 +464,8 @@ function Dashboard({ admin, logout }) {
                       <td style={s.td}><span style={{ ...s.badge, background: a.status === 'approved' ? 'rgba(52,211,153,0.15)' : a.status === 'rejected' ? 'rgba(239,68,68,0.12)' : 'rgba(255,107,53,0.1)', color: a.status === 'approved' ? '#059669' : a.status === 'rejected' ? '#dc2626' : '#FF6B35' }}>{a.status || 'pending'}</span></td>
                       <td style={{ ...s.td, whiteSpace: 'nowrap' }}>{formatDate(a.created_at)}</td>
                       <td style={{ ...s.td, whiteSpace: 'nowrap' }}>
-                        <button style={s.viewBtn} title="View" onClick={() => setViewItem({ type: 'admission', data: a })}>View</button>
-                        <button style={s.delBtn} title="Delete" onClick={() => deleteRecord('admissions', a.id)}>Delete</button>
+                        <button style={s.viewBtn} title="View" onClick={(e) => { e.stopPropagation(); setViewItem({ type: 'admission', data: a }); }}>View</button>
+                        <button style={s.delBtn} title="Delete" onClick={(e) => { e.stopPropagation(); deleteRecord('admissions', a.id); }}>Delete</button>
                       </td>
                     </tr>
                   ))}
@@ -489,7 +494,7 @@ function Dashboard({ admin, logout }) {
                 </tr></thead>
                 <tbody>
                   {fEnquiries.map((e, i) => (
-                    <tr key={i} style={s.tr}>
+                    <tr key={i} style={{ ...s.tr, cursor: 'pointer' }} onClick={() => setViewItem({ type: 'enquiry', data: e })} className="hover-row">
                       <td style={s.td}>{i + 1}</td>
                       <td style={{ ...s.td, fontWeight: 700, whiteSpace: 'nowrap' }}>{e.name}</td>
                       <td style={{ ...s.td, whiteSpace: 'nowrap' }}>{e.phone}</td>
@@ -498,8 +503,8 @@ function Dashboard({ admin, logout }) {
                       <td style={{ ...s.td, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.message}</td>
                       <td style={{ ...s.td, whiteSpace: 'nowrap' }}>{formatDate(e.created_at)}</td>
                       <td style={{ ...s.td, whiteSpace: 'nowrap' }}>
-                        <button style={s.viewBtn} title="View" onClick={() => setViewItem({ type: 'enquiry', data: e })}>View</button>
-                        <button style={s.delBtn} title="Delete" onClick={() => deleteRecord('enquiries', e.id)}>Delete</button>
+                        <button style={s.viewBtn} title="View" onClick={(e) => { e.stopPropagation(); setViewItem({ type: 'enquiry', data: e }); }}>View</button>
+                        <button style={s.delBtn} title="Delete" onClick={(e) => { e.stopPropagation(); deleteRecord('enquiries', e.id); }}>Delete</button>
                       </td>
                     </tr>
                   ))}
