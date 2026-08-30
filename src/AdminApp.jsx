@@ -340,20 +340,18 @@ function Dashboard({ admin, logout }) {
         @media (max-width: 768px) {
           .admin-main { padding: 16px !important; margin-top: 10px !important; }
           .admin-stats-row { 
-            display: flex !important; 
-            flex-wrap: nowrap !important; 
-            overflow-x: auto !important; 
-            gap: 12px !important; 
-            padding-bottom: 12px !important;
-            -webkit-overflow-scrolling: touch;
+            display: grid !important; 
+            grid-template-columns: repeat(4, 1fr) !important; 
+            gap: 6px !important; 
+            padding-bottom: 0 !important;
           }
           .admin-stats-row > div {
-            min-width: 140px !important;
-            flex: 0 0 auto !important;
-            padding: 16px 12px !important;
+            min-width: 0 !important;
+            padding: 10px 4px !important;
+            border-radius: 8px !important;
           }
-          .admin-stats-row .stat-num { font-size: 28px !important; margin: 4px 0 !important; }
-          .admin-stats-row .stat-lbl { font-size: 11px !important; }
+          .admin-stats-row .stat-num { font-size: 18px !important; margin: 2px 0 !important; }
+          .admin-stats-row .stat-lbl { font-size: 9px !important; line-height: 1.2 !important; white-space: normal !important; text-align: center !important; }
           
           .admin-topbar { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; }
           .admin-topbar-actions { width: 100% !important; justify-content: flex-start !important; flex-wrap: wrap !important; }
@@ -361,6 +359,16 @@ function Dashboard({ admin, logout }) {
           .admin-modal { padding: 24px 20px !important; }
           .admin-page-h { font-size: 22px !important; }
           .admin-table-wrapper { overflow-x: auto !important; -webkit-overflow-scrolling: touch; border-radius: 8px; border: 1px solid #eee; }
+          
+          .admin-wrap-top .navbar { 
+            padding: 12px 16px !important; 
+            justify-content: center !important; 
+          }
+          .admin-wrap-top .nav-logo { flex: 1 !important; justify-content: center !important; }
+          .admin-wrap-top .nav-logo-icon { width: 40px !important; height: 40px !important; }
+          .admin-wrap-top .nav-logo-text h2 { font-size: 16px !important; }
+          .admin-wrap-top .nav-logo-text span { font-size: 10px !important; }
+          .admin-wrap-top .nav-hamburger { position: absolute !important; right: 16px !important; top: 18px !important; }
         }
         @media (max-width: 480px) {
           .admin-nav button { flex: 1 1 100% !important; }
