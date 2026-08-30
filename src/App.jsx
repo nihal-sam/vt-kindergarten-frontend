@@ -12,7 +12,7 @@ import FloatingBubbles from "./components/FloatingBubbles";
 import InstagramSection from "./components/InstagramSection";
 import ScrollProgress from "./components/ScrollProgress";
 
-const ELIGIBILITY_PROMPT_ASSETS = ["/assets/jerry-enquiry.png", "/assets/tom-enquiry.png"];
+const ELIGIBILITY_PROMPT_ASSETS = ["/assets/hero-elephant-bgless-v2.png"];
 
 export default function App() {
   const [loading, setLoading] = useState(true);
@@ -117,10 +117,10 @@ function AgeEligibilityPromptModal({ onConfirm, onClose }) {
     <div className="enquiry-prompt-overlay" onClick={onClose}>
       <div className="enquiry-prompt-scene" aria-hidden="true">
         <div className="enquiry-character enquiry-character-jerry">
-          <img src="/assets/jerry-enquiry.png" alt="" />
+          <img src="/assets/hero-elephant-bgless-v2.png" alt="" />
         </div>
         <div className="enquiry-character enquiry-character-tom">
-          <img src="/assets/tom-enquiry.png" alt="" />
+          <img src="/assets/hero-elephant-bgless-v2.png" alt="" style={{ transform: 'scaleX(-1)' }} />
         </div>
       </div>
       <div
