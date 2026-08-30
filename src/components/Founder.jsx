@@ -5,7 +5,7 @@ export default function Founder() {
         <div className="section-tag" style={{ margin: '0 auto 16px' }}>Founders' Note</div>
         <h2 style={{ marginBottom: '32px' }}>Welcome to <span>VT Kindergarten</span> ✨</h2>
         
-        <div style={{ background: 'white', padding: '40px', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-soft)', textAlign: 'left', lineHeight: '1.8', fontSize: '16px', color: 'var(--text)' }}>
+        <div style={{ background: 'white', border: '3px solid var(--primary)', padding: '40px', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-soft)', textAlign: 'left', lineHeight: '1.8', fontSize: '16px', color: 'var(--text)' }}>
           <p style={{ marginBottom: '20px' }}>
             VT Kindergarten was founded by <strong>Thiru Venkatachalam Chettiar</strong> and <strong>Mrs. Meyyammai Achi</strong>, with a vision to make early education friendly, joyful, and meaningful.
           </p>
