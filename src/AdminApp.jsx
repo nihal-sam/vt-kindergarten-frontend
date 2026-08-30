@@ -338,32 +338,38 @@ function Dashboard({ admin, logout }) {
     <div style={{ ...s.wrap, flexDirection: 'column' }} className="admin-wrap-top">
       <style>{`
         @media (max-width: 768px) {
-          .admin-main { padding: 16px !important; margin-top: 10px !important; }
+          .admin-wrap-top { overflow-x: hidden !important; width: 100vw !important; max-width: 100vw !important; }
+          .admin-main { padding: 12px !important; margin-top: 70px !important; width: 100% !important; box-sizing: border-box !important; overflow-x: hidden !important; }
+          
           .admin-stats-row { 
             display: grid !important; 
             grid-template-columns: repeat(4, 1fr) !important; 
-            gap: 6px !important; 
+            gap: 4px !important; 
             padding-bottom: 0 !important;
+            width: 100% !important;
           }
           .admin-stats-row > div {
             min-width: 0 !important;
-            padding: 10px 4px !important;
-            border-radius: 8px !important;
+            padding: 8px 2px !important;
+            border-radius: 6px !important;
+            overflow: hidden !important;
           }
-          .admin-stats-row .stat-num { font-size: 18px !important; margin: 2px 0 !important; }
-          .admin-stats-row .stat-lbl { font-size: 9px !important; line-height: 1.2 !important; white-space: normal !important; text-align: center !important; }
+          .admin-stats-row .stat-num { font-size: 16px !important; margin: 2px 0 !important; }
+          .admin-stats-row .stat-lbl { font-size: 8px !important; line-height: 1.1 !important; white-space: normal !important; text-align: center !important; word-break: break-word !important; }
           
           .admin-topbar { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; }
           .admin-topbar-actions { width: 100% !important; justify-content: flex-start !important; flex-wrap: wrap !important; }
           .admin-filter-row { flex-direction: column !important; align-items: stretch !important; }
-          .admin-modal { padding: 24px 20px !important; }
+          .admin-modal { padding: 24px 16px !important; }
+          .admin-table-wrapper { overflow-x: auto !important; -webkit-overflow-scrolling: touch; border-radius: 8px; border: 1px solid #eee; width: 100% !important; }
+          
           .admin-header-nav { 
-            position: sticky !important;
-            width: 100% !important;
+            position: fixed !important;
+            width: 100vw !important;
             margin: 0 !important;
-            top: 0 !important; left: 0 !important; right: 0 !important;
+            top: 0 !important; left: 0 !important;
             border-radius: 0 !important;
-            padding: 12px 16px !important; 
+            padding: 10px 16px !important; 
             display: flex !important;
             justify-content: space-between !important; 
             align-items: center !important;
