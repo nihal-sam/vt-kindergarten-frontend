@@ -86,8 +86,7 @@ export default function HeroClean() {
           <span>{phrases[phraseIdx]}</span>
         </h1>
         <p className="hero-desc">
-          VT Kindergarten Pre School, near Reliance Smart Bazaar, Subramaniapuram, Karaikudi.
-          We nurture every child's cognitive, social, and creative development with love and expert care.
+          VT Kindergarten Pre School. We nurture every child's cognitive, social, and creative development with love and expert care.
         </p>
         <div className="hero-btns">
           <button className="btn-primary" onClick={() => scrollTo("eligibility")}>
@@ -97,11 +96,30 @@ export default function HeroClean() {
             Learn More
           </button>
         </div>
-        <div className="hero-stats" style={{ display: 'flex', gap: '16px', alignItems: 'center', background: 'rgba(255,255,255,0.7)', padding: '16px 20px', borderRadius: '20px', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.4)', maxWidth: '100%' }}>
-          <div style={{ flexShrink: 0, fontSize: '48px', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="hero-stats" style={{ position: 'relative', overflow: 'hidden', display: 'flex', gap: '16px', alignItems: 'center', background: 'rgba(255,255,255,0.7)', padding: '16px 20px', borderRadius: '20px', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.4)', maxWidth: '100%' }}>
+          <style>{`
+            @keyframes shimmerSlide {
+              0% { transform: translateX(-150%) skewX(-20deg); }
+              50% { transform: translateX(250%) skewX(-20deg); }
+              100% { transform: translateX(250%) skewX(-20deg); }
+            }
+            .shimmer-effect {
+              position: absolute;
+              top: 0;
+              left: 0;
+              width: 80px;
+              height: 100%;
+              background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.9) 50%, rgba(255,255,255,0) 100%);
+              animation: shimmerSlide 2s infinite ease-in-out;
+              pointer-events: none;
+              z-index: 10;
+            }
+          `}</style>
+          <div className="shimmer-effect" />
+          <div style={{ flexShrink: 0, fontSize: '48px', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 2 }}>
             🛡️
           </div>
-          <div style={{ textAlign: 'left' }}>
+          <div style={{ textAlign: 'left', position: 'relative', zIndex: 2 }}>
             <h3 style={{ fontFamily: "'Fredoka One', cursive", fontSize: '22px', color: 'var(--primary)', margin: 0, lineHeight: 1.2 }}>Safe Environment</h3>
             <p style={{ fontSize: '14px', color: '#555', fontWeight: 700, margin: '4px 0 0 0', lineHeight: 1.4 }}>CCTV monitored, child-proof facilities</p>
           </div>
