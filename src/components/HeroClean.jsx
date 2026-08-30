@@ -100,17 +100,16 @@ export default function HeroClean() {
           <style>{`
             @keyframes shimmerSlide {
               0% { transform: translateX(-150%) skewX(-20deg); }
-              50% { transform: translateX(250%) skewX(-20deg); }
-              100% { transform: translateX(250%) skewX(-20deg); }
+              100% { transform: translateX(150%) skewX(-20deg); }
             }
             .shimmer-effect {
               position: absolute;
               top: 0;
               left: 0;
-              width: 80px;
+              width: 150%;
               height: 100%;
-              background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.9) 50%, rgba(255,255,255,0) 100%);
-              animation: shimmerSlide 2s infinite ease-in-out;
+              background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.7) 50%, rgba(255,255,255,0) 100%);
+              animation: shimmerSlide 3s infinite linear;
               pointer-events: none;
               z-index: 10;
             }
