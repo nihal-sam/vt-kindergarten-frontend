@@ -247,22 +247,10 @@ body {
   padding: 120px 80px 60px;
   position: relative;
   overflow: hidden;
-  background-image: url('/assets/hero-bg.jpeg');
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
+  background-color: #FDFBD4;
 }
 .hero-bg-overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 249, 245, 0.55) 0%,
-    rgba(232, 249, 248, 0.50) 50%,
-    rgba(240, 234, 255, 0.45) 100%
-  );
-  backdrop-filter: blur(1px);
-  z-index: 0;
+  display: none;
 }
 .hero-content {
   flex: 1;
