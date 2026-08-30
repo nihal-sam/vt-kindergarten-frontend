@@ -1070,6 +1070,29 @@ body {
     white;
   border: 1px solid rgba(255, 107, 53, 0.22);
   text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.eligibility-grade-result::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255, 255, 255, 0.7),
+    transparent
+  );
+  animation: resultShimmer 2.5s linear infinite;
+}
+
+@keyframes resultShimmer {
+  0% { left: -100%; }
+  100% { left: 200%; }
 }
 
 .eligibility-grade-result span {
