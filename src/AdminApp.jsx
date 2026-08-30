@@ -418,10 +418,10 @@ function Dashboard({ admin, logout }) {
           background: #fff; box-shadow: 0 4px 20px rgba(0,0,0,0.05);
           display: flex; align-items: center; justify-content: space-between; padding: 16px 32px;
         }
-        .admin-header-logo { display: flex; align-items: center; gap: 12px; }
-        .admin-header-logo img { width: 48px; height: 48px; border-radius: 50%; }
-        .admin-header-logo-text h2 { margin: 0; font-size: 18px; color: #111; }
-        .admin-header-logo-text span { font-size: 12px; color: #666; }
+        .admin-header-logo { display: flex; align-items: center; gap: 14px; }
+        .admin-header-logo img { width: 64px; height: 64px; border-radius: 50%; }
+        .admin-header-logo-text h2 { margin: 0; font-size: 22px; color: #111; }
+        .admin-header-logo-text span { font-size: 13px; color: #666; }
         .admin-header-links { display: flex; gap: 24px; list-style: none; margin: 0; padding: 0; align-items: center; }
         .admin-header-links a { text-decoration: none; color: #333; font-weight: 600; font-size: 14px; }
         .admin-header-links a.active { color: #FF6B35; }
