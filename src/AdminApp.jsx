@@ -59,7 +59,12 @@ function LoginPage() {
 
   return (
     <div style={s.loginWrap}>
-      <div style={s.loginCard}>
+      <style>{`
+        @media (max-width: 768px) {
+          .admin-login-card { padding: 32px 24px !important; width: 100% !important; border-radius: 16px !important; }
+        }
+      `}</style>
+      <div style={s.loginCard} className="admin-login-card">
         <div style={{ textAlign: 'center', marginBottom: 36 }}>
           <img style={s.loginLogo} src={LOGO_SRC} alt="VT Kindergarten Pre School logo" />
           <h1 style={{ fontFamily: 'sans-serif', fontSize: 28, color: '#FF6B35', margin: '0 0 6px' }}>VT Kindergarten</h1>
@@ -329,16 +334,41 @@ function Dashboard({ admin, logout }) {
   ];
 
   return (
-    <div style={s.wrap}>
-      <aside style={s.sidebar}>
-        <div style={s.sideTop}>
+    <div style={s.wrap} className="admin-wrap">
+      <style>{`
+        @media (max-width: 768px) {
+          .admin-wrap { flex-direction: column !important; }
+          .admin-sidebar { 
+            width: 100% !important; position: relative !important; padding: 16px !important; 
+            flex-direction: column !important; gap: 16px !important; 
+          }
+          .admin-side-top { margin-bottom: 0 !important; padding-bottom: 0 !important; border-bottom: none !important; justify-content: center !important; }
+          .admin-nav { flex-direction: row !important; flex-wrap: wrap !important; justify-content: center !important; }
+          .admin-nav button { width: auto !important; flex: 1 1 calc(33.333% - 8px) !important; justify-content: center !important; padding: 10px 12px !important; font-size: 13px !important; text-align: center !important; }
+          .admin-user-box { display: none !important; }
+          .admin-main { margin-left: 0 !important; padding: 16px !important; }
+          .admin-stats-row { grid-template-columns: 1fr 1fr !important; gap: 12px !important; }
+          .admin-topbar { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; }
+          .admin-topbar-actions { width: 100% !important; justify-content: flex-start !important; flex-wrap: wrap !important; }
+          .admin-filter-row { flex-direction: column !important; align-items: stretch !important; }
+          .admin-modal { padding: 24px 20px !important; }
+          .admin-page-h { font-size: 22px !important; }
+          .admin-table-wrapper { overflow-x: auto !important; -webkit-overflow-scrolling: touch; border-radius: 8px; border: 1px solid #eee; }
+        }
+        @media (max-width: 480px) {
+          .admin-stats-row { grid-template-columns: 1fr !important; }
+          .admin-nav button { flex: 1 1 100% !important; }
+        }
+      `}</style>
+      <aside style={s.sidebar} className="admin-sidebar">
+        <div style={s.sideTop} className="admin-side-top">
           <img style={s.sideLogo} src={LOGO_SRC} alt="VT Kindergarten Pre School logo" />
           <div>
             <div style={{ fontWeight: 800, fontSize: 15, color: 'white' }}>VT Kindergarten</div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>Admin Panel</div>
           </div>
         </div>
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: 4 }} className="admin-nav">
           {navItems.map(n => (
             <button key={n.id}
               style={{ ...s.navBtn, ...(tab === n.id ? s.navActive : {}) }}
@@ -348,7 +378,7 @@ function Dashboard({ admin, logout }) {
           ))}
         </nav>
         <div style={{ flex: 1 }} />
-        <div style={s.adminBox}>
+        <div style={s.adminBox} className="admin-user-box">
           <div>
             <div style={{ fontWeight: 700, fontSize: 13, color: 'white' }}>{admin?.name || 'Admin'}</div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{admin?.email}</div>
@@ -357,12 +387,12 @@ function Dashboard({ admin, logout }) {
         <button style={s.logoutBtn} onClick={logout}>Logout</button>
       </aside>
 
-      <main style={s.main}>
-        <div style={s.topBar}>
-          <h1 style={s.pageH}>
+      <main style={s.main} className="admin-main">
+        <div style={s.topBar} className="admin-topbar">
+          <h1 style={s.pageH} className="admin-page-h">
             {tab === 'overview' ? 'Dashboard Overview' : tab === 'admissions' ? 'Admission Applications' : 'Enquiry Messages'}
           </h1>
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 10 }} className="admin-topbar-actions">
             <button style={s.refreshBtn} onClick={fetchAll}>Refresh</button>
             {tab === 'admissions' && (
               <button style={s.exportBtn} onClick={() => exportExcel(fAdmissions, 'Admissions')}>
@@ -381,7 +411,7 @@ function Dashboard({ admin, logout }) {
 
         {tab === 'overview' && (
           <>
-            <div style={s.statsRow}>
+            <div style={s.statsRow} className="admin-stats-row">
               {statCards.map((c, i) => (
                 <div key={i} style={{ ...s.statCard, borderTop: `4px solid ${c.color}` }}>
                   <div style={{ ...s.statNum, color: c.color }}>{c.value}</div>
@@ -395,7 +425,7 @@ function Dashboard({ admin, logout }) {
 
         {tab === 'admissions' && (
           <div style={s.panel}>
-            <div style={s.filterRow}>
+            <div style={s.filterRow} className="admin-filter-row">
               <input style={s.searchInp} placeholder="Search name / phone..."
                 value={search} onChange={e => setSearch(e.target.value)} />
               <select style={s.selInp} value={filterProgram} onChange={e => setFilterProgram(e.target.value)}>
@@ -407,7 +437,7 @@ function Dashboard({ admin, logout }) {
               </select>
               <span style={s.cntBadge}>{fAdmissions.length} records</span>
             </div>
-            <div style={{ overflowX: 'auto' }}>
+            <div style={{ overflowX: 'auto' }} className="admin-table-wrapper">
               <table style={s.tbl}>
                 <thead><tr>
                   {['#', 'Child Name', 'DOB', 'Gender', 'Program', 'Parent', 'Phone', 'Email', 'Address', 'Status', 'Date', 'Actions'].map(h => (
@@ -445,12 +475,12 @@ function Dashboard({ admin, logout }) {
 
         {tab === 'enquiries' && (
           <div style={s.panel}>
-            <div style={s.filterRow}>
+            <div style={s.filterRow} className="admin-filter-row">
               <input style={s.searchInp} placeholder="Search name / phone..."
                 value={search} onChange={e => setSearch(e.target.value)} />
               <span style={s.cntBadge}>{fEnquiries.length} records</span>
             </div>
-            <div style={{ overflowX: 'auto' }}>
+            <div style={{ overflowX: 'auto' }} className="admin-table-wrapper">
               <table style={s.tbl}>
                 <thead><tr>
                   {['#', 'Name', 'Phone', 'Email', 'Program', 'Message', 'Date', 'Actions'].map(h => (
@@ -485,7 +515,7 @@ function Dashboard({ admin, logout }) {
 
       {viewItem && (
         <div style={s.overlay} onClick={() => setViewItem(null)}>
-          <div style={s.modal} onClick={e => e.stopPropagation()}>
+          <div style={s.modal} className="admin-modal" onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
               <h2 style={{ fontFamily: 'sans-serif', fontSize: 22, margin: 0 }}>
                 {viewItem.type === 'admission' ? 'Admission Details' : 'Enquiry Details'}
