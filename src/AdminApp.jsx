@@ -357,53 +357,81 @@ function Dashboard({ admin, logout }) {
           .admin-topbar-actions { width: 100% !important; justify-content: flex-start !important; flex-wrap: wrap !important; }
           .admin-filter-row { flex-direction: column !important; align-items: stretch !important; }
           .admin-modal { padding: 24px 20px !important; }
-          .admin-page-h { font-size: 22px !important; }
-          .admin-table-wrapper { overflow-x: auto !important; -webkit-overflow-scrolling: touch; border-radius: 8px; border: 1px solid #eee; }
-          
-          .admin-wrap-top .navbar { 
+          .admin-header-nav { 
             position: sticky !important;
             width: 100% !important;
-            max-width: 100vw !important;
-            align-self: stretch !important;
             margin: 0 !important;
-            left: 0 !important; right: 0 !important; top: 0 !important;
+            top: 0 !important; left: 0 !important; right: 0 !important;
             border-radius: 0 !important;
             padding: 12px 16px !important; 
-            justify-content: center !important; 
+            display: flex !important;
+            justify-content: space-between !important; 
             align-items: center !important;
+            background: #ffffff !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important;
+            box-sizing: border-box !important;
+            z-index: 1000 !important;
           }
-          .admin-wrap-top .nav-logo { flex: 1 !important; justify-content: center !important; margin: 0 auto !important; }
-          .admin-wrap-top .nav-logo-icon { width: 40px !important; height: 40px !important; }
-          .admin-wrap-top .nav-logo-text h2 { font-size: 16px !important; }
-          .admin-wrap-top .nav-logo-text span { font-size: 10px !important; }
-          .admin-wrap-top .nav-hamburger { position: absolute !important; right: 16px !important; top: 50% !important; transform: translateY(-50%) !important; margin: 0 !important; }
+          .admin-header-logo { display: flex !important; align-items: center !important; gap: 8px !important; text-decoration: none !important; }
+          .admin-header-logo img { width: 36px !important; height: 36px !important; border-radius: 50% !important; }
+          .admin-header-logo-text { display: flex !important; flex-direction: column !important; }
+          .admin-header-logo-text h2 { font-size: 15px !important; margin: 0 !important; color: #333 !important; line-height: 1.2 !important; }
+          .admin-header-logo-text span { font-size: 10px !important; color: #888 !important; }
+          .admin-header-hamburger { 
+            display: flex !important; 
+            flex-direction: column !important; 
+            gap: 4px !important; 
+            background: transparent !important; 
+            border: none !important; 
+            padding: 8px !important;
+            cursor: pointer !important;
+          }
+          .admin-header-hamburger span { display: block !important; width: 24px !important; height: 2px !important; background: #333 !important; }
+          .admin-header-links { display: none !important; }
+          .admin-header-links.open {
+            display: flex !important;
+            flex-direction: column !important;
+            position: absolute !important;
+            top: 100% !important;
+            left: 0 !important;
+            right: 0 !important;
+            background: #fff !important;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+            padding: 16px !important;
+            margin: 0 !important;
+            list-style: none !important;
+            gap: 12px !important;
+            z-index: 1001 !important;
+          }
         }
         @media (max-width: 480px) {
           .admin-nav button { flex: 1 1 100% !important; }
         }
-        .admin-wrap-top .navbar { 
-          position: sticky; 
-          top: 0; 
-          z-index: 100; 
-          width: 100%; 
-          box-sizing: border-box; 
-          background: rgba(255,255,255,0.98); 
-          box-shadow: 0 4px 20px rgba(0,0,0,0.05); 
+        .admin-header-nav { 
+          position: sticky; top: 0; z-index: 100; width: 100%; box-sizing: border-box; 
+          background: #fff; box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+          display: flex; align-items: center; justify-content: space-between; padding: 16px 32px;
         }
+        .admin-header-logo { display: flex; align-items: center; gap: 12px; }
+        .admin-header-logo img { width: 48px; height: 48px; border-radius: 50%; }
+        .admin-header-logo-text h2 { margin: 0; font-size: 18px; color: #111; }
+        .admin-header-logo-text span { font-size: 12px; color: #666; }
+        .admin-header-links { display: flex; gap: 24px; list-style: none; margin: 0; padding: 0; align-items: center; }
+        .admin-header-links a { text-decoration: none; color: #333; font-weight: 600; font-size: 14px; }
+        .admin-header-links a.active { color: #FF6B35; }
+        .admin-header-hamburger { display: none; }
       `}</style>
 
-      <nav className="navbar">
-        <div className="nav-logo" style={{ cursor: 'default' }}>
-          <div className="nav-logo-icon" aria-hidden="true">
-            <img src={LOGO_SRC} alt="" />
-          </div>
-          <div className="nav-logo-text">
+      <nav className="admin-header-nav">
+        <div className="admin-header-logo">
+          <img src={LOGO_SRC} alt="" />
+          <div className="admin-header-logo-text">
             <h2>VT Kindergarten</h2>
             <span>Admin Panel</span>
           </div>
         </div>
 
-        <ul className={`nav-links ${menuOpen ? 'open' : ''}`}>
+        <ul className={`admin-header-links ${menuOpen ? 'open' : ''}`}>
           {navItems.map(n => (
             <li key={n.id}>
               <a
@@ -416,14 +444,14 @@ function Dashboard({ admin, logout }) {
             </li>
           ))}
           <li>
-            <a href="#logout" className="nav-cta" onClick={(e) => { e.preventDefault(); logout(); }}>
+            <a href="#logout" onClick={(e) => { e.preventDefault(); logout(); }} style={{ color: '#dc2626' }}>
               Logout ({admin?.name?.split(' ')[0] || 'Admin'})
             </a>
           </li>
         </ul>
 
         <button
-          className={`nav-hamburger ${menuOpen ? 'open' : ''}`}
+          className="admin-header-hamburger"
           type="button"
           onClick={() => setMenuOpen(!menuOpen)}
         >
