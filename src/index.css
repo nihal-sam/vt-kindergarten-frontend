@@ -1023,6 +1023,28 @@ body {
   border: 1px dashed rgba(78, 205, 196, 0.46);
 }
 
+.eligibility-skeleton {
+  padding: 30px;
+  background: white;
+  border-radius: 20px;
+  border: 1px solid rgba(45, 55, 72, 0.08);
+  text-align: center;
+  flex: 1;
+  min-height: 210px;
+}
+
+.skeleton-line {
+  background: #f0f2f5;
+  background: linear-gradient(90deg, #f0f2f5 25%, #e2e8f0 50%, #f0f2f5 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.5s infinite linear;
+}
+
+@keyframes skeletonShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 .eligibility-empty strong,
 .eligibility-not-ready strong {
   display: block;
@@ -1074,6 +1096,11 @@ body {
   overflow: hidden;
 }
 
+.eligibility-grade-result * {
+  position: relative;
+  z-index: 1;
+}
+
 .eligibility-grade-result::after {
   content: '';
   position: absolute;
@@ -1084,10 +1111,11 @@ body {
   background: linear-gradient(
     to right,
     transparent,
-    rgba(255, 255, 255, 0.7),
+    rgba(255, 255, 255, 0.85),
     transparent
   );
   animation: resultShimmer 2.5s linear infinite;
+  z-index: 0;
 }
 
 @keyframes resultShimmer {

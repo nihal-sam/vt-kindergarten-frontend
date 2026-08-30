@@ -272,7 +272,14 @@ export default function AgeEligibilityCalculator({ onInteraction }) {
               </div>
             </div>
 
-            {result ? (
+            {loading ? (
+              <div className="eligibility-skeleton">
+                <div className="skeleton-line" style={{ width: '100%', height: '60px', borderRadius: '12px', marginBottom: '24px' }}></div>
+                <div className="skeleton-line" style={{ width: '40%', height: '32px', margin: '0 auto 16px', borderRadius: '8px' }}></div>
+                <div className="skeleton-line" style={{ width: '80%', height: '24px', margin: '0 auto 8px', borderRadius: '4px' }}></div>
+                <div className="skeleton-line" style={{ width: '60%', height: '16px', margin: '0 auto', borderRadius: '4px' }}></div>
+              </div>
+            ) : result ? (
               <>
                 <div className="eligibility-age-display">
                   <span>Age on cutoff</span>
