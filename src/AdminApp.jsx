@@ -10,6 +10,14 @@ const initialAdmissionForm = {
   previous_school: '', message: ''
 };
 
+const formatDate = (isoStr) => {
+  if (!isoStr) return '-';
+  return new Date(isoStr).toLocaleString('en-IN', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: true
+  }).toUpperCase();
+};
+
 function useAuth() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -419,7 +427,7 @@ function Dashboard({ admin, logout }) {
                       <td style={s.td}>{a.email || '-'}</td>
                       <td style={{ ...s.td, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.address}</td>
                       <td style={s.td}><span style={{ ...s.badge, background: a.status === 'approved' ? 'rgba(52,211,153,0.15)' : a.status === 'rejected' ? 'rgba(239,68,68,0.12)' : 'rgba(255,107,53,0.1)', color: a.status === 'approved' ? '#059669' : a.status === 'rejected' ? '#dc2626' : '#FF6B35' }}>{a.status || 'pending'}</span></td>
-                      <td style={{ ...s.td, whiteSpace: 'nowrap' }}>{(a.created_at || '').slice(0, 10)}</td>
+                      <td style={{ ...s.td, whiteSpace: 'nowrap' }}>{formatDate(a.created_at)}</td>
                       <td style={{ ...s.td, whiteSpace: 'nowrap' }}>
                         <button style={s.viewBtn} title="View" onClick={() => setViewItem({ type: 'admission', data: a })}>View</button>
                         <button style={s.delBtn} title="Delete" onClick={() => deleteRecord('admissions', a.id)}>Delete</button>
@@ -458,7 +466,7 @@ function Dashboard({ admin, logout }) {
                       <td style={s.td}>{e.email || '-'}</td>
                       <td style={s.td}>{e.program || '-'}</td>
                       <td style={{ ...s.td, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.message}</td>
-                      <td style={{ ...s.td, whiteSpace: 'nowrap' }}>{(e.created_at || '').slice(0, 10)}</td>
+                      <td style={{ ...s.td, whiteSpace: 'nowrap' }}>{formatDate(e.created_at)}</td>
                       <td style={{ ...s.td, whiteSpace: 'nowrap' }}>
                         <button style={s.viewBtn} title="View" onClick={() => setViewItem({ type: 'enquiry', data: e })}>View</button>
                         <button style={s.delBtn} title="Delete" onClick={() => deleteRecord('enquiries', e.id)}>Delete</button>
