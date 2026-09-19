@@ -84,10 +84,11 @@ export default function About() {
           <div className="section-tag">About Us</div>
           <h2>Where Every Child <span>Blossoms</span> 🌸</h2>
           <p>
-            At VT Kindergarten, parents have trusted us in early childhood education, and VT Kindergarten is one of the best playschools in Karaikudi, where safety, confidence-building, and holistic development are at the heart of everything we do.
+            <strong>Caring foundation, safe learning, confident futures.</strong><br /><br />
+            At VT Kindergarten, parents place their trust in us for early childhood education. Recognized as one of Karaikudi's leading best playschools, we prioritize safety, confidence-building, and holistic growth in every child's journey.
           </p>
           <p>
-            ✨ <strong>Our Parent’s Tagline:</strong> Safety for the children, building confidence, and nurturing growth.
+            ✨ <strong>Parent's feedback:</strong> Caring and Safe environment, nurturing confidence, fostering development.
           </p>
 
           <div className="about-highlights">
@@ -107,51 +108,6 @@ export default function About() {
         </div>
       </div>
 
-      {/* Instagram Reels Row */}
-      <div className="mobile-carousel" style={{ marginTop: '100px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '32px', width: '100%' }}>
-        {[
-          'DYkClf4PE5-',
-          'DWvdnvWDGvY',
-          'DV0KTx1Dc90'
-        ].map((reelId, index) => (
-          <div 
-            key={index} 
-            style={{ 
-              width: '100%', 
-              borderRadius: '24px', 
-              overflow: 'hidden', 
-              boxShadow: '0 15px 35px rgba(0,0,0,0.1)', 
-              border: '6px solid white', 
-              background: '#000', 
-              aspectRatio: '1 / 1', 
-              position: 'relative', 
-              transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)', 
-              cursor: 'pointer' 
-            }}
-            onMouseEnter={(e) => { 
-              e.currentTarget.style.transform = 'translateY(-12px)'; 
-              e.currentTarget.style.boxShadow = '0 30px 60px rgba(255,107,53,0.3)'; 
-              e.currentTarget.style.borderColor = 'var(--primary)';
-            }}
-            onMouseLeave={(e) => { 
-              e.currentTarget.style.transform = 'translateY(0)'; 
-              e.currentTarget.style.boxShadow = '0 15px 35px rgba(0,0,0,0.1)'; 
-              e.currentTarget.style.borderColor = 'white';
-            }}
-          >
-            <iframe 
-              src={`https://www.instagram.com/reel/${reelId}/embed`}
-              width="100%" 
-              height="680" 
-              frameBorder="0" 
-              scrolling="no" 
-              allowtransparency="true"
-              style={{ display: 'block', marginTop: '-54px', pointerEvents: 'none' }}
-            ></iframe>
-            <a href={`https://www.instagram.com/reel/${reelId}/`} target="_blank" rel="noopener noreferrer" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10 }}></a>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

@@ -12,9 +12,7 @@ function Footer() {
             </h2>
           </div>
           <p style={{ maxWidth: '600px', margin: '0 auto 24px' }}>
-            A nurturing, play-based learning environment where every child discovers
-            their potential and builds the foundation for a bright future. Trusted by
-            hundreds of families in Karaikudi.
+            Trusted by parents in Karaikudi, VT Kindergarten proudly stands as the best playschool — offering a caring, safe, and joyful environment where children flourish with bright confidence and creativity.
           </p>
         </div>
 

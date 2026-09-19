@@ -7,13 +7,13 @@ export default function Founder() {
         
         <div style={{ background: 'white', border: '3px solid var(--primary)', padding: '40px', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-soft)', textAlign: 'left', lineHeight: '1.8', fontSize: '16px', color: 'var(--text)' }}>
           <p style={{ marginBottom: '20px' }}>
-            VT Kindergarten was founded by <strong>Thiru Venkatachalam Chettiar</strong> and <strong>Mrs. Meyyammai Achi</strong>, with a vision to make early education friendly, joyful, and meaningful.
+            VT Kindergarten was founded by <strong>Thiru Venkatachalam Chettiar</strong> and <strong>Mrs. Meyyammai Achi</strong> with a vision to make early education joyful, caring, and meaningful.
           </p>
           <p style={{ marginBottom: '20px' }}>
-            Their belief is simple yet powerful: the early years are when a child’s grasping power is at its peak. nurturing environment where every child can shine like a star.
+            They believed the early years mark the zenith of a child's grasping power, and thus created a nurturing space where every child can shine.
           </p>
           <p style={{ margin: 0 }}>
-            By blending Montessori methods with playful learning, they ensure that children not only gain knowledge but also develop confidence, creativity, and a love for learning.
+            By blending Montessori pedagogy with playful exploration, VT Kindergarten fosters confidence, creativity, and a lifelong love for learning.
           </p>
         </div>
       </div>
