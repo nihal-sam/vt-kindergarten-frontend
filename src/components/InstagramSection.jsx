@@ -1,6 +1,6 @@
 export default function InstagramSection() {
   return (
-    <div className="instagram-section" style={{ marginTop: '-40px', paddingBottom: '10px', marginBottom: '-80px', position: 'relative', zIndex: 10 }}>
+    <div className="instagram-section" style={{ marginTop: '-40px', paddingBottom: '60px', marginBottom: '0px', position: 'relative', zIndex: 10 }}>
       <div className="section-header">
         <div className="section-tag">{"\u{1F4F8}"} Our Journey</div>
         <h2 className="section-title">Follow Us <span>on Instagram</span></h2>
@@ -26,7 +26,7 @@ export default function InstagramSection() {
               boxShadow: '0 15px 35px rgba(0,0,0,0.1)', 
               border: '6px solid white', 
               background: '#000', 
-              aspectRatio: '3 / 4', 
+              height: '626px', 
               position: 'relative', 
               transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)', 
               cursor: 'pointer' 
