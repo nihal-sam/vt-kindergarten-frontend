@@ -255,6 +255,7 @@ function Dashboard({ admin, logout }) {
   const [admissions, setAdmissions] = useState([]);
   const [enquiries, setEnquiries] = useState([]);
   const [visitsCount, setVisitsCount] = useState(0);
+  const [visitsList, setVisitsList] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -287,10 +288,14 @@ function Dashboard({ admin, logout }) {
       setEnquiries(enq);
 
       try {
-        const { count, error: vError } = await supabase
+        const { data: vData, count, error: vError } = await supabase
           .from('visits')
-          .select('*', { count: 'exact', head: true });
-        if (!vError) setVisitsCount(count || 0);
+          .select('*', { count: 'exact' })
+          .order('created_at', { ascending: false });
+        if (!vError) {
+          setVisitsCount(count || 0);
+          setVisitsList(vData || []);
+        }
       } catch (e) { console.error("No visits table yet", e); }
       
       setStats({
@@ -333,6 +338,7 @@ function Dashboard({ admin, logout }) {
     { id: 'overview', label: 'Overview' },
     { id: 'admissions', label: 'Admissions' },
     { id: 'enquiries', label: 'Enquiries' },
+    { id: 'visitors', label: 'Visitors' },
   ];
 
   const statCards = [
@@ -477,7 +483,7 @@ function Dashboard({ admin, logout }) {
       <main style={{ padding: '32px', margin: '30px auto 0', maxWidth: 1400, width: '100%', boxSizing: 'border-box' }} className="admin-main">
         <div style={s.topBar} className="admin-topbar">
           <h1 style={s.pageH} className="admin-page-h">
-            {tab === 'overview' ? 'Dashboard Overview' : tab === 'admissions' ? 'Admission Applications' : 'Enquiry Messages'}
+            {tab === 'overview' ? 'Dashboard Overview' : tab === 'admissions' ? 'Admission Applications' : tab === 'visitors' ? 'Website Visitors' : 'Enquiry Messages'}
           </h1>
           <div style={{ display: 'flex', gap: 10 }} className="admin-topbar-actions">
             <button style={s.refreshBtn} onClick={fetchAll}>Refresh</button>
@@ -592,6 +598,37 @@ function Dashboard({ admin, logout }) {
                   ))}
                   {fEnquiries.length === 0 && (
                     <tr><td colSpan={8} style={{ ...s.td, textAlign: 'center', padding: 40, color: '#aaa' }}>No enquiries found.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+        {tab === 'visitors' && (
+          <div style={s.panel}>
+            <div style={s.filterRow} className="admin-filter-row">
+              <span style={s.cntBadge}>{visitsList.length} records</span>
+            </div>
+            <div style={{ overflowX: 'auto' }} className="admin-table-wrapper">
+              <table style={s.tbl}>
+                <thead><tr>
+                  {['#', 'Date & Time', 'Device / Browser (User Agent)', 'Referrer', 'Language', 'Screen Width'].map(h => (
+                    <th key={h} style={s.th}>{h}</th>
+                  ))}
+                </tr></thead>
+                <tbody>
+                  {visitsList.map((v, i) => (
+                    <tr key={i} style={{ ...s.tr }} className="hover-row">
+                      <td style={s.td}>{i + 1}</td>
+                      <td style={{ ...s.td, whiteSpace: 'nowrap' }}>{formatDate(v.created_at)}</td>
+                      <td style={{ ...s.td, maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={v.user_agent}>{v.user_agent || '-'}</td>
+                      <td style={{ ...s.td, maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={v.referrer}>{v.referrer || '-'}</td>
+                      <td style={s.td}>{v.language || '-'}</td>
+                      <td style={s.td}>{v.screen_width ? `${v.screen_width}px` : '-'}</td>
+                    </tr>
+                  ))}
+                  {visitsList.length === 0 && (
+                    <tr><td colSpan={6} style={{ ...s.td, textAlign: 'center', padding: 40, color: '#aaa' }}>No visits recorded yet.</td></tr>
                   )}
                 </tbody>
               </table>

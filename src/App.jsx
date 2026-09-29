@@ -24,7 +24,12 @@ export default function App() {
     const logVisit = async () => {
       if (!sessionStorage.getItem("vt_visit_logged")) {
         try {
-          await supabase.from('visits').insert([{ user_agent: navigator.userAgent }]);
+          await supabase.from('visits').insert([{ 
+            user_agent: navigator.userAgent,
+            referrer: document.referrer || 'Direct/Unknown',
+            language: navigator.language || 'Unknown',
+            screen_width: window.innerWidth
+          }]);
           sessionStorage.setItem("vt_visit_logged", "true");
         } catch (error) {
           console.error("Tracking error:", error);
