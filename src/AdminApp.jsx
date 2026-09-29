@@ -254,6 +254,7 @@ function Dashboard({ admin, logout }) {
   const [tab, setTab] = useState('overview');
   const [admissions, setAdmissions] = useState([]);
   const [enquiries, setEnquiries] = useState([]);
+  const [visitsCount, setVisitsCount] = useState(0);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -284,6 +285,13 @@ function Dashboard({ admin, logout }) {
 
       setAdmissions(adm);
       setEnquiries(enq);
+
+      try {
+        const { count, error: vError } = await supabase
+          .from('visits')
+          .select('*', { count: 'exact', head: true });
+        if (!vError) setVisitsCount(count || 0);
+      } catch (e) { console.error("No visits table yet", e); }
       
       setStats({
         this_month: allData.filter(d => new Date(d.created_at).getMonth() === new Date().getMonth()).length,
@@ -328,6 +336,7 @@ function Dashboard({ admin, logout }) {
   ];
 
   const statCards = [
+    { label: 'Total Visitors', value: visitsCount, color: '#FF4785' },
     { label: 'Total Admissions', value: admissions.length, color: '#FF6B35' },
     { label: 'Total Enquiries', value: enquiries.length, color: '#4ECDC4' },
     { label: 'This Month', value: stats?.this_month || 0, color: '#FFD93D' },

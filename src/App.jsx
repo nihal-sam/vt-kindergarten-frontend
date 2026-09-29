@@ -12,11 +12,27 @@ import FloatingBubbles from "./components/FloatingBubbles";
 import InstagramSection from "./components/InstagramSection";
 import ScrollProgress from "./components/ScrollProgress";
 
+import { supabase } from "./supabaseClient";
+
 const ELIGIBILITY_PROMPT_ASSETS = ["/assets/hero-elephant-bgless-v2.png"];
 
 export default function App() {
   const [loading, setLoading] = useState(true);
   const [ageCalculatorTouched, setAgeCalculatorTouched] = useState(false);
+
+  useEffect(() => {
+    const logVisit = async () => {
+      if (!sessionStorage.getItem("vt_visit_logged")) {
+        try {
+          await supabase.from('visits').insert([{ user_agent: navigator.userAgent }]);
+          sessionStorage.setItem("vt_visit_logged", "true");
+        } catch (error) {
+          console.error("Tracking error:", error);
+        }
+      }
+    };
+    logVisit();
+  }, []);
 
   useEffect(() => {
     ELIGIBILITY_PROMPT_ASSETS.forEach((src) => {
