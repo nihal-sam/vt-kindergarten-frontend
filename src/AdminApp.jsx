@@ -597,18 +597,18 @@ function Dashboard({ admin, logout }) {
         :root {
           --vta-font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
           --vta-primary: #FF6B35;
-          --vta-primary-hover: #fa5a20;
-          --vta-primary-light: rgba(255, 107, 53, 0.1);
-          --vta-bg: #F8FAFC;
+          --vta-primary-hover: #EA580C;
+          --vta-primary-light: rgba(255, 107, 53, 0.12);
+          --vta-bg: #FFF9F5;
           --vta-card-bg: #FFFFFF;
-          --vta-border: #E2E8F0;
-          --vta-border-subtle: #F1F5F9;
-          --vta-text-main: #0F172A;
-          --vta-text-muted: #64748B;
-          --vta-text-light: #94A3B8;
-          --vta-shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
-          --vta-shadow-card: 0 4px 16px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.02);
-          --vta-shadow-hover: 0 12px 32px rgba(15, 23, 42, 0.08);
+          --vta-border: rgba(255, 107, 53, 0.16);
+          --vta-border-subtle: rgba(255, 107, 53, 0.08);
+          --vta-text-main: #1C1917;
+          --vta-text-muted: #78716C;
+          --vta-text-light: #A8A29E;
+          --vta-shadow-sm: 0 1px 3px rgba(255, 107, 53, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+          --vta-shadow-card: 0 4px 20px rgba(255, 107, 53, 0.06), 0 1px 3px rgba(0, 0, 0, 0.03);
+          --vta-shadow-hover: 0 14px 36px rgba(255, 107, 53, 0.14);
           --vta-radius-sm: 8px;
           --vta-radius-md: 12px;
           --vta-radius-lg: 18px;
@@ -617,18 +617,25 @@ function Dashboard({ admin, logout }) {
 
         body {
           margin: 0;
-          background: var(--vta-bg);
+          background: #FFF9F5;
           font-family: var(--vta-font);
           color: var(--vta-text-main);
           -webkit-font-smoothing: antialiased;
         }
 
-        /* Layout */
+        /* Layout with Warm Ambient Orange & White Gradients */
         .vta-dashboard-layout {
           min-height: 100vh;
           display: flex;
           flex-direction: column;
-          background: var(--vta-bg);
+          background-color: #FFF9F5;
+          background-image: 
+            radial-gradient(at 0% 0%, rgba(255, 107, 53, 0.09) 0px, transparent 55%),
+            radial-gradient(at 100% 0%, rgba(255, 180, 50, 0.08) 0px, transparent 50%),
+            radial-gradient(at 50% 45%, rgba(255, 107, 53, 0.04) 0px, transparent 65%),
+            radial-gradient(at 100% 100%, rgba(255, 107, 53, 0.08) 0px, transparent 55%),
+            radial-gradient(at 0% 100%, rgba(255, 195, 80, 0.07) 0px, transparent 50%);
+          background-attachment: fixed;
         }
 
         /* Top Sticky Glass Navbar */
@@ -636,11 +643,11 @@ function Dashboard({ admin, logout }) {
           position: sticky;
           top: 0;
           z-index: 100;
-          background: rgba(255, 255, 255, 0.92);
-          backdrop-filter: blur(16px);
-          -webkit-backdrop-filter: blur(16px);
-          border-bottom: 1px solid var(--vta-border);
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+          background: rgba(255, 253, 250, 0.94);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          border-bottom: 1.5px solid rgba(255, 107, 53, 0.16);
+          box-shadow: 0 4px 24px rgba(255, 107, 53, 0.05);
         }
 
         .vta-navbar-inner {
@@ -699,11 +706,12 @@ function Dashboard({ admin, logout }) {
           animation: vta-pulse 2s infinite;
         }
 
-        /* Nav Pills */
+        /* Nav Pills with Warm Orange & White Theme */
         .vta-nav-pills {
           display: flex;
           align-items: center;
-          background: #F1F5F9;
+          background: #FFF2E8;
+          border: 1.5px solid rgba(255, 107, 53, 0.16);
           padding: 4px;
           border-radius: 14px;
           list-style: none;
@@ -719,7 +727,7 @@ function Dashboard({ admin, logout }) {
           border-radius: 10px;
           border: none;
           background: transparent;
-          color: var(--vta-text-muted);
+          color: #78716C;
           font-family: var(--vta-font);
           font-size: 13.5px;
           font-weight: 700;
@@ -730,19 +738,19 @@ function Dashboard({ admin, logout }) {
         }
 
         .vta-nav-pill-btn:hover {
-          color: var(--vta-text-main);
-          background: rgba(255, 255, 255, 0.6);
+          color: var(--vta-primary);
+          background: rgba(255, 255, 255, 0.7);
         }
 
         .vta-nav-pill-btn.active {
           background: #FFFFFF;
           color: var(--vta-primary);
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+          box-shadow: 0 2px 10px rgba(255, 107, 53, 0.15);
         }
 
         .vta-nav-badge {
-          background: rgba(15, 23, 42, 0.08);
-          color: var(--vta-text-main);
+          background: rgba(255, 107, 53, 0.12);
+          color: var(--vta-primary);
           font-size: 11px;
           font-weight: 800;
           padding: 2px 7px;
@@ -750,8 +758,8 @@ function Dashboard({ admin, logout }) {
         }
 
         .vta-nav-pill-btn.active .vta-nav-badge {
-          background: var(--vta-primary-light);
-          color: var(--vta-primary);
+          background: var(--vta-primary);
+          color: #FFFFFF;
         }
 
         /* Right Nav Actions */
@@ -767,9 +775,9 @@ function Dashboard({ admin, logout }) {
           gap: 6px;
           padding: 8px 14px;
           border-radius: 10px;
-          border: 1px solid var(--vta-border);
+          border: 1.5px solid rgba(255, 107, 53, 0.2);
           background: #FFFFFF;
-          color: var(--vta-text-muted);
+          color: #57534E;
           font-family: var(--vta-font);
           font-size: 13px;
           font-weight: 700;
@@ -779,9 +787,9 @@ function Dashboard({ admin, logout }) {
         }
 
         .vta-btn-ghost:hover {
-          color: var(--vta-text-main);
-          border-color: #CBD5E1;
-          background: #F8FAFC;
+          color: var(--vta-primary);
+          border-color: var(--vta-primary);
+          background: #FFF7F2;
         }
 
         .vta-user-chip {
@@ -790,8 +798,8 @@ function Dashboard({ admin, logout }) {
           gap: 8px;
           padding: 5px 12px 5px 6px;
           border-radius: 30px;
-          background: #F1F5F9;
-          border: 1px solid var(--vta-border);
+          background: #FFF5EE;
+          border: 1.5px solid rgba(255, 107, 53, 0.2);
         }
 
         .vta-user-avatar {
@@ -963,11 +971,11 @@ function Dashboard({ admin, logout }) {
         }
 
         .vta-stat-card {
-          background: var(--vta-card-bg);
+          background: #FFFFFF;
           border-radius: var(--vta-radius-lg);
           padding: 22px;
-          border: 1px solid var(--vta-border);
-          box-shadow: var(--vta-shadow-card);
+          border: 1.5px solid rgba(255, 107, 53, 0.16);
+          box-shadow: 0 4px 20px rgba(255, 107, 53, 0.05);
           transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
           position: relative;
           overflow: hidden;
@@ -975,8 +983,8 @@ function Dashboard({ admin, logout }) {
 
         .vta-stat-card:hover {
           transform: translateY(-3px);
-          box-shadow: var(--vta-shadow-hover);
-          border-color: #CBD5E1;
+          box-shadow: 0 12px 32px rgba(255, 107, 53, 0.14);
+          border-color: rgba(255, 107, 53, 0.38);
         }
 
         .vta-stat-top {
@@ -998,11 +1006,12 @@ function Dashboard({ admin, logout }) {
 
         .vta-stat-badge {
           font-size: 11px;
-          font-weight: 700;
-          padding: 3px 8px;
+          font-weight: 800;
+          padding: 3px 9px;
           border-radius: 20px;
-          background: #F1F5F9;
-          color: var(--vta-text-muted);
+          background: #FFF2E8;
+          color: #EA580C;
+          border: 1px solid rgba(255, 107, 53, 0.15);
         }
 
         .vta-stat-val {
@@ -1020,9 +1029,10 @@ function Dashboard({ admin, logout }) {
           color: var(--vta-text-muted);
         }
 
-        /* Welcome Banner */
+        /* Welcome Banner with Warm Sunset Obsidian & Orange Flare */
         .vta-welcome-banner {
-          background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+          background: linear-gradient(135deg, #1C1917 0%, #292524 55%, #431407 100%);
+          border: 1.5px solid rgba(255, 107, 53, 0.28);
           border-radius: var(--vta-radius-xl);
           padding: 32px 36px;
           color: #FFFFFF;
@@ -1033,7 +1043,7 @@ function Dashboard({ admin, logout }) {
           gap: 24px;
           position: relative;
           overflow: hidden;
-          box-shadow: 0 16px 36px rgba(15, 23, 42, 0.15);
+          box-shadow: 0 16px 40px rgba(255, 107, 53, 0.15);
         }
 
         .vta-welcome-banner::after {
@@ -1043,7 +1053,7 @@ function Dashboard({ admin, logout }) {
           right: -80px;
           width: 320px;
           height: 320px;
-          background: radial-gradient(circle, rgba(255, 107, 53, 0.25) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(255, 107, 53, 0.35) 0%, transparent 70%);
           border-radius: 50%;
           pointer-events: none;
         }
@@ -1064,23 +1074,23 @@ function Dashboard({ admin, logout }) {
 
         /* Panel & Table Card */
         .vta-panel {
-          background: var(--vta-card-bg);
+          background: #FFFFFF;
           border-radius: var(--vta-radius-xl);
-          border: 1px solid var(--vta-border);
-          box-shadow: var(--vta-shadow-card);
+          border: 1.5px solid rgba(255, 107, 53, 0.16);
+          box-shadow: 0 6px 24px rgba(255, 107, 53, 0.05);
           overflow: hidden;
           margin-bottom: 28px;
         }
 
         .vta-panel-header {
           padding: 20px 24px;
-          border-bottom: 1px solid var(--vta-border);
+          border-bottom: 1.5px solid rgba(255, 107, 53, 0.1);
           display: flex;
           align-items: center;
           justify-content: space-between;
           flex-wrap: wrap;
           gap: 16px;
-          background: #FFFFFF;
+          background: #FFFDFB;
         }
 
         .vta-filters-group {
@@ -1103,18 +1113,18 @@ function Dashboard({ admin, logout }) {
           box-sizing: border-box;
           padding: 10px 14px 10px 36px;
           border-radius: var(--vta-radius-md);
-          border: 1.5px solid var(--vta-border);
+          border: 1.5px solid rgba(255, 107, 53, 0.2);
           font-family: var(--vta-font);
           font-size: 13.5px;
           outline: none;
           transition: all 0.2s ease;
-          background: #F8FAFC;
+          background: #FFFDFB;
         }
 
         .vta-search-box input:focus {
           border-color: var(--vta-primary);
           background: #FFFFFF;
-          box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.15);
+          box-shadow: 0 0 0 3.5px rgba(255, 107, 53, 0.18);
         }
 
         .vta-search-icon {
@@ -1123,19 +1133,20 @@ function Dashboard({ admin, logout }) {
           top: 50%;
           transform: translateY(-50%);
           font-size: 14px;
-          color: var(--vta-text-light);
+          color: #EA580C;
+          opacity: 0.6;
           pointer-events: none;
         }
 
         .vta-select {
           padding: 10px 14px;
           border-radius: var(--vta-radius-md);
-          border: 1.5px solid var(--vta-border);
+          border: 1.5px solid rgba(255, 107, 53, 0.2);
           font-family: var(--vta-font);
           font-size: 13.5px;
           font-weight: 600;
           color: var(--vta-text-main);
-          background: #F8FAFC;
+          background: #FFFDFB;
           outline: none;
           cursor: pointer;
         }
@@ -1143,17 +1154,18 @@ function Dashboard({ admin, logout }) {
         .vta-select:focus {
           border-color: var(--vta-primary);
           background: #FFFFFF;
-          box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.15);
+          box-shadow: 0 0 0 3.5px rgba(255, 107, 53, 0.18);
         }
 
         .vta-count-pill {
-          background: #F1F5F9;
-          color: var(--vta-text-muted);
+          background: #FFF0E6;
+          color: #C2410C;
           font-size: 12.5px;
           font-weight: 800;
           padding: 6px 14px;
           border-radius: 20px;
           white-space: nowrap;
+          border: 1px solid rgba(255, 107, 53, 0.18);
         }
 
         /* Table */
@@ -1170,14 +1182,14 @@ function Dashboard({ admin, logout }) {
         }
 
         .vta-table th {
-          background: #F8FAFC;
+          background: #FFF5EE;
           padding: 14px 18px;
           font-size: 11.5px;
           font-weight: 800;
           text-transform: uppercase;
           letter-spacing: 0.6px;
-          color: var(--vta-text-muted);
-          border-bottom: 1px solid var(--vta-border);
+          color: #9A3412;
+          border-bottom: 1.5px solid rgba(255, 107, 53, 0.14);
           white-space: nowrap;
         }
 
@@ -1185,12 +1197,12 @@ function Dashboard({ admin, logout }) {
           padding: 16px 18px;
           font-size: 13.5px;
           color: var(--vta-text-main);
-          border-bottom: 1px solid var(--vta-border-subtle);
+          border-bottom: 1px solid rgba(255, 107, 53, 0.08);
           vertical-align: middle;
         }
 
         .vta-table tr:hover td {
-          background: #FAFBFC;
+          background: #FFFBF7;
         }
 
         .vta-avatar-cell {
@@ -1313,10 +1325,10 @@ function Dashboard({ admin, logout }) {
 
         /* Form Card */
         .vta-form-card {
-          background: var(--vta-card-bg);
+          background: #FFFFFF;
           border-radius: var(--vta-radius-xl);
-          border: 1px solid var(--vta-border);
-          box-shadow: var(--vta-shadow-card);
+          border: 1.5px solid rgba(255, 107, 53, 0.22);
+          box-shadow: 0 10px 36px rgba(255, 107, 53, 0.08);
           padding: 32px;
           margin-bottom: 32px;
         }
@@ -1326,7 +1338,7 @@ function Dashboard({ admin, logout }) {
           align-items: flex-start;
           justify-content: space-between;
           margin-bottom: 24px;
-          border-bottom: 1px solid var(--vta-border);
+          border-bottom: 1.5px solid rgba(255, 107, 53, 0.12);
           padding-bottom: 20px;
         }
 
@@ -1367,17 +1379,17 @@ function Dashboard({ admin, logout }) {
         .vta-field label {
           font-size: 12.5px;
           font-weight: 700;
-          color: var(--vta-text-muted);
+          color: #57534E;
         }
 
         .vta-field input, .vta-field select {
           padding: 12px 16px;
           border-radius: var(--vta-radius-md);
-          border: 1.5px solid var(--vta-border);
+          border: 1.5px solid rgba(255, 107, 53, 0.2);
           font-family: var(--vta-font);
           font-size: 14px;
           outline: none;
-          background: #F8FAFC;
+          background: #FFFDFB;
           transition: all 0.2s ease;
           box-sizing: border-box;
           width: 100%;
@@ -1386,7 +1398,7 @@ function Dashboard({ admin, logout }) {
         .vta-field input:focus, .vta-field select:focus {
           border-color: var(--vta-primary);
           background: #FFFFFF;
-          box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.15);
+          box-shadow: 0 0 0 3.5px rgba(255, 107, 53, 0.18);
         }
 
         .vta-form-actions {
