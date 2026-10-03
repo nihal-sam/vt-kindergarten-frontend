@@ -408,15 +408,31 @@ function AdmissionApplicationBox({ onSubmitted, onCancel }) {
 
 
 /* ==========================================================================
-   TOP RIGHT TABLE PAGINATION COMPONENT
+   TOP RIGHT TABLE CONTROLS & PAGINATION COMPONENT
    ========================================================================== */
-function TablePaginationTop({ currentPage, totalItems, pageSize, onPageChange, onPageSizeChange }) {
+function TablePaginationTop({ currentPage, totalItems, pageSize, onPageChange, onPageSizeChange, onRefresh, loading }) {
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-
-  if (totalItems === 0) return null;
 
   return (
     <div className="vta-pagination-top">
+      {/* 🔄 Recall API / Refresh Button */}
+      {onRefresh && (
+        <>
+          <button
+            type="button"
+            className={`vta-top-refresh-btn ${loading ? 'is-syncing' : ''}`}
+            onClick={onRefresh}
+            disabled={loading}
+            title="Recall API & Refresh data from Supabase"
+          >
+            <span className={`vta-refresh-icon ${loading ? 'vta-spin' : ''}`}>🔄</span>
+            <span className="vta-top-refresh-label">{loading ? 'Syncing...' : 'Refresh'}</span>
+          </button>
+          <div className="vta-top-sep" />
+        </>
+      )}
+
+      {/* Rows Per Page Dropdown */}
       <div className="vta-top-size-wrap">
         <span>Rows:</span>
         <select
@@ -437,11 +453,12 @@ function TablePaginationTop({ currentPage, totalItems, pageSize, onPageChange, o
 
       <div className="vta-top-sep" />
 
+      {/* Previous / Next Page Nav */}
       <div className="vta-top-nav-wrap">
         <button
           type="button"
           className="vta-top-nav-btn"
-          disabled={currentPage <= 1}
+          disabled={totalItems === 0 || currentPage <= 1}
           onClick={() => onPageChange(currentPage - 1)}
           title="Previous Page"
         >
@@ -449,13 +466,17 @@ function TablePaginationTop({ currentPage, totalItems, pageSize, onPageChange, o
         </button>
 
         <span className="vta-top-page-text">
-          Page <strong>{currentPage}</strong> of <strong>{totalPages}</strong>
+          {totalItems === 0 ? (
+            <span>0 of 0</span>
+          ) : (
+            <>Page <strong>{currentPage}</strong> of <strong>{totalPages}</strong></>
+          )}
         </span>
 
         <button
           type="button"
           className="vta-top-nav-btn"
-          disabled={currentPage >= totalPages}
+          disabled={totalItems === 0 || currentPage >= totalPages}
           onClick={() => onPageChange(currentPage + 1)}
           title="Next Page"
         >
@@ -477,6 +498,8 @@ function Dashboard({ admin, logout }) {
   const [visitsList, setVisitsList] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(false);
+  const [lastRefreshed, setLastRefreshed] = useState(null);
+  const [refreshBanner, setRefreshBanner] = useState(false);
   const [search, setSearch] = useState('');
   const [filterProgram, setFilterProgram] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -497,28 +520,46 @@ function Dashboard({ admin, logout }) {
   const fetchAll = async () => {
     setLoading(true);
     try {
-      // 1. Fetch Admissions & Enquiries
+      // 1. Fetch Admissions & Enquiries from Supabase API
       const { data, error } = await supabase
         .from('admissions')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error(error);
+        console.error('API Recall Error (admissions):', error);
         if (error.message.includes('JWT')) logout();
         return;
       }
 
       const allData = data || [];
       const adm = allData.filter(d => d.parent_name && d.parent_name.trim() !== '');
-      const enq = allData
-        .filter(d => !d.parent_name || d.parent_name.trim() === '')
-        .map(d => ({ ...d, name: d.child_name }));
+
+      // Check if separate enquiries table exists, otherwise filter from admissions
+      let enq = [];
+      try {
+        const { data: enqData, error: enqErr } = await supabase
+          .from('enquiries')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (!enqErr && enqData && enqData.length > 0) {
+          enq = enqData;
+        } else {
+          enq = allData
+            .filter(d => !d.parent_name || d.parent_name.trim() === '')
+            .map(d => ({ ...d, name: d.child_name }));
+        }
+      } catch (e) {
+        enq = allData
+          .filter(d => !d.parent_name || d.parent_name.trim() === '')
+          .map(d => ({ ...d, name: d.child_name }));
+      }
 
       setAdmissions(adm);
       setEnquiries(enq);
 
-      // 2. Fetch Visitor Analytics
+      // 2. Fetch Visitor Analytics from Supabase API
       try {
         const { data: vData, count, error: vError } = await supabase
           .from('visits')
@@ -531,7 +572,7 @@ function Dashboard({ admin, logout }) {
           setVisitsList(vData || []);
         }
       } catch (e) {
-        console.error("No visits table yet", e);
+        console.error("Visits table query note:", e);
       }
 
       // 3. Stats Calculation
@@ -540,8 +581,13 @@ function Dashboard({ admin, logout }) {
         pending: adm.filter(d => !d.status || d.status === 'pending').length,
         approved: adm.filter(d => d.status === 'approved').length,
       });
+
+      const nowTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      setLastRefreshed(nowTime);
+      setRefreshBanner(true);
+      setTimeout(() => setRefreshBanner(false), 3000);
     } catch (err) {
-      console.error(err);
+      console.error('API Recall error:', err);
     } finally {
       setLoading(false);
     }
@@ -1323,11 +1369,21 @@ function Dashboard({ admin, logout }) {
         }
 
 
-        /* Top Right Table Pagination */
+        @keyframes vta-spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        .vta-spin {
+          display: inline-block;
+          animation: vta-spin 0.85s linear infinite;
+        }
+
+        /* Top Right Table Pagination & Controls */
         .vta-pagination-top {
           display: inline-flex;
           align-items: center;
-          gap: 12px;
+          gap: 10px;
           margin-left: auto;
           background: #FFFFFF;
           padding: 6px 14px;
@@ -1335,6 +1391,45 @@ function Dashboard({ admin, logout }) {
           border: 1.5px solid rgba(255, 107, 53, 0.22);
           box-shadow: 0 2px 8px rgba(255, 107, 53, 0.05);
           flex-shrink: 0;
+        }
+
+        .vta-top-refresh-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 5px 12px;
+          border-radius: 8px;
+          border: 1.5px solid rgba(255, 107, 53, 0.25);
+          background: #FFF7F2;
+          color: var(--vta-primary);
+          font-family: var(--vta-font);
+          font-size: 12.5px;
+          font-weight: 800;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .vta-top-refresh-btn:hover:not(:disabled) {
+          background: var(--vta-primary);
+          color: #FFFFFF;
+          border-color: var(--vta-primary);
+          box-shadow: 0 2px 8px rgba(255, 107, 53, 0.25);
+        }
+
+        .vta-top-refresh-btn:disabled {
+          opacity: 0.65;
+          cursor: not-allowed;
+        }
+
+        .vta-top-refresh-btn.is-syncing {
+          background: #FEF3C7;
+          border-color: #F59E0B;
+          color: #B45309;
+        }
+
+        .vta-refresh-icon {
+          display: inline-block;
+          font-size: 13px;
         }
 
         .vta-top-size-wrap {
@@ -1975,8 +2070,14 @@ function Dashboard({ admin, logout }) {
               <span className="vta-hide-mobile">Live Website</span>
             </a>
 
-            <button type="button" className="vta-btn-ghost" onClick={fetchAll} title="Reload fresh data">
-              <span>🔄</span>
+            <button
+              type="button"
+              className="vta-btn-ghost"
+              onClick={fetchAll}
+              disabled={loading}
+              title={`Recall API & Reload fresh data ${lastRefreshed ? `(Last synced: ${lastRefreshed})` : ''}`}
+            >
+              <span className={loading ? 'vta-spin' : ''}>🔄</span>
               <span className="vta-hide-mobile">{loading ? 'Syncing...' : 'Refresh'}</span>
             </button>
 
@@ -2026,6 +2127,18 @@ function Dashboard({ admin, logout }) {
           </div>
 
           <div className="vta-header-actions">
+            <button
+              type="button"
+              className="vta-btn-ghost"
+              onClick={fetchAll}
+              disabled={loading}
+              title="Recall API & Refresh data from Supabase"
+              style={{ fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            >
+              <span className={loading ? 'vta-spin' : ''}>🔄</span>
+              <span>{loading ? 'Recalling API...' : 'Refresh'}</span>
+            </button>
+
             {tab === 'admissions' && (
               <>
                 <button
@@ -2067,22 +2180,52 @@ function Dashboard({ admin, logout }) {
           </div>
         </div>
 
-        {/* Global Loading Indicator */}
+        {/* Global Loading / Sync Indicator */}
         {loading && (
           <div style={{
-            background: '#FEF3C7',
-            border: '1px solid #FDE68A',
+            background: '#FFF7ED',
+            border: '1.5px solid rgba(255, 107, 53, 0.3)',
             borderRadius: 12,
             padding: '12px 20px',
             marginBottom: 24,
             fontSize: 13.5,
-            fontWeight: 700,
-            color: '#B45309',
+            fontWeight: 800,
+            color: '#C2410C',
             display: 'flex',
             alignItems: 'center',
-            gap: 10
+            gap: 10,
+            boxShadow: '0 2px 10px rgba(255, 107, 53, 0.08)'
           }}>
-            <span>⏳</span> Synchronizing live data with Supabase...
+            <span className="vta-spin" style={{ fontSize: 16 }}>🔄</span>
+            <span>Recalling API & synchronizing fresh data from Supabase...</span>
+          </div>
+        )}
+
+        {/* Global Success Indicator on refresh */}
+        {!loading && refreshBanner && (
+          <div style={{
+            background: '#ECFDF5',
+            border: '1.5px solid rgba(16, 185, 129, 0.3)',
+            borderRadius: 12,
+            padding: '12px 20px',
+            marginBottom: 24,
+            fontSize: 13.5,
+            fontWeight: 800,
+            color: '#065F46',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            boxShadow: '0 2px 10px rgba(16, 185, 129, 0.08)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 16 }}>✅</span>
+              <span>API successfully recalled! Data is completely up to date.</span>
+            </div>
+            {lastRefreshed && (
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: '#047857' }}>
+                Synced at {lastRefreshed}
+              </span>
+            )}
           </div>
         )}
 
@@ -2308,6 +2451,8 @@ function Dashboard({ admin, logout }) {
                 pageSize={pageSizeAdm}
                 onPageChange={setPageAdm}
                 onPageSizeChange={setPageSizeAdm}
+                onRefresh={fetchAll}
+                loading={loading}
               />
             </div>
 
@@ -2460,6 +2605,8 @@ function Dashboard({ admin, logout }) {
                 pageSize={pageSizeEnq}
                 onPageChange={setPageEnq}
                 onPageSizeChange={setPageSizeEnq}
+                onRefresh={fetchAll}
+                loading={loading}
               />
             </div>
 
@@ -2617,6 +2764,8 @@ function Dashboard({ admin, logout }) {
                   pageSize={pageSizeVis}
                   onPageChange={setPageVis}
                   onPageSizeChange={setPageSizeVis}
+                  onRefresh={fetchAll}
+                  loading={loading}
                 />
               </div>
 
