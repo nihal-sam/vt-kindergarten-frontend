@@ -469,6 +469,65 @@ function TablePagination({ currentPage, totalItems, pageSize, onPageChange, onPa
 }
 
 /* ==========================================================================
+   TOP RIGHT TABLE PAGINATION COMPONENT
+   ========================================================================== */
+function TablePaginationTop({ currentPage, totalItems, pageSize, onPageChange, onPageSizeChange }) {
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+  if (totalItems === 0) return null;
+
+  return (
+    <div className="vta-pagination-top">
+      <div className="vta-top-size-wrap">
+        <span>Rows:</span>
+        <select
+          className="vta-top-size-select"
+          value={pageSize}
+          onChange={(e) => {
+            onPageSizeChange(Number(e.target.value));
+            onPageChange(1);
+          }}
+          title="Select rows per page"
+        >
+          <option value={10}>10</option>
+          <option value={20}>20</option>
+          <option value={50}>50</option>
+          <option value={100}>100</option>
+        </select>
+      </div>
+
+      <div className="vta-top-sep" />
+
+      <div className="vta-top-nav-wrap">
+        <button
+          type="button"
+          className="vta-top-nav-btn"
+          disabled={currentPage <= 1}
+          onClick={() => onPageChange(currentPage - 1)}
+          title="Previous Page"
+        >
+          &larr; Prev
+        </button>
+
+        <span className="vta-top-page-text">
+          Page <strong>{currentPage}</strong> of <strong>{totalPages}</strong>
+        </span>
+
+        <button
+          type="button"
+          className="vta-top-nav-btn"
+          disabled={currentPage >= totalPages}
+          onClick={() => onPageChange(currentPage + 1)}
+          title="Next Page"
+        >
+          Next &rarr;
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ==========================================================================
    DASHBOARD MAIN COMPONENT
    ========================================================================== */
 function Dashboard({ admin, logout }) {
@@ -1425,6 +1484,111 @@ function Dashboard({ admin, logout }) {
           font-weight: 900;
         }
 
+        /* Top Right Table Pagination */
+        .vta-pagination-top {
+          display: inline-flex;
+          align-items: center;
+          gap: 12px;
+          margin-left: auto;
+          background: #FFFFFF;
+          padding: 6px 14px;
+          border-radius: 12px;
+          border: 1.5px solid rgba(255, 107, 53, 0.22);
+          box-shadow: 0 2px 8px rgba(255, 107, 53, 0.05);
+          flex-shrink: 0;
+        }
+
+        .vta-top-size-wrap {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 12.5px;
+          font-weight: 700;
+          color: #78716C;
+        }
+
+        .vta-top-size-select {
+          padding: 4px 8px;
+          border-radius: 8px;
+          border: 1.5px solid rgba(255, 107, 53, 0.25);
+          background: #FFFDFB;
+          color: #1C1917;
+          font-family: var(--vta-font);
+          font-size: 12.5px;
+          font-weight: 800;
+          outline: none;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .vta-top-size-select:focus {
+          border-color: var(--vta-primary);
+          box-shadow: 0 0 0 2.5px rgba(255, 107, 53, 0.15);
+        }
+
+        .vta-top-sep {
+          width: 1px;
+          height: 18px;
+          background: rgba(255, 107, 53, 0.2);
+        }
+
+        .vta-top-nav-wrap {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .vta-top-nav-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 5px 11px;
+          border-radius: 7px;
+          border: 1.5px solid rgba(255, 107, 53, 0.2);
+          background: #FFFFFF;
+          color: #1C1917;
+          font-family: var(--vta-font);
+          font-size: 12px;
+          font-weight: 800;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .vta-top-nav-btn:hover:not(:disabled) {
+          border-color: var(--vta-primary);
+          background: #FFF7F2;
+          color: var(--vta-primary);
+        }
+
+        .vta-top-nav-btn:disabled {
+          opacity: 0.35;
+          cursor: not-allowed;
+          background: #F5F5F4;
+          border-color: #E7E5E4;
+        }
+
+        .vta-top-page-text {
+          font-size: 12.5px;
+          font-weight: 700;
+          color: #78716C;
+          padding: 0 2px;
+          white-space: nowrap;
+        }
+
+        .vta-top-page-text strong {
+          color: var(--vta-primary);
+          font-weight: 900;
+        }
+
+        @media (max-width: 768px) {
+          .vta-pagination-top {
+            width: 100%;
+            justify-content: space-between;
+            margin-left: 0;
+            padding: 8px 12px;
+          }
+        }
+
         .vta-avatar-cell {
           display: flex;
           align-items: center;
@@ -2298,6 +2462,14 @@ function Dashboard({ admin, logout }) {
 
                 <span className="vta-count-pill">{fAdmissions.length} records</span>
               </div>
+
+              <TablePaginationTop
+                currentPage={pageAdm}
+                totalItems={fAdmissions.length}
+                pageSize={pageSizeAdm}
+                onPageChange={setPageAdm}
+                onPageSizeChange={setPageSizeAdm}
+              />
             </div>
 
             {/* Admissions Table */}
@@ -2450,6 +2622,14 @@ function Dashboard({ admin, logout }) {
 
                 <span className="vta-count-pill">{fEnquiries.length} records</span>
               </div>
+
+              <TablePaginationTop
+                currentPage={pageEnq}
+                totalItems={fEnquiries.length}
+                pageSize={pageSizeEnq}
+                onPageChange={setPageEnq}
+                onPageSizeChange={setPageSizeEnq}
+              />
             </div>
 
             <div className="vta-table-scroll">
@@ -2607,6 +2787,14 @@ function Dashboard({ admin, logout }) {
                   </div>
                   <span className="vta-count-pill">{fVisits.length} logs captured</span>
                 </div>
+
+                <TablePaginationTop
+                  currentPage={pageVis}
+                  totalItems={fVisits.length}
+                  pageSize={pageSizeVis}
+                  onPageChange={setPageVis}
+                  onPageSizeChange={setPageSizeVis}
+                />
               </div>
 
               <div className="vta-table-scroll">
