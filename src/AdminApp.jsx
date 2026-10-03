@@ -1720,6 +1720,7 @@ function Dashboard({ admin, logout }) {
                   setSearch('');
                   setFilterProgram('');
                   setFilterStatus('');
+                  setShowAddForm(false);
                   setMenuOpen(false);
                 }}
               >
@@ -1790,24 +1791,14 @@ function Dashboard({ admin, logout }) {
           </div>
 
           <div className="vta-header-actions">
-            {tab === 'overview' && (
-              <button
-                type="button"
-                className="vta-btn-primary"
-                onClick={() => setShowAddForm(prev => !prev)}
-              >
-                {showAddForm ? '✕ Close Form' : '+ New Admission'}
-              </button>
-            )}
-
             {tab === 'admissions' && (
               <>
                 <button
                   type="button"
-                  className="vta-btn-secondary"
+                  className="vta-btn-primary"
                   onClick={() => setShowAddForm(prev => !prev)}
                 >
-                  {showAddForm ? '✕ Close Form' : '+ Add Admission'}
+                  {showAddForm ? '✕ Close Form' : '+ New Admission'}
                 </button>
                 <button
                   type="button"
@@ -1860,17 +1851,6 @@ function Dashboard({ admin, logout }) {
           </div>
         )}
 
-        {/* Manual Enrollment Form (Collapsible) */}
-        {showAddForm && (
-          <AdmissionApplicationBox
-            onSubmitted={() => {
-              fetchAll();
-              setShowAddForm(false);
-            }}
-            onCancel={() => setShowAddForm(false)}
-          />
-        )}
-
         {/* ================= TAB 1: OVERVIEW ================= */}
         {tab === 'overview' && (
           <>
@@ -1903,17 +1883,9 @@ function Dashboard({ admin, logout }) {
                 <button
                   type="button"
                   className="vta-btn-primary"
-                  onClick={() => setShowAddForm(true)}
-                >
-                  + Enroll New Student
-                </button>
-                <button
-                  type="button"
-                  className="vta-btn-ghost"
-                  style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', borderColor: 'rgba(255,255,255,0.2)' }}
                   onClick={() => setTab('admissions')}
                 >
-                  View All Admissions &rarr;
+                  View Admissions Portal &rarr;
                 </button>
               </div>
             </div>
@@ -2043,7 +2015,19 @@ function Dashboard({ admin, logout }) {
 
         {/* ================= TAB 2: ADMISSIONS ================= */}
         {tab === 'admissions' && (
-          <div className="vta-panel">
+          <>
+            {/* Manual Admission Entry Form (Exclusively in Admissions) */}
+            {showAddForm && (
+              <AdmissionApplicationBox
+                onSubmitted={() => {
+                  fetchAll();
+                  setShowAddForm(false);
+                }}
+                onCancel={() => setShowAddForm(false)}
+              />
+            )}
+
+            <div className="vta-panel">
             {/* Filter Toolbar */}
             <div className="vta-panel-header">
               <div className="vta-filters-group">
@@ -2194,6 +2178,7 @@ function Dashboard({ admin, logout }) {
               </table>
             </div>
           </div>
+          </>
         )}
 
         {/* ================= TAB 3: ENQUIRIES ================= */}
