@@ -406,67 +406,6 @@ function AdmissionApplicationBox({ onSubmitted, onCancel }) {
   );
 }
 
-/* ==========================================================================
-   TABLE PAGINATION COMPONENT
-   ========================================================================== */
-function TablePagination({ currentPage, totalItems, pageSize, onPageChange, onPageSizeChange }) {
-  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-  const startItem = totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1;
-  const endItem = Math.min(totalItems, currentPage * pageSize);
-
-  if (totalItems === 0) return null;
-
-  return (
-    <div className="vta-pagination-wrap">
-      <div className="vta-pagination-left">
-        <span className="vta-pagination-info">
-          Showing <strong>{startItem}</strong> - <strong>{endItem}</strong> of <strong>{totalItems}</strong> entries
-        </span>
-        <div className="vta-page-size-selector">
-          <label>Rows per page:</label>
-          <select
-            value={pageSize}
-            onChange={(e) => {
-              onPageSizeChange(Number(e.target.value));
-              onPageChange(1);
-            }}
-          >
-            <option value={10}>10</option>
-            <option value={20}>20</option>
-            <option value={50}>50</option>
-            <option value={100}>100</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="vta-pagination-controls">
-        <button
-          type="button"
-          className="vta-page-nav-btn"
-          disabled={currentPage <= 1}
-          onClick={() => onPageChange(currentPage - 1)}
-          title="Previous Page"
-        >
-          &larr; Prev
-        </button>
-
-        <span className="vta-page-indicator">
-          Page <strong>{currentPage}</strong> of <strong>{totalPages}</strong>
-        </span>
-
-        <button
-          type="button"
-          className="vta-page-nav-btn"
-          disabled={currentPage >= totalPages}
-          onClick={() => onPageChange(currentPage + 1)}
-          title="Next Page"
-        >
-          Next &rarr;
-        </button>
-      </div>
-    </div>
-  );
-}
 
 /* ==========================================================================
    TOP RIGHT TABLE PAGINATION COMPONENT
@@ -1383,106 +1322,6 @@ function Dashboard({ admin, logout }) {
           background: #FFFBF7;
         }
 
-        /* Pagination Controls */
-        .vta-pagination-wrap {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 14px 24px;
-          background: #FFFDFB;
-          border-top: 1.5px solid rgba(255, 107, 53, 0.1);
-          flex-wrap: wrap;
-          gap: 14px;
-        }
-
-        .vta-pagination-left {
-          display: flex;
-          align-items: center;
-          gap: 18px;
-          flex-wrap: wrap;
-        }
-
-        .vta-pagination-info {
-          font-size: 13px;
-          color: #78716C;
-        }
-
-        .vta-pagination-info strong {
-          color: #1C1917;
-          font-weight: 800;
-        }
-
-        .vta-page-size-selector {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 13px;
-          color: #78716C;
-          font-weight: 700;
-        }
-
-        .vta-page-size-selector select {
-          padding: 5px 10px;
-          border-radius: 8px;
-          border: 1.5px solid rgba(255, 107, 53, 0.2);
-          background: #FFFFFF;
-          color: #1C1917;
-          font-family: var(--vta-font);
-          font-size: 13px;
-          font-weight: 800;
-          outline: none;
-          cursor: pointer;
-        }
-
-        .vta-page-size-selector select:focus {
-          border-color: var(--vta-primary);
-        }
-
-        .vta-pagination-controls {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .vta-page-nav-btn {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          padding: 6px 14px;
-          border-radius: 8px;
-          border: 1.5px solid rgba(255, 107, 53, 0.2);
-          background: #FFFFFF;
-          color: #1C1917;
-          font-family: var(--vta-font);
-          font-size: 13px;
-          font-weight: 800;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .vta-page-nav-btn:hover:not(:disabled) {
-          border-color: var(--vta-primary);
-          background: #FFF7F2;
-          color: var(--vta-primary);
-        }
-
-        .vta-page-nav-btn:disabled {
-          opacity: 0.4;
-          cursor: not-allowed;
-          background: #F5F5F4;
-          border-color: #E7E5E4;
-        }
-
-        .vta-page-indicator {
-          font-size: 13px;
-          color: #78716C;
-          padding: 0 4px;
-        }
-
-        .vta-page-indicator strong {
-          color: var(--vta-primary);
-          font-weight: 900;
-        }
 
         /* Top Right Table Pagination */
         .vta-pagination-top {
@@ -2581,14 +2420,6 @@ function Dashboard({ admin, logout }) {
                 </tbody>
               </table>
             </div>
-
-            <TablePagination
-              currentPage={pageAdm}
-              totalItems={fAdmissions.length}
-              pageSize={pageSizeAdm}
-              onPageChange={setPageAdm}
-              onPageSizeChange={setPageSizeAdm}
-            />
           </div>
           </>
         )}
@@ -2717,14 +2548,6 @@ function Dashboard({ admin, logout }) {
                 </tbody>
               </table>
             </div>
-
-            <TablePagination
-              currentPage={pageEnq}
-              totalItems={fEnquiries.length}
-              pageSize={pageSizeEnq}
-              onPageChange={setPageEnq}
-              onPageSizeChange={setPageSizeEnq}
-            />
           </div>
         )}
 
@@ -2860,14 +2683,6 @@ function Dashboard({ admin, logout }) {
                   </tbody>
                 </table>
               </div>
-
-              <TablePagination
-                currentPage={pageVis}
-                totalItems={fVisits.length}
-                pageSize={pageSizeVis}
-                onPageChange={setPageVis}
-                onPageSizeChange={setPageSizeVis}
-              />
             </div>
           </>
         )}
