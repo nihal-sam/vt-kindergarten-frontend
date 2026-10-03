@@ -64,6 +64,23 @@ const getWhatsAppUrl = (phone = '') => {
   return `https://wa.me/${full}`;
 };
 
+const isProgramMatch = (itemProgram = '', selectedFilter = '') => {
+  if (!selectedFilter) return true;
+  const item = (itemProgram || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const filter = (selectedFilter || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+  if (!item) return false;
+  if (item === filter) return true;
+
+  // Flexible keyword matching for kindergarten grades
+  if (filter.includes('play') && item.includes('play')) return true;
+  if (filter.includes('pre') && item.includes('pre')) return true;
+  if (filter.includes('lkg') && item.includes('lkg')) return true;
+  if (filter.includes('ukg') && item.includes('ukg')) return true;
+
+  return item.includes(filter) || filter.includes(item);
+};
+
 function useAuth() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -517,7 +534,7 @@ function Dashboard({ admin, logout }) {
         (a.phone || '').includes(search) ||
         (a.email || '').toLowerCase().includes(q);
 
-      const matchProgram = !filterProgram || a.program === filterProgram;
+      const matchProgram = isProgramMatch(a.program, filterProgram);
       const currentStatus = a.status || 'pending';
       const matchStatus = !filterStatus || currentStatus === filterStatus;
 
@@ -534,7 +551,7 @@ function Dashboard({ admin, logout }) {
         (e.email || '').toLowerCase().includes(q) ||
         (e.message || '').toLowerCase().includes(q);
 
-      const matchProgram = !filterProgram || e.program === filterProgram;
+      const matchProgram = isProgramMatch(e.program, filterProgram);
       return matchQuery && matchProgram;
     });
   }, [enquiries, search, filterProgram]);
@@ -653,7 +670,7 @@ function Dashboard({ admin, logout }) {
         .vta-navbar-inner {
           max-width: 1440px;
           margin: 0 auto;
-          padding: 12px 28px;
+          padding: 10px 28px;
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -663,25 +680,26 @@ function Dashboard({ admin, logout }) {
         .vta-brand {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 14px;
           text-decoration: none;
         }
 
         .vta-brand-logo {
-          width: 44px;
-          height: 44px;
+          width: 56px;
+          height: 56px;
           border-radius: 50%;
-          padding: 2px;
+          padding: 3px;
           background: #fff;
-          border: 1.5px solid rgba(255, 107, 53, 0.3);
-          box-shadow: 0 4px 12px rgba(255, 107, 53, 0.2);
+          border: 2px solid rgba(255, 107, 53, 0.35);
+          box-shadow: 0 4px 16px rgba(255, 107, 53, 0.25);
           object-fit: contain;
+          flex-shrink: 0;
         }
 
         .vta-brand-text h2 {
           margin: 0;
-          font-size: 17px;
-          font-weight: 800;
+          font-size: 18.5px;
+          font-weight: 900;
           color: var(--vta-text-main);
           letter-spacing: -0.2px;
         }
@@ -2059,10 +2077,10 @@ function Dashboard({ admin, logout }) {
                   onChange={(e) => setFilterProgram(e.target.value)}
                 >
                   <option value="">All Programs</option>
-                  <option>Play Group (2+ yrs)</option>
-                  <option>Pre KG (3+ yrs)</option>
-                  <option>LKG (4+ yrs)</option>
-                  <option>UKG (5+ yrs)</option>
+                  <option value="Play Group">Play Group (2+ yrs)</option>
+                  <option value="Pre KG">Pre KG (3+ yrs)</option>
+                  <option value="LKG">LKG (4+ yrs)</option>
+                  <option value="UKG">UKG (5+ yrs)</option>
                 </select>
 
                 <select
@@ -2214,10 +2232,10 @@ function Dashboard({ admin, logout }) {
                   onChange={(e) => setFilterProgram(e.target.value)}
                 >
                   <option value="">All Programs</option>
-                  <option>Play Group (2+ yrs)</option>
-                  <option>Pre KG (3+ yrs)</option>
-                  <option>LKG (4+ yrs)</option>
-                  <option>UKG (5+ yrs)</option>
+                  <option value="Play Group">Play Group (2+ yrs)</option>
+                  <option value="Pre KG">Pre KG (3+ yrs)</option>
+                  <option value="LKG">LKG (4+ yrs)</option>
+                  <option value="UKG">UKG (5+ yrs)</option>
                 </select>
 
                 <span className="vta-count-pill">{fEnquiries.length} records</span>
