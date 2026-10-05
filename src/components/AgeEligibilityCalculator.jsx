@@ -5,10 +5,10 @@ const CUTOFF_DATE = new Date(2026, 2, 31);
 const CUTOFF_LABEL = "31 March 2026";
 
 const eligibilityLevels = [
-  { grade: "Play Group", minYears: 2, accent: "orange", desc: "Sensory & motor play", color: "#FF6B35" },
-  { grade: "Pre KG", minYears: 3, accent: "teal", desc: "Phonics & social skills", color: "#0D9488" },
-  { grade: "LKG", minYears: 4, accent: "yellow", desc: "Pre-writing & math", color: "#D97706" },
-  { grade: "UKG", minYears: 5, accent: "purple", desc: "Literacy & readiness", color: "#7C3AED" },
+  { grade: "Play Group", minYears: 2, accent: "orange" },
+  { grade: "Pre KG", minYears: 3, accent: "teal" },
+  { grade: "LKG", minYears: 4, accent: "yellow" },
+  { grade: "UKG", minYears: 5, accent: "purple" },
 ];
 
 function parseLocalDate(value) {
@@ -72,33 +72,22 @@ export default function AgeEligibilityCalculator({ onInteraction }) {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [result, setResult] = useState(null);
-  const [submittedInfo, setSubmittedInfo] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
   const normalizedName = childName.trim();
 
-  // Live real-time preview as parent types
-  const livePreview = useMemo(() => {
-    if (!dateOfBirth || dateOfBirth.length < 10) return null;
-    const bDate = parseLocalDate(dateOfBirth);
-    if (!bDate || bDate > CUTOFF_DATE) return null;
-    const age = getAgeOnCutoff(bDate);
-    const grade = getEligibleGrade(age);
-    return { age, grade };
-  }, [dateOfBirth]);
-
   const highlightedGrade = useMemo(() => {
-    if (result?.eligible) return result.grade;
-    if (livePreview?.grade) return livePreview.grade.grade;
-    return "";
-  }, [result, livePreview]);
+    if (!result?.eligible) return "";
+    return result.grade;
+  }, [result]);
 
-  const resetForm = () => {
-    setSuccess(false);
-    setSubmittedInfo(null);
-    setResult(null);
+  const resetCheck = () => {
+    if (result || error) {
+      setResult(null);
+      setError("");
+    }
   };
 
   const calculateEligibility = async (event) => {
@@ -128,23 +117,14 @@ export default function AgeEligibilityCalculator({ onInteraction }) {
     const grade = getEligibleGrade(age);
 
     setError("");
-    const calcResult = {
+    setResult({
       age,
       eligible: Boolean(grade),
       grade: grade?.grade || "",
       minYears: grade?.minYears || null,
-    };
-    setResult(calcResult);
+    });
 
-    // Save copy of submitted info
-    const infoToSave = {
-      childName: normalizedName,
-      dob: dateOfBirth,
-      phone,
-      grade: grade?.grade || "Play Group",
-    };
-
-    // Send Enquiry to Supabase API
+    // Send Enquiry to Supabase
     setLoading(true);
     try {
       const { error: supabaseError } = await supabase
@@ -160,16 +140,15 @@ export default function AgeEligibilityCalculator({ onInteraction }) {
 
       if (supabaseError) {
         console.error('Supabase error:', supabaseError);
-        setError('Submission notice: Please check your internet or reach us directly via WhatsApp.');
+        setError('Submission failed. Please try again.');
       } else {
-        setSubmittedInfo(infoToSave);
         setSuccess(true);
+        setChildName(''); setDateOfBirth(''); setPhone(''); setEmail(''); setMessage('');
+        setTimeout(() => setSuccess(false), 5000);
       }
     } catch (err) {
       console.error('Network error:', err);
-      // Still show calculated result so parent gets value
-      setSubmittedInfo(infoToSave);
-      setSuccess(true);
+      setError('Network error. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -177,217 +156,173 @@ export default function AgeEligibilityCalculator({ onInteraction }) {
 
   return (
     <div className="eligibility-section">
-      <div className="section-header text-center" style={{ maxWidth: '780px', margin: '0 auto 40px', textAlign: 'center' }}>
-        <div className="section-tag">Interactive Age Check</div>
-        <h2 className="section-title">Find the Perfect <span>Class</span> 🎯</h2>
+      <div className="section-header eligibility-header">
+        <div className="section-tag">Age Eligibility</div>
+        <h2 className="section-title">Find the Right <span>Class</span></h2>
         <p className="section-desc">
-          Admissions at VT Kindergarten are thoughtfully based on your child&apos;s age as of <strong>{CUTOFF_LABEL}</strong>. Check instant eligibility below!
+          Admission class is decided by the child&apos;s age on {CUTOFF_LABEL}.
         </p>
       </div>
 
-      {/* 4 Levels Progress Ladder */}
-      <div className="eligibility-spectrum-wrap">
-        <div className="eligibility-spectrum">
-          {eligibilityLevels.map((lvl) => {
-            const isMatch = highlightedGrade === lvl.grade;
-            return (
-              <div 
-                key={lvl.grade}
-                className={`eligibility-spectrum-item ${lvl.accent} ${isMatch ? 'is-selected' : ''}`}
-              >
-                <div className="spectrum-age-badge">{lvl.minYears}+ Yrs</div>
-                <div className="spectrum-title">{lvl.grade}</div>
-                <div className="spectrum-desc">{lvl.desc}</div>
-                {isMatch && <span className="spectrum-match-tag">✨ Recommended</span>}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
       <div className="eligibility-shell">
-        {/* Left Card: Input Form */}
         <div className="eligibility-panel">
           <div className="eligibility-panel-heading">
             <span className="eligibility-step-number">1</span>
             <div>
-              <h3>Child &amp; Parent Details</h3>
-              <p>Enter your child&apos;s details to calculate exact class eligibility.</p>
+              <h3>Child Details</h3>
+              <p>Enter the name and date of birth.</p>
             </div>
           </div>
 
           <form className="eligibility-form" onSubmit={calculateEligibility}>
             <div className="form-row">
               <div className="form-group">
-                <label>👶 Child&apos;s Full Name *</label>
+                <label>Child Name *</label>
                 <input
                   value={childName}
                   onFocus={onInteraction}
                   onPointerDown={onInteraction}
-                  onChange={(e) => { setChildName(e.target.value); }}
-                  placeholder="e.g. Ananya Sri"
+                  onChange={(event) => { setChildName(event.target.value); resetCheck(); }}
+                  placeholder="Child name"
                   autoComplete="name"
                   required
                 />
               </div>
-
               <div className="form-group">
-                <label>🎂 Date of Birth *</label>
+                <label>Date of Birth *</label>
                 <input
                   type="text"
                   placeholder="DD/MM/YYYY"
                   value={dateOfBirth}
-                  maxLength={10}
                   onFocus={onInteraction}
                   onPointerDown={onInteraction}
-                  onChange={(e) => {
-                    let val = e.target.value.replace(/\D/g, '');
+                  onChange={(event) => {
+                    let val = event.target.value.replace(/\D/g, '');
                     let formatted = val;
                     if (val.length > 2) formatted = val.slice(0, 2) + '/' + val.slice(2);
                     if (val.length > 4) formatted = formatted.slice(0, 5) + '/' + val.slice(4, 8);
                     setDateOfBirth(formatted);
+                    resetCheck();
                   }}
                   required
                 />
               </div>
             </div>
 
-            {/* Live Age Preview Pill */}
-            {livePreview && (
-              <div className="live-age-pill">
-                <span>✨ Calculated Age on {CUTOFF_LABEL}:</span>
-                <strong>{formatAge(livePreview.age)}</strong>
-                {livePreview.grade && (
-                  <span className="live-grade-tag">&bull; Eligible: <strong>{livePreview.grade.grade}</strong></span>
-                )}
-              </div>
-            )}
-
             <div className="form-row">
               <div className="form-group">
-                <label>📱 Parent WhatsApp Phone *</label>
+                <label>Phone Number *</label>
                 <input
                   type="tel"
                   value={phone}
                   onFocus={onInteraction}
                   onPointerDown={onInteraction}
-                  onChange={(e) => { setPhone(e.target.value); }}
-                  placeholder="+91 98765 43210"
+                  onChange={(event) => { setPhone(event.target.value); resetCheck(); }}
+                  placeholder="+91 XXXXX XXXXX"
                   required
                 />
               </div>
-
               <div className="form-group">
-                <label>✉️ Email Address (Optional)</label>
+                <label>Email Address</label>
                 <input
                   type="email"
                   value={email}
                   onFocus={onInteraction}
                   onPointerDown={onInteraction}
-                  onChange={(e) => { setEmail(e.target.value); }}
-                  placeholder="parent@gmail.com"
+                  onChange={(event) => { setEmail(event.target.value); resetCheck(); }}
+                  placeholder="Enter the email ID"
                 />
               </div>
             </div>
 
             <div className="form-group">
-              <label>📝 Questions / Special Requirements (Optional)</label>
+              <label>Message (Optional)</label>
               <textarea
                 value={message}
                 onFocus={onInteraction}
                 onPointerDown={onInteraction}
-                onChange={(e) => { setMessage(e.target.value); }}
-                placeholder="Any queries regarding admission, timings, or food..."
-                rows="2"
+                onChange={(event) => { setMessage(event.target.value); resetCheck(); }}
+                placeholder="Any questions you have?"
+                rows="3"
               />
             </div>
 
             {error && <div className="eligibility-error">{error}</div>}
 
             <button className="btn-primary eligibility-submit" type="submit" disabled={loading}>
-              <span>{loading ? 'Calculating...' : '🎯 Calculate Eligibility & Send Enquiry'}</span>
-              <span>&rarr;</span>
+              <span>{loading ? 'Processing...' : 'Check Eligibility & Send Enquiry'}</span>
+              <span className="btn-arrow">&rarr;</span>
             </button>
           </form>
         </div>
 
-        {/* Right Card: Instant Result Display */}
         <div className="eligibility-result-area">
           <div className={`eligibility-result-card ${result ? "has-result" : ""}`}>
             <div className="eligibility-panel-heading">
               <span className="eligibility-step-number">2</span>
               <div>
-                <h3>Eligibility Result</h3>
-                <p>Cutoff Benchmark: {CUTOFF_LABEL}</p>
+                <h3>Eligible Grade</h3>
+                <p>Cutoff date: {CUTOFF_LABEL}</p>
               </div>
             </div>
 
             {loading ? (
               <div className="eligibility-skeleton">
-                <div className="skeleton-line" style={{ width: '100%', height: '55px', borderRadius: '12px', marginBottom: '20px' }} />
-                <div className="skeleton-line" style={{ width: '50%', height: '32px', margin: '0 auto 16px', borderRadius: '8px' }} />
-                <div className="skeleton-line" style={{ width: '80%', height: '24px', margin: '0 auto', borderRadius: '6px' }} />
-              </div>
-            ) : success && submittedInfo ? (
-              /* Success & WhatsApp Call-out */
-              <div className="eligibility-success-box">
-                <div className="success-icon-badge">🎉</div>
-                <h4>Enquiry Submitted Successfully!</h4>
-                <p>
-                  <strong>{submittedInfo.childName}</strong> is eligible for <strong>{submittedInfo.grade}</strong>! Our admissions desk has received your request.
-                </p>
-
-                <div className="success-actions">
-                  <a
-                    href={`https://wa.me/917358293839?text=${encodeURIComponent(
-                      `Hello VT Kindergarten! I checked eligibility online for my child ${submittedInfo.childName} (DOB: ${submittedInfo.dob}). They are eligible for ${submittedInfo.grade}. Please share admission details and fee structure.`
-                    )}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-whatsapp-chat"
-                  >
-                    <span>💬 Chat With Principal on WhatsApp</span>
-                    <span>&rarr;</span>
-                  </a>
-
-                  <button type="button" className="btn-reset-check" onClick={resetForm}>
-                    Check Another Child
-                  </button>
-                </div>
+                <div className="skeleton-line" style={{ width: '100%', height: '60px', borderRadius: '12px', marginBottom: '24px' }}></div>
+                <div className="skeleton-line" style={{ width: '40%', height: '32px', margin: '0 auto 16px', borderRadius: '8px' }}></div>
+                <div className="skeleton-line" style={{ width: '80%', height: '24px', margin: '0 auto 8px', borderRadius: '4px' }}></div>
+                <div className="skeleton-line" style={{ width: '60%', height: '16px', margin: '0 auto', borderRadius: '4px' }}></div>
               </div>
             ) : result ? (
               <>
                 <div className="eligibility-age-display">
-                  <span>Calculated Age on Cutoff:</span>
+                  <span>Age on cutoff</span>
                   <strong>{formatAge(result.age)}</strong>
                 </div>
 
                 {result.eligible ? (
                   <div className="eligibility-grade-result">
-                    <span className="grade-min-badge">{result.minYears}+ Years Required</span>
-                    <strong className="grade-title">{result.grade}</strong>
-                    <p className="grade-subtext">
-                      {normalizedName ? `${normalizedName} is eligible for ` : 'Your child is eligible for '} 
-                      <strong>{result.grade}</strong>!
-                    </p>
+                    <span className="grade-badge">{result.minYears}+ years</span>
+                    <strong>{result.grade}</strong>
+                    <p>{normalizedName} is eligible for {result.grade}.</p>
                   </div>
                 ) : (
                   <div className="eligibility-not-ready">
-                    <strong>👶 Not Eligible for 2026-27 Yet</strong>
-                    <p>Children must complete at least 2 full years on or before {CUTOFF_LABEL} for Play Group enrollment.</p>
+                    <strong>Not eligible yet</strong>
+                    <p>The child must complete 2 years on {CUTOFF_LABEL} for Play Group.</p>
                   </div>
                 )}
               </>
             ) : (
               <div className="eligibility-empty">
-                <span className="empty-icon">🎈</span>
-                <strong>Ready for Calculation</strong>
-                <p>Fill in your child&apos;s name and date of birth on the left to see the instant admission recommendation.</p>
+                <strong>Ready to check</strong>
+                <p>The result will appear here after calculation.</p>
               </div>
             )}
           </div>
+
+          <div className="eligibility-ladder" aria-label="Admission age rules">
+            {eligibilityLevels.map((level) => (
+              <div
+                className={`eligibility-class-pill ${level.accent} ${
+                  highlightedGrade === level.grade ? "active" : ""
+                }`}
+                key={level.grade}
+              >
+                <span>{level.minYears}+</span>
+                <strong>{level.grade}</strong>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
+
+      {success && (
+        <div className="eligibility-toast-success">
+          <span className="toast-icon">✨</span> 
+          <span>Enquiry sent successfully! We will contact you soon.</span>
+        </div>
+      )}
     </div>
   );
 }

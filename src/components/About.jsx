@@ -1,18 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 
-const features = [
-  { icon: '👩‍🏫', title: 'Expert Mentors', desc: 'Passionate educators certified in Montessori & early childhood care' },
-  { icon: '🛡️', title: '360° Safety & CCTV', desc: 'Child-proof, 24/7 CCTV surveillance with sanitized smart campus' },
-  { icon: '🧠', title: 'Montessori Play-Way', desc: 'Hands-on sensory exploration, phonics, and cognitive activities' },
-  { icon: '🤝', title: 'Parent Partnership', desc: 'Daily milestone updates, loving guidance, and open communication' },
-];
-
 const highlights = [
-  'Play-based Montessori methodology nurturing natural curiosity',
-  'Activity-enriched curriculum for motor, speech & social skills',
-  '100% child-safe, hygienic & fully air-conditioned smart classrooms',
-  'Regular parent-teacher updates & milestone celebrations',
-  'Safe pick-up & drop protocols with dedicated staff supervision',
+  'Play-based learning methodology',
+  'Activity-enriched curriculum',
+  'Motor skills development programs',
+  'Parent-teacher communication',
+  'Air-conditioned classrooms',
 ];
 
 export default function About() {
@@ -44,8 +37,8 @@ export default function About() {
     return () => observer.disconnect();
   }, []);
 
-  const scrollToEligibility = () => {
-    const el = document.getElementById('eligibility');
+  const scrollToContact = () => {
+    const el = document.getElementById('contact') || document.getElementById('eligibility');
     if (el) {
       const offset = 85;
       const target = el.getBoundingClientRect().top + window.scrollY - offset;
@@ -55,18 +48,10 @@ export default function About() {
 
   return (
     <div className="about-section" ref={sectionRef}>
-      <div className="section-header text-center" style={{ maxWidth: '780px', margin: '0 auto 48px', textAlign: 'center' }}>
-        <div className="section-tag">About VT Kindergarten</div>
-        <h2 className="section-title">Where Every Child <span>Flourishes</span> 🌸</h2>
-        <p className="section-desc">
-          Recognized as Karaikudi&apos;s leading kindergarten &amp; pre-school, we provide a warm, safe, and inspiring foundation where little minds discover the joy of learning.
-        </p>
-      </div>
-
       <div className="about-grid">
         {/* Left: Video Showcase */}
         <div className="about-visual reveal">
-          <div className="about-video-card" style={{ maxWidth: '340px', margin: '0 auto' }}>
+          <div className="about-video-card">
             <div 
               className="about-video-wrapper"
               onClick={togglePlay}
@@ -89,38 +74,25 @@ export default function About() {
                     ▶
                   </div>
                   <span className="about-play-hint" style={{ opacity: isHovered ? 1 : 0.85 }}>
-                    Tap to Watch Campus Tour
+                    Tap video to play
                   </span>
                 </div>
               )}
-            </div>
-            <div className="about-video-badge">
-              <span>🏫 Experience Our Campus Life</span>
             </div>
           </div>
         </div>
 
         {/* Right: Narrative & Highlights */}
         <div className="about-text reveal">
-          <div className="about-intro-box">
-            <h3>Caring Foundation, Safe Learning, Confident Futures ✨</h3>
-            <p>
-              At VT Kindergarten, education is not about rote memorization—it is about nurturing curiosity, empathy, and natural confidence. Guided by certified early childhood educators, children explore science, art, phonics, and socialization in a joyful, home-like environment.
-            </p>
-          </div>
-
-          {/* 4 Pillars Grid */}
-          <div className="about-features-bento">
-            {features.map((f, i) => (
-              <div className="about-feature-card" key={i}>
-                <span className="about-feature-icon">{f.icon}</span>
-                <div>
-                  <h4>{f.title}</h4>
-                  <p>{f.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+          <div className="section-tag">About Us</div>
+          <h2>Where Every Child <span>Blossoms</span> 🌸</h2>
+          <p className="about-lead-text">
+            <strong>Caring foundation, safe learning, confident futures.</strong><br /><br />
+            At VT Kindergarten, parents place their trust in us for early childhood education. Recognized as one of Karaikudi&apos;s leading best playschools, we prioritize safety, confidence-building, and holistic growth in every child&apos;s journey.
+          </p>
+          <p className="about-feedback-box">
+            ✨ <strong>Parent&apos;s feedback:</strong> Caring and Safe environment, nurturing confidence, fostering development.
+          </p>
 
           <div className="about-highlights-list">
             {highlights.map((h, i) => (
@@ -131,14 +103,11 @@ export default function About() {
             ))}
           </div>
 
-          <div style={{ marginTop: 32, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-            <button className="btn-primary" onClick={scrollToEligibility}>
-              <span>🎯 Check Age &amp; Enroll</span>
+          <div style={{ marginTop: 32 }}>
+            <button className="btn-primary" onClick={scrollToContact}>
+              <span>📩 Contact Us Today</span>
               <span className="btn-arrow">&rarr;</span>
             </button>
-            <a href="tel:+917358293839" className="btn-secondary">
-              <span>📞 Schedule a Campus Visit</span>
-            </a>
           </div>
         </div>
       </div>

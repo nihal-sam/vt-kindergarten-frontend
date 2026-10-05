@@ -3,10 +3,11 @@ import { useState, useEffect } from "react";
 const links = [
   { id: 'home', label: 'Home' },
   { id: 'eligibility', label: 'Age Check' },
-  { id: 'about', label: 'About Us' },
+  { id: 'about', label: 'About' },
+  { id: 'founder', label: 'Founder' },
   { id: 'programs', label: 'Programs' },
-  { id: 'founder', label: 'Founders' },
-  { id: 'gallery', label: 'Life at VT' },
+  { id: 'gallery', label: 'Gallery' },
+  { id: 'instagram', label: 'Instagram' },
   { id: 'contact', label: 'Contact' },
 ];
 
@@ -19,7 +20,6 @@ export default function Navbar() {
     const onScroll = () => {
       setScrolled(window.scrollY > 40);
 
-      // Simple active link detection
       const scrollPos = window.scrollY + 120;
       for (let i = links.length - 1; i >= 0; i--) {
         const el = document.getElementById(links[i].id);
@@ -53,7 +53,7 @@ export default function Navbar() {
           </div>
           <div className="nav-logo-text">
             <h2>VT Kindergarten</h2>
-            <span>Pre School • Karaikudi</span>
+            <span>Pre School - Karaikudi</span>
           </div>
         </a>
 
@@ -64,6 +64,7 @@ export default function Navbar() {
                 href={`#${link.id}`}
                 className={active === link.id ? 'active' : ''}
                 onClick={(e) => { e.preventDefault(); scrollTo(link.id); }}
+                style={link.id === 'founder' ? { color: 'var(--primary)', fontWeight: 'bold' } : {}}
               >
                 {link.label}
               </a>
@@ -75,12 +76,7 @@ export default function Navbar() {
               className="nav-cta"
               onClick={(e) => { e.preventDefault(); scrollTo('eligibility'); }}
             >
-              <span>✨ Admissions Open</span>
-            </a>
-          </li>
-          <li className="nav-phone-item">
-            <a href="tel:+917358293839" className="nav-phone-btn">
-              <span>📞 +91 73582 93839</span>
+              Enquiry Now
             </a>
           </li>
         </ul>
@@ -91,7 +87,7 @@ export default function Navbar() {
             className="nav-cta nav-cta-desktop"
             onClick={(e) => { e.preventDefault(); scrollTo('eligibility'); }}
           >
-            <span>✨ Admissions Open</span>
+            Enquiry Now
           </a>
 
           <button
