@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 
-const phrases = ["Bright Future", "Joyful Learning", "Happy Childhood", "Smart Growth"];
+const phrases = ["Bright Future", "Joyful Learning", "Creative Growth", "Happy Childhood"];
 
 export default function HeroClean() {
   const [phraseIdx, setPhraseIdx] = useState(0);
   const [scene, setScene] = useState({ x: 0, y: 0, scroll: 0 });
 
   useEffect(() => {
-    const timer = setInterval(() => setPhraseIdx((current) => (current + 1) % phrases.length), 2500);
+    const timer = setInterval(() => setPhraseIdx((current) => (current + 1) % phrases.length), 2600);
     return () => clearInterval(timer);
   }, []);
 
@@ -34,93 +34,104 @@ export default function HeroClean() {
     };
   }, []);
 
-  const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+  const scrollTo = (id) => {
+    const el = document.getElementById(id);
+    if (el) {
+      const offset = 85;
+      const target = el.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({ top: Math.max(target, 0), behavior: "smooth" });
+    }
+  };
 
   const stageStyle = useMemo(() => ({
     transform: `
       perspective(1400px)
-      rotateX(${(-scene.y * 8) + (scene.scroll * 6)}deg)
-      rotateY(${scene.x * 12}deg)
-      translateY(${scene.scroll * 16}px)
+      rotateX(${(-scene.y * 7) + (scene.scroll * 5)}deg)
+      rotateY(${scene.x * 10}deg)
+      translateY(${scene.scroll * 14}px)
     `,
   }), [scene]);
 
   const orbStyle = useMemo(() => ({
-    transform: `translate(${scene.x * 18}px, ${scene.y * 14}px) scale(${1 + scene.scroll * 0.08})`,
+    transform: `translate(${scene.x * 20}px, ${scene.y * 16}px) scale(${1 + scene.scroll * 0.08})`,
   }), [scene]);
 
-  const pupilStyle = useMemo(() => ({
-    transform: `translate(${scene.x * 9}px, ${scene.y * 6}px)`,
+  const chipOneStyle = useMemo(() => ({
+    transform: `translate3d(${scene.x * -16}px, ${scene.y * -12}px, 35px)`,
   }), [scene]);
 
-  const leftChipStyle = useMemo(() => ({
-    transform: `translate3d(${scene.x * -14}px, ${scene.y * -10}px, 24px)`,
+  const chipTwoStyle = useMemo(() => ({
+    transform: `translate3d(${scene.x * 18}px, ${scene.y * 10}px, 45px)`,
   }), [scene]);
 
-  const rightChipStyle = useMemo(() => ({
-    transform: `translate3d(${scene.x * 16}px, ${scene.y * 8}px, 30px)`,
-  }), [scene]);
-
-  const topChipStyle = useMemo(() => ({
-    transform: `translate3d(${scene.x * 10}px, ${scene.y * -12}px, 18px)`,
-  }), [scene]);
-
-  const ringOneStyle = useMemo(() => ({
-    transform: `rotate(${scene.scroll * 20}deg) translateZ(8px)`,
-  }), [scene]);
-
-  const ringTwoStyle = useMemo(() => ({
-    transform: `rotate(${scene.scroll * -28}deg) translateZ(-8px)`,
+  const chipThreeStyle = useMemo(() => ({
+    transform: `translate3d(${scene.x * 12}px, ${scene.y * -16}px, 25px)`,
   }), [scene]);
 
   return (
     <div className="hero">
-      <div className="hero-bg-overlay" />
+      {/* Ambient background glow orbs */}
+      <div className="hero-ambient-glow" />
 
       <div className="hero-content">
+        {/* Live Admissions Badge */}
+        <div className="hero-badge">
+          <span className="hero-badge-pulse" />
+          <span className="hero-badge-icon">✨</span>
+          <span className="hero-badge-text">Admissions Open 2026-2027 • Karaikudi</span>
+        </div>
+
         <h1>
           Where Little
           <br />
-          <em>Stars</em> Begin Their
+          <em>Stars</em> Blossom With
           <br />
-          <span>{phrases[phraseIdx]}</span>
+          <span className="hero-phrase-rotate">{phrases[phraseIdx]}</span>
         </h1>
+
         <p className="hero-desc">
-          VT Kindergarten Pre School. We nurture every child's cognitive, social, and creative development with love and expert care.
+          VT Kindergarten Pre School — nurturing every child&apos;s cognitive, social, and emotional development through Montessori play-way learning, passionate teachers, and 100% child-safe, CCTV-monitored facilities.
         </p>
+
         <div className="hero-btns">
           <button className="btn-primary" onClick={() => scrollTo("eligibility")}>
-            Enquire Now
+            <span>🎯 Check Age Eligibility</span>
+            <span className="btn-arrow">&rarr;</span>
           </button>
-          <button className="btn-secondary" onClick={() => scrollTo("about")}>
-            Learn More
-          </button>
+          <a
+            href="https://wa.me/917358293839?text=Hello%20VT%20Kindergarten,%20I%20would%20like%20to%20know%20more%20about%20admissions"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-secondary"
+          >
+            <span>💬 WhatsApp Enquiry</span>
+          </a>
         </div>
-        <div className="hero-stats" style={{ position: 'relative', overflow: 'hidden', display: 'flex', gap: '16px', alignItems: 'center', background: 'rgba(255,255,255,0.7)', padding: '16px 20px', borderRadius: '20px', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.4)', maxWidth: '100%' }}>
-          <style>{`
-            @keyframes shimmerSlide {
-              0% { transform: translateX(-150%) skewX(-20deg); }
-              100% { transform: translateX(150%) skewX(-20deg); }
-            }
-            .shimmer-effect {
-              position: absolute;
-              top: 0;
-              left: 0;
-              width: 150%;
-              height: 100%;
-              background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.7) 50%, rgba(255,255,255,0) 100%);
-              animation: shimmerSlide 3s infinite linear;
-              pointer-events: none;
-              z-index: 10;
-            }
-          `}</style>
-          <div className="shimmer-effect" />
-          <div style={{ flexShrink: 0, fontSize: '48px', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 2 }}>
-            🛡️
+
+        {/* 4 Trust Metrics Bar */}
+        <div className="hero-trust-bar">
+          <div className="hero-trust-item">
+            <span className="hero-trust-icon">🛡️</span>
+            <div>
+              <strong>100% Child-Safe</strong>
+              <small>CCTV & Child-Proof Campus</small>
+            </div>
           </div>
-          <div style={{ textAlign: 'left', position: 'relative', zIndex: 2 }}>
-            <h3 style={{ fontFamily: "'Fredoka One', cursive", fontSize: '22px', color: 'var(--primary)', margin: 0, lineHeight: 1.2 }}>Safe Environment</h3>
-            <p style={{ fontSize: '14px', color: '#555', fontWeight: 700, margin: '4px 0 0 0', lineHeight: 1.4 }}>CCTV monitored, child-proof facilities</p>
+          <div className="hero-trust-sep" />
+          <div className="hero-trust-item">
+            <span className="hero-trust-icon">👩‍🏫</span>
+            <div>
+              <strong>Expert Mentors</strong>
+              <small>1:10 Teacher Ratio</small>
+            </div>
+          </div>
+          <div className="hero-trust-sep" />
+          <div className="hero-trust-item">
+            <span className="hero-trust-icon">🧩</span>
+            <div>
+              <strong>Montessori & Phonics</strong>
+              <small>Activity-Rich Curriculum</small>
+            </div>
           </div>
         </div>
       </div>
@@ -129,23 +140,44 @@ export default function HeroClean() {
         <div className="hero-glow-orb" style={orbStyle} />
 
         <div className="hero-brand-stage" style={stageStyle}>
+          {/* Floating Glassmorphic Highlight Chips */}
+          <div className="hero-float-chip chip-top-left" style={chipOneStyle}>
+            <span className="chip-icon">🌟</span>
+            <div className="chip-text">
+              <strong>#1 Pre-School</strong>
+              <small>Parent Recommended</small>
+            </div>
+          </div>
 
-          <div className="hero-brand-card" style={{ padding: 0, background: 'transparent', border: 'none', boxShadow: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="hero-float-chip chip-bottom-right" style={chipTwoStyle}>
+            <span className="chip-icon">🎨</span>
+            <div className="chip-text">
+              <strong>Joyful Learning</strong>
+              <small>Sensory & Creative Play</small>
+            </div>
+          </div>
+
+          <div className="hero-float-chip chip-bottom-left" style={chipThreeStyle}>
+            <span className="chip-icon">❄️</span>
+            <div className="chip-text">
+              <strong>AC Classrooms</strong>
+              <small>Safe & Clean Campus</small>
+            </div>
+          </div>
+
+          <div className="hero-brand-card">
             <img 
               src="/assets/hero-elephant-bgless-v2.png" 
-              alt="VT Kindergarten 3D Elephant" 
+              alt="VT Kindergarten Mascot" 
               className="hero-brand-img"
-              style={{ width: '130%', height: '130%', objectFit: 'contain', filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.2))' }}
             />
           </div>
         </div>
 
-        <div className="hero-bubble b1">*</div>
-        <div className="hero-bubble b2">o</div>
-        <div className="hero-bubble b3">+</div>
-        <div className="hero-bubble b4">+</div>
-        <div className="hero-bubble b5">*</div>
-        <div className="hero-bubble b6">o</div>
+        <div className="hero-bubble b1">⭐</div>
+        <div className="hero-bubble b2">🎈</div>
+        <div className="hero-bubble b3">✨</div>
+        <div className="hero-bubble b4">🌸</div>
       </div>
     </div>
   );

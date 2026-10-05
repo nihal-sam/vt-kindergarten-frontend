@@ -104,6 +104,20 @@ export default function App() {
         <section id="contact"><Contact /></section>
       </main>
       <Footer />
+
+      {/* Floating WhatsApp Action Button */}
+      <a
+        href="https://wa.me/917358293839?text=Hello%20VT%20Kindergarten,%20I%20would%20like%20to%20know%20more%20about%20admissions"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="floating-wa-btn"
+        aria-label="Chat with Admissions on WhatsApp"
+        title="Instant WhatsApp Support"
+      >
+        <span className="floating-wa-ping" aria-hidden="true" />
+        <span className="floating-wa-icon" aria-hidden="true">💬</span>
+        <span className="floating-wa-text">WhatsApp Us</span>
+      </a>
     </div>
   );
 }

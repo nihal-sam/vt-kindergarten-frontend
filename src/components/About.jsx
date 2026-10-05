@@ -1,18 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 
 const features = [
-  { icon: '👩‍🏫', title: 'Expert Teachers', desc: 'Trained & certified early childhood educators' },
-  { icon: '🛡️', title: 'Safe Environment', desc: 'CCTV monitored, child-proof facilities' },
-  { icon: '🧠', title: 'Cognitive Dev.', desc: 'Science-backed learning activities' },
-  { icon: '🤝', title: 'Social Skills', desc: 'Group activities & peer interaction' },
+  { icon: '👩‍🏫', title: 'Expert Mentors', desc: 'Passionate educators certified in Montessori & early childhood care' },
+  { icon: '🛡️', title: '360° Safety & CCTV', desc: 'Child-proof, 24/7 CCTV surveillance with sanitized smart campus' },
+  { icon: '🧠', title: 'Montessori Play-Way', desc: 'Hands-on sensory exploration, phonics, and cognitive activities' },
+  { icon: '🤝', title: 'Parent Partnership', desc: 'Daily milestone updates, loving guidance, and open communication' },
 ];
 
 const highlights = [
-  'Play-based learning methodology',
-  'Activity-enriched curriculum',
-  'Motor skills development programs',
-  'Parent-teacher communication',
-  'Air-conditioned classrooms',
+  'Play-based Montessori methodology nurturing natural curiosity',
+  'Activity-enriched curriculum for motor, speech & social skills',
+  '100% child-safe, hygienic & fully air-conditioned smart classrooms',
+  'Regular parent-teacher updates & milestone celebrations',
+  'Safe pick-up & drop protocols with dedicated staff supervision',
 ];
 
 export default function About() {
@@ -44,13 +44,31 @@ export default function About() {
     return () => observer.disconnect();
   }, []);
 
+  const scrollToEligibility = () => {
+    const el = document.getElementById('eligibility');
+    if (el) {
+      const offset = 85;
+      const target = el.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({ top: Math.max(target, 0), behavior: "smooth" });
+    }
+  };
+
   return (
     <div className="about-section" ref={sectionRef}>
+      <div className="section-header text-center" style={{ maxWidth: '780px', margin: '0 auto 48px', textAlign: 'center' }}>
+        <div className="section-tag">About VT Kindergarten</div>
+        <h2 className="section-title">Where Every Child <span>Flourishes</span> 🌸</h2>
+        <p className="section-desc">
+          Recognized as Karaikudi&apos;s leading kindergarten &amp; pre-school, we provide a warm, safe, and inspiring foundation where little minds discover the joy of learning.
+        </p>
+      </div>
+
       <div className="about-grid">
+        {/* Left: Video Showcase */}
         <div className="about-visual reveal">
-          <div style={{ width: '100%', maxWidth: '340px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div className="about-video-card" style={{ maxWidth: '340px', margin: '0 auto' }}>
             <div 
-              style={{ width: '100%', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', border: '6px solid white', aspectRatio: '9/16', background: '#000', position: 'relative', cursor: 'pointer' }}
+              className="about-video-wrapper"
               onClick={togglePlay}
               onMouseEnter={() => setIsHovered(true)}
               onMouseLeave={() => setIsHovered(false)}
@@ -66,48 +84,64 @@ export default function About() {
                 onPause={() => setIsPlaying(false)}
               />
               {!isPlaying && (
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'white', transition: 'all 0.3s ease' }}>
-                  <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', fontSize: '28px', paddingLeft: '6px', marginBottom: '12px', boxShadow: '0 10px 20px rgba(0,0,0,0.2)' }}>
+                <div className="about-video-overlay">
+                  <div className="about-play-button">
                     ▶
                   </div>
-                  <div style={{ fontSize: '14px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', opacity: isHovered ? 1 : 0, transform: isHovered ? 'translateY(0)' : 'translateY(10px)', transition: 'all 0.3s ease' }}>
-                    Tap video to play
-                  </div>
+                  <span className="about-play-hint" style={{ opacity: isHovered ? 1 : 0.85 }}>
+                    Tap to Watch Campus Tour
+                  </span>
                 </div>
               )}
             </div>
-
+            <div className="about-video-badge">
+              <span>🏫 Experience Our Campus Life</span>
+            </div>
           </div>
         </div>
 
-        <div className="about-text reveal" style={{ animationDelay: '0.2s' }}>
-          <div className="section-tag">About Us</div>
-          <h2>Where Every Child <span>Blossoms</span> 🌸</h2>
-          <p>
-            <strong>Caring foundation, safe learning, confident futures.</strong><br /><br />
-            At VT Kindergarten, parents place their trust in us for early childhood education. Recognized as one of Karaikudi's leading best playschools, we prioritize safety, confidence-building, and holistic growth in every child's journey.
-          </p>
-          <p>
-            ✨ <strong>Parent's feedback:</strong> Caring and Safe environment, nurturing confidence, fostering development.
-          </p>
+        {/* Right: Narrative & Highlights */}
+        <div className="about-text reveal">
+          <div className="about-intro-box">
+            <h3>Caring Foundation, Safe Learning, Confident Futures ✨</h3>
+            <p>
+              At VT Kindergarten, education is not about rote memorization—it is about nurturing curiosity, empathy, and natural confidence. Guided by certified early childhood educators, children explore science, art, phonics, and socialization in a joyful, home-like environment.
+            </p>
+          </div>
 
-          <div className="about-highlights">
-            {highlights.map((h, i) => (
-              <div className="highlight-item" key={i}>
-                <div className="highlight-dot" />
-                {h}
+          {/* 4 Pillars Grid */}
+          <div className="about-features-bento">
+            {features.map((f, i) => (
+              <div className="about-feature-card" key={i}>
+                <span className="about-feature-icon">{f.icon}</span>
+                <div>
+                  <h4>{f.title}</h4>
+                  <p>{f.desc}</p>
+                </div>
               </div>
             ))}
           </div>
 
-          <div style={{ marginTop: 32 }}>
-            <button className="btn-primary" onClick={() => document.getElementById('enquiry')?.scrollIntoView({ behavior: 'smooth' })}>
-              📩 Contact Us Today
+          <div className="about-highlights-list">
+            {highlights.map((h, i) => (
+              <div className="about-highlight-item" key={i}>
+                <span className="about-check-icon">✓</span>
+                <span>{h}</span>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ marginTop: 32, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            <button className="btn-primary" onClick={scrollToEligibility}>
+              <span>🎯 Check Age &amp; Enroll</span>
+              <span className="btn-arrow">&rarr;</span>
             </button>
+            <a href="tel:+917358293839" className="btn-secondary">
+              <span>📞 Schedule a Campus Visit</span>
+            </a>
           </div>
         </div>
       </div>
-
     </div>
   );
 }
