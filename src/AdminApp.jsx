@@ -127,8 +127,93 @@ function useAuth() {
 }
 
 /* ==========================================================================
-   LOGIN PAGE (Ultra-Premium Frosted Dark Theme)
+   ORIGINAL LOGIN PAGE DESIGN (Restored exact look & feel)
    ========================================================================== */
+const s = {
+  loginWrap: {
+    minHeight: '100vh',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'linear-gradient(135deg,#1a1a2e,#16213e)',
+    fontFamily: "'Nunito',sans-serif",
+    padding: 20,
+    boxSizing: 'border-box',
+  },
+  loginCard: {
+    background: 'rgba(255,255,255,0.05)',
+    backdropFilter: 'blur(20px)',
+    WebkitBackdropFilter: 'blur(20px)',
+    border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: 24,
+    padding: '48px 40px',
+    width: 420,
+    maxWidth: '95vw',
+    boxSizing: 'border-box',
+    boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+  },
+  loginLogo: {
+    width: 112,
+    height: 112,
+    display: 'block',
+    margin: '0 auto 16px',
+    padding: 4,
+    borderRadius: '50%',
+    background: 'white',
+    objectFit: 'contain',
+    boxShadow: '0 12px 32px rgba(255,107,53,0.24)',
+    boxSizing: 'border-box',
+  },
+  fg: {
+    marginBottom: 20,
+  },
+  label: {
+    display: 'block',
+    marginBottom: 8,
+    fontWeight: 700,
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.8)',
+  },
+  inp: {
+    width: '100%',
+    background: 'rgba(255,255,255,0.08)',
+    border: '1.5px solid rgba(255,255,255,0.15)',
+    borderRadius: 12,
+    padding: '14px 18px',
+    color: 'white',
+    fontSize: 15,
+    fontFamily: "'Nunito',sans-serif",
+    outline: 'none',
+    boxSizing: 'border-box',
+    transition: 'border-color 0.2s, background 0.2s',
+  },
+  err: {
+    background: 'rgba(255,0,0,0.15)',
+    border: '1px solid rgba(255,0,0,0.3)',
+    borderRadius: 10,
+    padding: '12px 16px',
+    color: '#ff8888',
+    marginBottom: 16,
+    fontSize: 14,
+    fontWeight: 700,
+    textAlign: 'center',
+  },
+  loginBtn: {
+    width: '100%',
+    background: 'linear-gradient(135deg,#FF6B35,#FFD93D)',
+    border: 'none',
+    borderRadius: 12,
+    padding: 16,
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 800,
+    cursor: 'pointer',
+    fontFamily: "'Nunito',sans-serif",
+    boxShadow: '0 8px 24px rgba(255,107,53,0.28)',
+    transition: 'transform 0.2s, box-shadow 0.2s',
+  },
+};
+
 function LoginPage({ onLocalLogin }) {
   const [form, setForm] = useState({ email: 'admin@vtkindergarten.com', password: '' });
   const [loading, setLoading] = useState(false);
@@ -140,11 +225,16 @@ function LoginPage({ onLocalLogin }) {
     setError('');
 
     const emailTrimmed = (form.email || '').trim().toLowerCase();
-    const isMasterAdmin = (emailTrimmed === 'admin@vtkindergarten.com' || emailTrimmed === 'admin2@vtkindergarten.com') && 
+    const isMasterAdmin =
+      (emailTrimmed === 'admin@vtkindergarten.com' || emailTrimmed === 'admin2@vtkindergarten.com') &&
       (form.password === 'admin123' || form.password === 'AdminPassword123!');
 
     if (isMasterAdmin) {
-      onLocalLogin?.({ email: form.email, role: 'Administrator' });
+      onLocalLogin?.({
+        email: form.email,
+        name: emailTrimmed.startsWith('admin2') ? 'Admin 2' : 'Admin 1',
+        role: 'Administrator',
+      });
       setLoading(false);
       return;
     }
@@ -159,16 +249,24 @@ function LoginPage({ onLocalLogin }) {
         // Authenticated with Supabase
       } else {
         if (form.password === 'admin123' || form.password === 'AdminPassword123!') {
-          onLocalLogin?.({ email: form.email, role: 'Administrator' });
+          onLocalLogin?.({
+            email: form.email,
+            name: 'Admin',
+            role: 'Administrator',
+          });
         } else {
-          setError(loginErr?.message || 'Invalid email or password. Default: admin@vtkindergarten.com / admin123');
+          setError(loginErr?.message || 'Invalid email or password.');
         }
       }
     } catch {
       if (form.password === 'admin123' || form.password === 'AdminPassword123!') {
-        onLocalLogin?.({ email: form.email, role: 'Administrator' });
+        onLocalLogin?.({
+          email: form.email,
+          name: 'Admin',
+          role: 'Administrator',
+        });
       } else {
-        setError('Connection failed. Please check your internet connection.');
+        setError('Connection failed. Please check your network connection.');
       }
     } finally {
       setLoading(false);
@@ -176,23 +274,23 @@ function LoginPage({ onLocalLogin }) {
   };
 
   return (
-    <div className="vta-login-wrap">
-      <div className="vta-login-glow-1" />
-      <div className="vta-login-glow-2" />
-
-      <div className="vta-login-card">
-        <div className="vta-login-header">
-          <div className="vta-login-logo-ring">
-            <img src={LOGO_SRC} alt="VT Kindergarten Logo" />
-          </div>
-          <h2>VT Kindergarten</h2>
-          <span className="vta-badge-pill vta-badge-orange">Admin Operations Portal</span>
+    <div style={s.loginWrap}>
+      <style>{`
+        @media (max-width: 768px) {
+          .admin-login-card { padding: 32px 24px !important; width: 100% !important; border-radius: 16px !important; }
+        }
+      `}</style>
+      <div style={s.loginCard} className="admin-login-card">
+        <div style={{ textAlign: 'center', marginBottom: 36 }}>
+          <img style={s.loginLogo} src={LOGO_SRC} alt="VT Kindergarten Pre School logo" />
+          <h1 style={{ fontFamily: 'sans-serif', fontSize: 28, color: '#FF6B35', margin: '0 0 6px' }}>VT Kindergarten</h1>
+          <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, margin: 0 }}>Admin Portal</p>
         </div>
-
-        <form onSubmit={submit} className="vta-login-form">
-          <div className="vta-field">
-            <label>Admin Email</label>
+        <form onSubmit={submit}>
+          <div style={s.fg}>
+            <label style={s.label}>Email Address</label>
             <input
+              style={s.inp}
               type="email"
               placeholder="admin@vtkindergarten.com"
               value={form.email}
@@ -200,36 +298,31 @@ function LoginPage({ onLocalLogin }) {
               required
             />
           </div>
-
-          <div className="vta-field">
-            <label>Secure Password</label>
+          <div style={s.fg}>
+            <label style={s.label}>Password</label>
             <input
+              style={s.inp}
               type="password"
-              placeholder="••••••••••••"
+              placeholder="Enter password"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               required
             />
           </div>
-
-          {error && <div className="vta-alert-error">{error}</div>}
-
-          <button type="submit" className="vta-btn-primary vta-btn-block" disabled={loading}>
-            {loading ? (
-              <span className="vta-spinner-text">Authenticating...</span>
-            ) : (
-              <span>Sign In to Dashboard &rarr;</span>
-            )}
+          {error && <div style={s.err}>{error}</div>}
+          <button style={s.loginBtn} type="submit" disabled={loading}>
+            {loading ? 'Signing In...' : 'Sign In to Admin'}
           </button>
         </form>
-
-        <div className="vta-login-footer">
-          <p>&copy; {new Date().getFullYear()} VT Kindergarten &bull; Karaikudi, Tamil Nadu</p>
-        </div>
+        <p style={{ textAlign: 'center', marginTop: 16, fontSize: 12, color: '#888' }}>
+          Admin 1: admin@vtkindergarten.com / admin123<br />
+          Admin 2: admin2@vtkindergarten.com / admin123
+        </p>
       </div>
     </div>
   );
 }
+
 
 /* ==========================================================================
    NEW ADMISSION FORM (Clean & Elegant Modern Card)
