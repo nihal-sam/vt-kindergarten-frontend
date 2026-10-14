@@ -225,41 +225,37 @@ function LoginPage({ onLocalLogin }) {
     setError('');
 
     const emailTrimmed = (form.email || '').trim().toLowerCase();
-    const isMasterAdmin =
+    const isMasterCredentials =
       (emailTrimmed === 'admin@vtkindergarten.com' || emailTrimmed === 'admin2@vtkindergarten.com') &&
       (form.password === 'admin123' || form.password === 'AdminPassword123!');
 
-    if (isMasterAdmin) {
-      onLocalLogin?.({
-        email: form.email,
-        name: emailTrimmed.startsWith('admin2') ? 'Admin 2' : 'Admin 1',
-        role: 'Administrator',
-      });
-      setLoading(false);
-      return;
-    }
-
     try {
+      // 1. Authenticate with Supabase Auth (establishes JWT token for Row Level Security)
       const { data, error: loginErr } = await supabase.auth.signInWithPassword({
-        email: form.email.trim(),
+        email: emailTrimmed,
         password: form.password,
       });
 
       if (!loginErr && data?.session) {
-        // Authenticated with Supabase
-      } else {
-        if (form.password === 'admin123' || form.password === 'AdminPassword123!') {
-          onLocalLogin?.({
-            email: form.email,
-            name: 'Admin',
-            role: 'Administrator',
-          });
-        } else {
-          setError(loginErr?.message || 'Invalid email or password.');
-        }
+        // Authenticated with Supabase! useAuth onAuthStateChange handles session state
+        setLoading(false);
+        return;
       }
+
+      // 2. If Supabase Auth fails but master credentials were used, allow local login
+      if (isMasterCredentials) {
+        onLocalLogin?.({
+          email: form.email,
+          name: emailTrimmed.startsWith('admin2') ? 'Admin 2' : 'Admin 1',
+          role: 'Administrator',
+        });
+        setLoading(false);
+        return;
+      }
+
+      setError(loginErr?.message || 'Invalid email or password.');
     } catch {
-      if (form.password === 'admin123' || form.password === 'AdminPassword123!') {
+      if (isMasterCredentials) {
         onLocalLogin?.({
           email: form.email,
           name: 'Admin',
@@ -272,6 +268,7 @@ function LoginPage({ onLocalLogin }) {
       setLoading(false);
     }
   };
+
 
   return (
     <div style={s.loginWrap}>
@@ -673,28 +670,11 @@ function Dashboard({ admin, logout }) {
       }
 
       const allData = data || [];
-      const adm = allData.filter(d => d.parent_name && d.parent_name.trim() !== '');
+      const isEnquiry = (d) => !d.parent_name || d.parent_name.trim() === '' || (d.message && d.message.includes('Age Eligibility'));
+      const adm = allData.filter(d => !isEnquiry(d));
+      const enq = allData.filter(isEnquiry).map(d => ({ ...d, name: d.child_name || d.parent_name || 'Prospective Parent' }));
 
-      // Check if separate enquiries table exists, otherwise filter from admissions
-      let enq = [];
-      try {
-        const { data: enqData, error: enqErr } = await supabase
-          .from('enquiries')
-          .select('*')
-          .order('created_at', { ascending: false });
 
-        if (!enqErr && enqData && enqData.length > 0) {
-          enq = enqData;
-        } else {
-          enq = allData
-            .filter(d => !d.parent_name || d.parent_name.trim() === '')
-            .map(d => ({ ...d, name: d.child_name }));
-        }
-      } catch (e) {
-        enq = allData
-          .filter(d => !d.parent_name || d.parent_name.trim() === '')
-          .map(d => ({ ...d, name: d.child_name }));
-      }
 
       setAdmissions(adm);
       setEnquiries(enq);
