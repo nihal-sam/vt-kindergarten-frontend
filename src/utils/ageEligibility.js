@@ -135,13 +135,12 @@ export function parseEnquiryEligibility(enq = {}) {
   let parentNote = enq.message || '';
   if (parentNote) {
     parentNote = parentNote
+      .replace(/\((?:Source|Note):[^\n]*\)/gi, '')
       .replace(/Calculated Age[^\n]*\n*/gi, '')
       .replace(/Eligibility Status[^\n]*\n*/gi, '')
-      .replace(/Eligibility[^\n]*\n*/gi, '')
+      .replace(/Eligibility[^\n:]*:[^\n]*\n*/gi, '')
       .replace(/Recommended Class[^\n]*\n*/gi, '')
       .replace(/Parent Note:\s*/gi, '')
-      .replace(/\(Source:[^\n]*\)/gi, '')
-      .replace(/\(Note:[^\n]*\)/gi, '')
       .trim();
   }
 
