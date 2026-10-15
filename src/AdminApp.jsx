@@ -59,11 +59,12 @@ const parseUserAgent = (ua = '') => {
   return { isMobile, browser, os };
 };
 
-const getWhatsAppUrl = (phone = '') => {
+const getWhatsAppUrl = (phone = '', message = '') => {
   const digits = (phone || '').replace(/\D/g, '');
   if (!digits) return '#';
   const full = digits.length === 10 ? `91${digits}` : digits;
-  return `https://wa.me/${full}`;
+  const baseUrl = `https://wa.me/${full}`;
+  return message ? `${baseUrl}?text=${encodeURIComponent(message)}` : baseUrl;
 };
 
 const isProgramMatch = (itemProgram = '', selectedFilter = '') => {
@@ -1110,18 +1111,42 @@ function Dashboard({ admin, logout }) {
         {/* Header greeting & quick action */}
         <div className="vta-page-header">
           <div className="vta-page-header-text">
-            <h1>
-              {tab === 'overview' && 'School Operations Dashboard'}
-              {tab === 'admissions' && 'Student Admission Applications'}
-              {tab === 'enquiries' && 'Parent Enquiry Desk'}
-              {tab === 'visitors' && 'Real-time Website Visitors'}
-            </h1>
-            <p>
-              {tab === 'overview' && `Welcome back, ${admin?.email?.split('@')[0] || 'Administrator'} • Today is ${new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`}
-              {tab === 'admissions' && 'Review, accept, or manage incoming kindergarten admission requests.'}
-              {tab === 'enquiries' && 'Direct inquiries submitted by prospective parents via the public portal.'}
-              {tab === 'visitors' && 'Live tracking of visitors browsing vtkindergarten.in with device & source metrics.'}
-            </p>
+            {tab === 'overview' && (
+              <>
+                <span className="vta-badge-pill vta-badge-orange" style={{ marginBottom: 6, fontSize: 11, fontWeight: 800 }}>
+                  📊 CENTRAL OPERATIONS DASHBOARD
+                </span>
+                <h1 style={{ margin: '4px 0 6px' }}>School Operations & Admissions Overview</h1>
+                <p>Welcome back, {admin?.email?.split('@')[0] || 'Administrator'} • Today is {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+              </>
+            )}
+            {tab === 'admissions' && (
+              <>
+                <span className="vta-badge-pill vta-badge-orange" style={{ marginBottom: 6, fontSize: 11, fontWeight: 800 }}>
+                  🎓 ADMISSIONS SECTION • Applications Management
+                </span>
+                <h1 style={{ margin: '4px 0 6px' }}>Student Admission Applications (2026–2027)</h1>
+                <p>Review, approve, or manage incoming kindergarten admission requests submitted via offline entry & admissions form.</p>
+              </>
+            )}
+            {tab === 'enquiries' && (
+              <>
+                <span className="vta-badge-pill vta-badge-green" style={{ marginBottom: 6, fontSize: 11, fontWeight: 800 }}>
+                  💬 ENQUIRIES SECTION • Age Eligibility & Parent Inquiries
+                </span>
+                <h1 style={{ margin: '4px 0 6px' }}>Parent Enquiries & Age Eligibility Desk</h1>
+                <p>Prospective parent inquiries submitted through the website Age Eligibility Calculator with automatic NEP 2020 verification.</p>
+              </>
+            )}
+            {tab === 'visitors' && (
+              <>
+                <span className="vta-badge-pill vta-badge-blue" style={{ marginBottom: 6, fontSize: 11, fontWeight: 800 }}>
+                  🌐 WEB ANALYTICS • Real-time Traffic Tracking
+                </span>
+                <h1 style={{ margin: '4px 0 6px' }}>Live Website Visitors & Activity Log</h1>
+                <p>Live tracking of prospective parents browsing vtkindergarten.in with device, OS, screen & referral metrics.</p>
+              </>
+            )}
           </div>
 
           <div className="vta-header-actions">
@@ -1292,7 +1317,7 @@ function Dashboard({ admin, logout }) {
                 </div>
                 <div className="vta-table-scroll">
                   <table className="vta-table">
-                    <thead>
+                    <thead className="vta-thead-admissions">
                       <tr>
                         <th>Child Name</th>
                         <th>Program</th>
@@ -1352,7 +1377,7 @@ function Dashboard({ admin, logout }) {
                 </div>
                 <div className="vta-table-scroll">
                   <table className="vta-table">
-                    <thead>
+                    <thead className="vta-thead-enquiries">
                       <tr>
                         <th>Child / Parent</th>
                         <th>Age (31 Mar)</th>
@@ -1376,16 +1401,16 @@ function Dashboard({ admin, logout }) {
                             <td>
                               {info.isEligible ? (
                                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                                  <span className={`vta-badge-pill ${getProgramBadgeClass(info.recommendedClass)}`}>
-                                    {info.recommendedClass}
+                                  <span className={`vta-badge-pill ${getProgramBadgeClass(info.recommendedClass)}`} style={{ fontWeight: 800, fontSize: 11.5 }}>
+                                    🎓 {info.recommendedClass}
                                   </span>
-                                  <span className="vta-badge-pill vta-badge-green" style={{ fontSize: 10, padding: '2px 6px' }}>
+                                  <span className="vta-badge-pill vta-badge-green" style={{ fontSize: 10, padding: '2px 6px', fontWeight: 800 }}>
                                     ✓ Eligible
                                   </span>
                                 </div>
                               ) : (
-                                <span className="vta-badge-pill vta-badge-amber" style={{ fontSize: 11 }}>
-                                  ✕ Underage
+                                <span className="vta-badge-pill vta-badge-amber" style={{ fontSize: 11, fontWeight: 700 }}>
+                                  ✕ Underage (&lt; 2 Yrs)
                                 </span>
                               )}
                             </td>
@@ -1428,71 +1453,82 @@ function Dashboard({ admin, logout }) {
             )}
 
             <div className="vta-panel">
-            {/* Filter Toolbar */}
-            <div className="vta-panel-header">
-              <div className="vta-filters-group">
-                <div className="vta-search-box">
-                  <span className="vta-search-icon">🔍</span>
-                  <input
-                    type="text"
-                    placeholder="Search by child, parent, or phone..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
+              {/* Admissions Panel Title Bar */}
+              <div className="vta-table-title-bar vta-table-title-bar-admissions">
+                <div className="vta-table-title-bar-left">
+                  <h3>🎓 Student Admission Applications</h3>
+                  <span className="vta-badge-pill vta-badge-orange">{fAdmissions.length} Applications</span>
                 </div>
-
-                <select
-                  className="vta-select"
-                  value={filterProgram}
-                  onChange={(e) => setFilterProgram(e.target.value)}
-                >
-                  <option value="">All Programs</option>
-                  <option value="Play Group">Play Group (2+ yrs)</option>
-                  <option value="Pre KG">Pre KG (3+ yrs)</option>
-                  <option value="LKG">LKG (4+ yrs)</option>
-                  <option value="UKG">UKG (5+ yrs)</option>
-                </select>
-
-                <select
-                  className="vta-select"
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                >
-                  <option value="">All Statuses</option>
-                  <option value="pending">Pending</option>
-                  <option value="approved">Approved</option>
-                  <option value="rejected">Rejected</option>
-                </select>
-
-                <span className="vta-count-pill">{fAdmissions.length} records</span>
+                <div className="vta-sub-text" style={{ fontWeight: 700, color: '#C2410C' }}>
+                  Academic Session 2026–2027
+                </div>
               </div>
 
-              <TablePaginationTop
-                currentPage={pageAdm}
-                totalItems={fAdmissions.length}
-                pageSize={pageSizeAdm}
-                onPageChange={setPageAdm}
-                onPageSizeChange={setPageSizeAdm}
-                onRefresh={fetchAll}
-                loading={loading}
-              />
-            </div>
+              {/* Filter Toolbar */}
+              <div className="vta-panel-header">
+                <div className="vta-filters-group">
+                  <div className="vta-search-box">
+                    <span className="vta-search-icon">🔍</span>
+                    <input
+                      type="text"
+                      placeholder="Search by child, parent, or phone..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                    />
+                  </div>
 
-            {/* Admissions Table */}
-            <div className="vta-table-scroll">
-              <table className="vta-table">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Child Details</th>
-                    <th>Program</th>
-                    <th>Parent / Contact</th>
-                    <th>Address</th>
-                    <th>Status</th>
-                    <th>Submitted</th>
-                    <th style={{ textAlign: 'right' }}>Actions</th>
-                  </tr>
-                </thead>
+                  <select
+                    className="vta-select"
+                    value={filterProgram}
+                    onChange={(e) => setFilterProgram(e.target.value)}
+                  >
+                    <option value="">All Programs</option>
+                    <option value="Play Group">Play Group (2+ yrs)</option>
+                    <option value="Pre KG">Pre KG (3+ yrs)</option>
+                    <option value="LKG">LKG (4+ yrs)</option>
+                    <option value="UKG">UKG (5+ yrs)</option>
+                  </select>
+
+                  <select
+                    className="vta-select"
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                  >
+                    <option value="">All Statuses</option>
+                    <option value="pending">Pending</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                  </select>
+
+                  <span className="vta-count-pill">{fAdmissions.length} records</span>
+                </div>
+
+                <TablePaginationTop
+                  currentPage={pageAdm}
+                  totalItems={fAdmissions.length}
+                  pageSize={pageSizeAdm}
+                  onPageChange={setPageAdm}
+                  onPageSizeChange={setPageSizeAdm}
+                  onRefresh={fetchAll}
+                  loading={loading}
+                />
+              </div>
+
+              {/* Admissions Table */}
+              <div className="vta-table-scroll">
+                <table className="vta-table">
+                  <thead className="vta-thead-admissions">
+                    <tr>
+                      <th>#</th>
+                      <th>Child Details</th>
+                      <th>Program</th>
+                      <th>Parent / Contact</th>
+                      <th>Address</th>
+                      <th>Status</th>
+                      <th>Submitted</th>
+                      <th style={{ textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
                 <tbody>
                   {pagedAdmissions.map((adm, i) => (
                     <tr
@@ -1594,6 +1630,17 @@ function Dashboard({ admin, logout }) {
         {/* ================= TAB 3: ENQUIRIES ================= */}
         {tab === 'enquiries' && (
           <div className="vta-panel">
+            {/* Enquiries Panel Title Bar */}
+            <div className="vta-table-title-bar vta-table-title-bar-enquiries">
+              <div className="vta-table-title-bar-left">
+                <h3>💬 Parent Enquiries & Age Eligibility</h3>
+                <span className="vta-badge-pill vta-badge-green">{fEnquiries.length} Enquiries</span>
+              </div>
+              <div className="vta-sub-text" style={{ fontWeight: 700, color: '#047857' }}>
+                Cutoff Benchmark: 31 March 2026 (NEP 2020)
+              </div>
+            </div>
+
             <div className="vta-panel-header">
               <div className="vta-filters-group">
                 <div className="vta-search-box">
@@ -1635,12 +1682,12 @@ function Dashboard({ admin, logout }) {
 
             <div className="vta-table-scroll">
               <table className="vta-table">
-                <thead>
+                <thead className="vta-thead-enquiries">
                   <tr>
                     <th>#</th>
                     <th>Child & Contact Info</th>
                     <th>Calculated Age</th>
-                    <th>Eligibility & Class</th>
+                    <th>Eligible Class & Status</th>
                     <th>Parent Note</th>
                     <th>Submitted</th>
                     <th style={{ textAlign: 'right' }}>Actions</th>
@@ -1649,6 +1696,11 @@ function Dashboard({ admin, logout }) {
                 <tbody>
                   {pagedEnquiries.map((enq, i) => {
                     const info = parseEnquiryEligibility(enq);
+                    const childName = enq.child_name || enq.name || 'your child';
+                    const waText = info.isEligible
+                      ? `Hello! Greetings from VT Kindergarten. We received your admission enquiry regarding ${childName}. As per our age criteria, ${childName} is eligible for ${info.recommendedClass} (Academic Session 2026–27). We would love to invite you for a campus visit! Please let us know a convenient time.`
+                      : `Hello! Greetings from VT Kindergarten. We received your admission enquiry regarding ${childName}. As per our cutoff date (31 March 2026), ${childName} is currently underage for the upcoming 2026–27 intake. Feel free to contact us if you have any questions!`;
+
                     return (
                       <tr
                         key={enq.id || i}
@@ -1675,27 +1727,66 @@ function Dashboard({ admin, logout }) {
                           <div style={{ fontWeight: 800, color: '#0F172A', fontSize: 13.5 }}>
                             {info.calculatedAgeStr || '-'}
                           </div>
-                          <div className="vta-sub-text" style={{ fontSize: 11, color: '#64748B' }}>
-                            On 31 Mar 2026
+                          <div className="vta-sub-text" style={{ fontSize: 11, color: '#64748B', display: 'flex', alignItems: 'center', gap: 3 }}>
+                            🗓️ On 31 Mar 2026
                           </div>
                         </td>
                         <td>
                           {info.isEligible ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
-                              <span className="vta-badge-pill vta-badge-green" style={{ fontWeight: 800, fontSize: 11 }}>
-                                ✓ Eligible
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 5, alignItems: 'flex-start' }}>
+                              <span
+                                className={`vta-badge-pill ${getProgramBadgeClass(info.recommendedClass)}`}
+                                style={{
+                                  fontWeight: 900,
+                                  fontSize: 12.5,
+                                  padding: '4px 10px',
+                                  boxShadow: '0 2px 6px rgba(0, 0, 0, 0.05)',
+                                  borderWidth: 1.5,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 5
+                                }}
+                              >
+                                🎓 {info.recommendedClass}
                               </span>
-                              <span className={`vta-badge-pill ${getProgramBadgeClass(info.recommendedClass)}`} style={{ fontWeight: 700 }}>
-                                {info.recommendedClass}
+                              <span
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  color: '#059669',
+                                  paddingLeft: 2
+                                }}
+                              >
+                                ✓ Eligible for Admission
                               </span>
                             </div>
                           ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
-                              <span className="vta-badge-pill vta-badge-amber" style={{ fontWeight: 800, fontSize: 11 }}>
-                                ✕ Not Eligible
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 5, alignItems: 'flex-start' }}>
+                              <span
+                                className="vta-badge-pill vta-badge-amber"
+                                style={{
+                                  fontWeight: 800,
+                                  fontSize: 11.5,
+                                  padding: '4px 9px',
+                                  background: '#FEF3C7',
+                                  color: '#B45309',
+                                  border: '1.5px solid #FDE68A'
+                                }}
+                              >
+                                ✕ Underage (&lt; 2 Yrs)
                               </span>
-                              <span className="vta-badge-pill vta-badge-gray" style={{ fontSize: 11 }}>
-                                Under 2 Years
+                              <span
+                                style={{
+                                  fontSize: 10.5,
+                                  fontWeight: 600,
+                                  color: '#DC2626',
+                                  paddingLeft: 2
+                                }}
+                              >
+                                Not Eligible for 2026-27
                               </span>
                             </div>
                           )}
@@ -1711,7 +1802,7 @@ function Dashboard({ admin, logout }) {
                           <div className="vta-actions-cell" style={{ justifyContent: 'flex-end' }}>
                             {enq.phone && (
                               <a
-                                href={getWhatsAppUrl(enq.phone)}
+                                href={getWhatsAppUrl(enq.phone, waText)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="vta-btn-action vta-btn-action-wa"
@@ -1800,6 +1891,17 @@ function Dashboard({ admin, logout }) {
 
             {/* Visitors Table */}
             <div className="vta-panel">
+              {/* Visitors Panel Title Bar */}
+              <div className="vta-table-title-bar vta-table-title-bar-visitors">
+                <div className="vta-table-title-bar-left">
+                  <h3>🌐 Live Website Visitor Sessions</h3>
+                  <span className="vta-badge-pill vta-badge-blue">{fVisits.length} Logs</span>
+                </div>
+                <div className="vta-sub-text" style={{ fontWeight: 700, color: '#1E40AF' }}>
+                  Real-time Visitor Tracking
+                </div>
+              </div>
+
               <div className="vta-panel-header">
                 <div className="vta-filters-group">
                   <div className="vta-search-box">
@@ -1827,7 +1929,7 @@ function Dashboard({ admin, logout }) {
 
               <div className="vta-table-scroll">
                 <table className="vta-table">
-                  <thead>
+                  <thead className="vta-thead-visitors">
                     <tr>
                       <th>#</th>
                       <th>Time Visited</th>
@@ -1897,143 +1999,352 @@ function Dashboard({ admin, logout }) {
       {viewItem && (() => {
         const isEnq = viewItem.type === 'enquiry';
         const enqInfo = isEnq ? parseEnquiryEligibility(viewItem.data) : null;
+        const childName = viewItem.data.child_name || viewItem.data.name || 'your child';
+        const recClass = isEnq ? (enqInfo?.recommendedClass || 'Kindergarten') : (viewItem.data.program || 'Kindergarten');
+
+        const enqWaMsg = isEnq && enqInfo ? (
+          enqInfo.isEligible
+            ? `Hello! Greetings from VT Kindergarten. We received your admission enquiry regarding ${childName}. As per our age criteria, ${childName} is eligible for ${recClass} (Academic Session 2026–27). We would love to invite you for a campus visit! Please let us know a convenient time.`
+            : `Hello! Greetings from VT Kindergarten. We received your admission enquiry regarding ${childName}. As per our cutoff date (31 March 2026), ${childName} is currently underage for the upcoming 2026–27 intake. Feel free to contact us if you have any questions!`
+        ) : `Hello! Greetings from VT Kindergarten. We received your admission application for ${childName} (${recClass}). Our admissions desk is currently reviewing the application. Please let us know if you have any questions.`;
 
         return (
           <div className="vta-modal-backdrop" onClick={() => setViewItem(null)}>
             <div className="vta-modal-card" onClick={(e) => e.stopPropagation()}>
-              <div className="vta-modal-header">
+              {/* Modal Top Bar */}
+              <div
+                className="vta-modal-header"
+                style={{
+                  borderTop: isEnq
+                    ? (enqInfo.isEligible ? '5px solid #10B981' : '5px solid #DC2626')
+                    : '5px solid #FF6B35',
+                  background: isEnq
+                    ? (enqInfo.isEligible ? 'linear-gradient(180deg, #F0FDF4 0%, #FFFFFF 100%)' : 'linear-gradient(180deg, #FEF2F2 0%, #FFFFFF 100%)')
+                    : 'linear-gradient(180deg, #FFF7ED 0%, #FFFFFF 100%)'
+                }}
+              >
                 <div>
-                  <span className={`vta-badge-pill ${isEnq ? (enqInfo.isEligible ? 'vta-badge-green' : 'vta-badge-amber') : 'vta-badge-orange'}`} style={{ marginBottom: 6 }}>
-                    {isEnq ? `Age Eligibility Enquiry • ${enqInfo.isEligible ? 'Eligible' : 'Not Eligible'}` : 'Admission Application'}
+                  <span
+                    className={`vta-badge-pill ${
+                      isEnq
+                        ? (enqInfo.isEligible ? 'vta-badge-green' : 'vta-badge-amber')
+                        : 'vta-badge-orange'
+                    }`}
+                    style={{ marginBottom: 6, fontSize: 11.5, fontWeight: 800 }}
+                  >
+                    {isEnq
+                      ? `✉️ AGE ELIGIBILITY ENQUIRY • ${enqInfo.isEligible ? 'ELIGIBLE FOR ADMISSION' : 'UNDERAGE'}`
+                      : '🎓 OFFICIAL STUDENT ADMISSION APPLICATION'}
                   </span>
-                  <h3>{viewItem.data.child_name || viewItem.data.name || 'Details'}</h3>
+                  <h3 style={{ margin: 0, fontSize: 21, fontWeight: 900, color: '#0F172A' }}>
+                    {viewItem.data.child_name || viewItem.data.name || 'Details'}
+                  </h3>
+                  <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 3 }}>
+                    Submitted {timeAgo(viewItem.data.created_at)} &bull; {formatDate(viewItem.data.created_at)}
+                  </div>
                 </div>
                 <button
                   type="button"
                   className="vta-modal-close-btn"
                   onClick={() => setViewItem(null)}
+                  title="Close modal"
                 >
                   ✕
                 </button>
               </div>
 
               {isEnq ? (
+                /* ================= ENQUIRY ULTRA-PREMIUM BODY ================= */
                 <div className="vta-modal-body">
-                  {/* Eligibility Status Banner */}
-                  <div style={{
-                    background: enqInfo.isEligible ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)',
-                    border: `1.5px solid ${enqInfo.isEligible ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
-                    borderRadius: 12,
-                    padding: '16px 20px',
-                    marginBottom: 20,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    flexWrap: 'wrap',
-                    gap: 12
-                  }}>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                        <span className={`vta-badge-pill ${enqInfo.isEligible ? 'vta-badge-green' : 'vta-badge-red'}`} style={{ fontWeight: 800, fontSize: 13 }}>
-                          {enqInfo.isEligible ? '✓ Eligible for Admission' : '✕ Not Eligible Yet'}
-                        </span>
-                        {enqInfo.isEligible && (
-                          <span className={`vta-badge-pill ${getProgramBadgeClass(enqInfo.recommendedClass)}`} style={{ fontWeight: 800, fontSize: 13 }}>
-                            Class: {enqInfo.recommendedClass}
-                          </span>
-                        )}
-                      </div>
-                      <p style={{ margin: 0, fontSize: 13, color: '#475569', fontWeight: 600 }}>
-                        {enqInfo.isEligible
-                          ? `Based on cutoff date (${CUTOFF_LABEL}), child qualifies for ${enqInfo.recommendedClass}.`
-                          : `Child must complete 2 years on ${CUTOFF_LABEL} for Play Group.`}
-                      </p>
+                  {/* Hero Verdict Card */}
+                  <div
+                    className={`vta-modal-hero ${enqInfo.isEligible ? 'vta-modal-hero-eligible' : 'vta-modal-hero-ineligible'}`}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 6 }}>
+                      <span className="vta-modal-hero-tag">
+                        {enqInfo.isEligible ? '✓ NEP 2020 & VT ADMISSION CRITERIA MET' : '✕ AGE CRITERIA NOT MET YET'}
+                      </span>
+                      <span style={{ fontSize: 11, color: 'rgba(255, 255, 255, 0.9)', fontWeight: 700 }}>
+                        Cutoff Benchmark: {CUTOFF_LABEL}
+                      </span>
                     </div>
-                    <div style={{ background: '#FFFFFF', padding: '8px 14px', borderRadius: 10, border: '1px solid #E2E8F0', textAlign: 'right' }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase' }}>Calculated Age (on 31 Mar 2026)</div>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A' }}>{enqInfo.calculatedAgeStr || 'N/A'}</div>
+
+                    <h2 className="vta-modal-hero-class">
+                      {enqInfo.isEligible ? (
+                        <>🎓 Eligible for: {enqInfo.recommendedClass}</>
+                      ) : (
+                        <>👶 Underage for 2026–27 Intake</>
+                      )}
+                    </h2>
+
+                    <p className="vta-modal-hero-desc">
+                      {enqInfo.isEligible
+                        ? `Based on date of birth, ${childName} satisfies the official kindergarten age requirements for ${enqInfo.recommendedClass} (Academic Session 2026–2027).`
+                        : `${childName} does not meet the minimum 2-year cutoff requirement on ${CUTOFF_LABEL} for Play Group.`}
+                    </p>
+
+                    <div className="vta-modal-hero-ribbon">
+                      <div className="vta-modal-ribbon-item">
+                        <div className="vta-modal-ribbon-label">Calculated Age (on 31 Mar 2026)</div>
+                        <div className="vta-modal-ribbon-val">{enqInfo.calculatedAgeStr || 'Under 2 Years'}</div>
+                      </div>
+                      <div className="vta-modal-ribbon-item">
+                        <div className="vta-modal-ribbon-label">Recommended Grade</div>
+                        <div className="vta-modal-ribbon-val">{enqInfo.recommendedClass}</div>
+                      </div>
+                      <div className="vta-modal-ribbon-item">
+                        <div className="vta-modal-ribbon-label">Admission Verdict</div>
+                        <div className="vta-modal-ribbon-val">
+                          {enqInfo.isEligible ? '✓ Ready for Admission' : '✕ Underage (< 2 Yrs)'}
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Details Field Rows */}
-                  <div className="vta-modal-field-row">
-                    <span className="vta-modal-key">Child Name</span>
-                    <span className="vta-modal-val" style={{ fontWeight: 800, color: '#0F172A' }}>
-                      {viewItem.data.child_name || viewItem.data.name || '-'}
-                    </span>
+                  {/* 2-Column Info Grid */}
+                  <div className="vta-modal-grid-2">
+                    {/* Child Profile Box */}
+                    <div className="vta-modal-card-box">
+                      <div className="vta-modal-card-title">
+                        <span>👶</span> Child Profile
+                      </div>
+                      <div className="vta-modal-row">
+                        <span className="vta-modal-row-label">Full Name</span>
+                        <span className="vta-modal-row-val" style={{ fontSize: 13.5 }}>
+                          {viewItem.data.child_name || viewItem.data.name || '-'}
+                        </span>
+                      </div>
+                      <div className="vta-modal-row">
+                        <span className="vta-modal-row-label">Date of Birth (DOB)</span>
+                        <span className="vta-modal-row-val">
+                          {viewItem.data.dob || '-'}
+                        </span>
+                      </div>
+                      <div className="vta-modal-row">
+                        <span className="vta-modal-row-label">Age on 31 Mar 2026</span>
+                        <span className="vta-modal-row-val" style={{ color: '#0D9488' }}>
+                          {enqInfo.calculatedAgeStr || '-'}
+                        </span>
+                      </div>
+                      <div className="vta-modal-row" style={{ borderBottom: 'none' }}>
+                        <span className="vta-modal-row-label">Eligible Class</span>
+                        <span className="vta-modal-row-val">
+                          <span
+                            className={`vta-badge-pill ${getProgramBadgeClass(enqInfo.recommendedClass)}`}
+                            style={{ fontWeight: 800, fontSize: 11.5 }}
+                          >
+                            🎓 {enqInfo.recommendedClass}
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Parent Contact Box */}
+                    <div className="vta-modal-card-box">
+                      <div className="vta-modal-card-title">
+                        <span>👨‍👩‍👧</span> Parent Contact
+                      </div>
+                      <div className="vta-modal-row">
+                        <span className="vta-modal-row-label">Mobile Phone</span>
+                        <span className="vta-modal-row-val" style={{ letterSpacing: '0.3px' }}>
+                          {viewItem.data.phone || 'Not provided'}
+                        </span>
+                      </div>
+                      <div className="vta-modal-row">
+                        <span className="vta-modal-row-label">Email Address</span>
+                        <span className="vta-modal-row-val" style={{ fontSize: 12 }}>
+                          {viewItem.data.email || 'None provided'}
+                        </span>
+                      </div>
+                      <div className="vta-modal-row" style={{ borderBottom: 'none', paddingTop: 10 }}>
+                        <span className="vta-modal-row-label">Quick Connect</span>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          {viewItem.data.phone && (
+                            <>
+                              <a
+                                href={getWhatsAppUrl(viewItem.data.phone, enqWaMsg)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="vta-badge-pill"
+                                style={{
+                                  background: '#10B981',
+                                  color: '#FFFFFF',
+                                  textDecoration: 'none',
+                                  padding: '5px 10px',
+                                  fontSize: 11,
+                                  fontWeight: 800
+                                }}
+                                title="Chat on WhatsApp"
+                              >
+                                💬 WhatsApp
+                              </a>
+                              <a
+                                href={`tel:${viewItem.data.phone}`}
+                                className="vta-badge-pill"
+                                style={{
+                                  background: '#F1F5F9',
+                                  color: '#0F172A',
+                                  textDecoration: 'none',
+                                  padding: '5px 10px',
+                                  fontSize: 11,
+                                  fontWeight: 800,
+                                  border: '1px solid #CBD5E1'
+                                }}
+                                title="Call parent"
+                              >
+                                📞 Call
+                              </a>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="vta-modal-field-row">
-                    <span className="vta-modal-key">Date of Birth (DOB)</span>
-                    <span className="vta-modal-val" style={{ fontWeight: 700 }}>
-                      {viewItem.data.dob || '-'}
-                    </span>
+
+                  {/* Parent Questions / Notes Callout */}
+                  <div className="vta-modal-note">
+                    <div className="vta-modal-note-title">
+                      <span>💬</span> Parent Questions & Inquiry Note
+                    </div>
+                    <div className="vta-modal-note-content">
+                      {enqInfo.parentNote || 'No specific questions or additional notes submitted.'}
+                    </div>
                   </div>
-                  <div className="vta-modal-field-row">
-                    <span className="vta-modal-key">Age on 31 March 2026</span>
-                    <span className="vta-modal-val" style={{ color: '#0D9488', fontWeight: 800 }}>
-                      {enqInfo.calculatedAgeStr || '-'}
-                    </span>
-                  </div>
-                  <div className="vta-modal-field-row">
-                    <span className="vta-modal-key">Eligibility Status</span>
-                    <span className="vta-modal-val">
-                      <span className={`vta-badge-pill ${enqInfo.isEligible ? 'vta-badge-green' : 'vta-badge-amber'}`}>
-                        {enqInfo.isEligible ? '✓ Eligible' : '✕ Not Eligible (< 2 Yrs)'}
-                      </span>
-                    </span>
-                  </div>
-                  <div className="vta-modal-field-row">
-                    <span className="vta-modal-key">Recommended Class</span>
-                    <span className="vta-modal-val">
-                      <span className={`vta-badge-pill ${getProgramBadgeClass(enqInfo.recommendedClass)}`} style={{ fontWeight: 800 }}>
-                        {enqInfo.recommendedClass || 'None'}
-                      </span>
-                    </span>
-                  </div>
-                  <div className="vta-modal-field-row">
-                    <span className="vta-modal-key">Parent Phone</span>
-                    <span className="vta-modal-val" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{ fontWeight: 700 }}>{viewItem.data.phone || '-'}</span>
-                      {viewItem.data.phone && (
-                        <a href={`tel:${viewItem.data.phone}`} className="vta-btn-ghost" style={{ padding: '2px 8px', fontSize: 12 }}>
-                          📞 Call
-                        </a>
-                      )}
-                    </span>
-                  </div>
-                  <div className="vta-modal-field-row">
-                    <span className="vta-modal-key">Parent Email</span>
-                    <span className="vta-modal-val">{viewItem.data.email || 'None provided'}</span>
-                  </div>
-                  <div className="vta-modal-field-row">
-                    <span className="vta-modal-key">Parent Questions / Note</span>
-                    <span className="vta-modal-val" style={{ background: '#F8FAFC', padding: '10px 14px', borderRadius: 8, whiteSpace: 'pre-wrap', width: '100%' }}>
-                      {enqInfo.parentNote}
-                    </span>
-                  </div>
-                  <div className="vta-modal-field-row">
-                    <span className="vta-modal-key">Received At</span>
-                    <span className="vta-modal-val">{formatDate(viewItem.data.created_at)}</span>
+
+                  {/* Subtle Metadata Info */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11.5, color: '#94A3B8', padding: '0 4px' }}>
+                    <span>Enquiry ID: #{viewItem.data.id || 'N/A'}</span>
+                    <span>Source: Website Age Eligibility Calculator</span>
                   </div>
                 </div>
               ) : (
+                /* ================= ADMISSION APPLICATION ULTRA-PREMIUM BODY ================= */
                 <div className="vta-modal-body">
-                  {Object.entries(viewItem.data)
-                    .filter(([k]) => k !== 'id' && k !== 'updated_at')
-                    .map(([k, v]) => (
-                      <div key={k} className="vta-modal-field-row">
-                        <span className="vta-modal-key">{k.replace(/_/g, ' ')}</span>
-                        <span className="vta-modal-val">
-                          {k === 'created_at' ? formatDate(v) : (String(v) || '-')}
+                  {/* Hero Application Header */}
+                  <div className="vta-modal-hero vta-modal-hero-admission">
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 6 }}>
+                      <span className="vta-modal-hero-tag">
+                        🎓 OFFICIAL ADMISSION APPLICATION
+                      </span>
+                      <span style={{ fontSize: 11, color: 'rgba(255, 255, 255, 0.9)', fontWeight: 700 }}>
+                        Session 2026–2027
+                      </span>
+                    </div>
+
+                    <h2 className="vta-modal-hero-class">
+                      Student: {viewItem.data.child_name || 'Admission Applicant'}
+                    </h2>
+
+                    <p className="vta-modal-hero-desc">
+                      Applied for {viewItem.data.program || 'Kindergarten Program'} &bull; Current Status: <strong>{viewItem.data.status?.toUpperCase() || 'PENDING'}</strong>
+                    </p>
+
+                    <div className="vta-modal-hero-ribbon">
+                      <div className="vta-modal-ribbon-item">
+                        <div className="vta-modal-ribbon-label">Program Applied</div>
+                        <div className="vta-modal-ribbon-val">{viewItem.data.program || 'Kindergarten'}</div>
+                      </div>
+                      <div className="vta-modal-ribbon-item">
+                        <div className="vta-modal-ribbon-label">Application Status</div>
+                        <div className="vta-modal-ribbon-val">{viewItem.data.status?.toUpperCase() || 'PENDING'}</div>
+                      </div>
+                      <div className="vta-modal-ribbon-item">
+                        <div className="vta-modal-ribbon-label">Submission Date</div>
+                        <div className="vta-modal-ribbon-val">{formatDate(viewItem.data.created_at).split(',')[0]}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 2-Column Grid */}
+                  <div className="vta-modal-grid-2">
+                    {/* Student Info */}
+                    <div className="vta-modal-card-box">
+                      <div className="vta-modal-card-title">
+                        <span>👶</span> Student Details
+                      </div>
+                      <div className="vta-modal-row">
+                        <span className="vta-modal-row-label">Child Name</span>
+                        <span className="vta-modal-row-val">{viewItem.data.child_name || '-'}</span>
+                      </div>
+                      <div className="vta-modal-row">
+                        <span className="vta-modal-row-label">Date of Birth</span>
+                        <span className="vta-modal-row-val">{viewItem.data.dob || '-'}</span>
+                      </div>
+                      <div className="vta-modal-row">
+                        <span className="vta-modal-row-label">Gender</span>
+                        <span className="vta-modal-row-val">{viewItem.data.gender || '-'}</span>
+                      </div>
+                      <div className="vta-modal-row" style={{ borderBottom: 'none' }}>
+                        <span className="vta-modal-row-label">Program</span>
+                        <span className="vta-modal-row-val">
+                          <span className={`vta-badge-pill ${getProgramBadgeClass(viewItem.data.program)}`} style={{ fontWeight: 800 }}>
+                            {viewItem.data.program || '-'}
+                          </span>
                         </span>
                       </div>
-                    ))}
+                    </div>
+
+                    {/* Parent Info */}
+                    <div className="vta-modal-card-box">
+                      <div className="vta-modal-card-title">
+                        <span>👨‍👩‍👧</span> Parent / Guardian
+                      </div>
+                      <div className="vta-modal-row">
+                        <span className="vta-modal-row-label">Parent Name</span>
+                        <span className="vta-modal-row-val">{viewItem.data.parent_name || '-'}</span>
+                      </div>
+                      <div className="vta-modal-row">
+                        <span className="vta-modal-row-label">Relationship</span>
+                        <span className="vta-modal-row-val">{viewItem.data.relation || 'Parent'}</span>
+                      </div>
+                      <div className="vta-modal-row">
+                        <span className="vta-modal-row-label">Phone</span>
+                        <span className="vta-modal-row-val">{viewItem.data.phone || '-'}</span>
+                      </div>
+                      <div className="vta-modal-row" style={{ borderBottom: 'none' }}>
+                        <span className="vta-modal-row-label">Email</span>
+                        <span className="vta-modal-row-val" style={{ fontSize: 12 }}>{viewItem.data.email || 'None provided'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Academic & Address Card */}
+                  <div className="vta-modal-card-box" style={{ marginBottom: 16 }}>
+                    <div className="vta-modal-card-title">
+                      <span>🏡</span> Residential Address & Academic History
+                    </div>
+                    <div className="vta-modal-row">
+                      <span className="vta-modal-row-label">Address</span>
+                      <span className="vta-modal-row-val">{viewItem.data.address || 'None provided'}</span>
+                    </div>
+                    <div className="vta-modal-row">
+                      <span className="vta-modal-row-label">Previous School</span>
+                      <span className="vta-modal-row-val">{viewItem.data.previous_school || 'None / First School'}</span>
+                    </div>
+                    <div className="vta-modal-row" style={{ borderBottom: 'none' }}>
+                      <span className="vta-modal-row-label">Message / Remarks</span>
+                      <span className="vta-modal-row-val">{viewItem.data.message || 'No additional notes provided'}</span>
+                    </div>
+                  </div>
                 </div>
               )}
 
+              {/* Modal Footer */}
               <div className="vta-modal-footer">
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  {viewItem.type === 'admission' && (
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                  {isEnq ? (
+                    <button
+                      type="button"
+                      className="vta-btn-action vta-btn-action-del"
+                      style={{ padding: '8px 14px', fontSize: 12.5, borderRadius: 8, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                      onClick={async () => {
+                        await deleteRecord('enquiries', viewItem.data.id);
+                        setViewItem(null);
+                      }}
+                    >
+                      🗑️ Delete Enquiry
+                    </button>
+                  ) : (
                     <>
                       <span style={{ fontSize: 13, fontWeight: 700, color: '#64748B' }}>Status:</span>
                       <select
@@ -2045,38 +2356,45 @@ function Dashboard({ admin, logout }) {
                         <option value="approved">✓ Approved</option>
                         <option value="rejected">✕ Rejected</option>
                       </select>
+                      <button
+                        type="button"
+                        className="vta-btn-action vta-btn-action-del"
+                        style={{ padding: '8px 14px', fontSize: 12.5, borderRadius: 8, display: 'inline-flex', alignItems: 'center', gap: 6, marginLeft: 4 }}
+                        onClick={async () => {
+                          await deleteRecord('admissions', viewItem.data.id);
+                          setViewItem(null);
+                        }}
+                      >
+                        🗑️ Delete
+                      </button>
                     </>
-                  )}
-                  {isEnq && (
-                    <button
-                      type="button"
-                      className="vta-btn-action vta-btn-action-del"
-                      style={{ padding: '6px 12px', fontSize: 12.5 }}
-                      onClick={() => {
-                        deleteRecord('enquiries', viewItem.data.id);
-                      }}
-                    >
-                      🗑️ Delete Enquiry
-                    </button>
                   )}
                 </div>
 
-                <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                   {viewItem.data.phone && (
                     <a
-                      href={getWhatsAppUrl(viewItem.data.phone)}
+                      href={getWhatsAppUrl(viewItem.data.phone, isEnq ? enqWaMsg : '')}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="vta-btn-action-wa"
-                      style={{ padding: '8px 14px', borderRadius: 8, fontSize: 13, fontWeight: 800, textDecoration: 'none' }}
+                      className="vta-modal-wa-btn"
                     >
                       💬 WhatsApp Parent
+                    </a>
+                  )}
+                  {viewItem.data.phone && (
+                    <a
+                      href={`tel:${viewItem.data.phone}`}
+                      className="vta-modal-call-btn"
+                    >
+                      📞 Call Parent
                     </a>
                   )}
                   <button
                     type="button"
                     className="vta-btn-secondary"
                     onClick={() => setViewItem(null)}
+                    style={{ padding: '9px 18px', borderRadius: 10 }}
                   >
                     Close
                   </button>

@@ -1170,3 +1170,319 @@
             padding: 24px 20px;
           }
         }
+
+        /* ==========================================================================
+           Ultra-Premium Modal Box & Card Styles
+           ========================================================================== */
+        .vta-modal-hero {
+          border-radius: 18px;
+          padding: 24px 26px;
+          margin-bottom: 22px;
+          color: #FFFFFF;
+          position: relative;
+          overflow: hidden;
+          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+        }
+
+        .vta-modal-hero-eligible {
+          background: linear-gradient(135deg, #065F46 0%, #059669 45%, #0D9488 100%);
+          box-shadow: 0 14px 34px -4px rgba(5, 150, 105, 0.35);
+        }
+
+        .vta-modal-hero-ineligible {
+          background: linear-gradient(135deg, #991B1B 0%, #DC2626 50%, #EA580C 100%);
+          box-shadow: 0 14px 34px -4px rgba(220, 38, 38, 0.35);
+        }
+
+        .vta-modal-hero-admission {
+          background: linear-gradient(135deg, #FF6B35 0%, #EA580C 60%, #C2410C 100%);
+          box-shadow: 0 14px 34px -4px rgba(255, 107, 53, 0.35);
+        }
+
+        .vta-modal-hero-tag {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: rgba(255, 255, 255, 0.2);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          padding: 4px 12px;
+          border-radius: 20px;
+          font-size: 11px;
+          font-weight: 800;
+          letter-spacing: 0.6px;
+          text-transform: uppercase;
+          color: #FFFFFF;
+          border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .vta-modal-hero-class {
+          font-size: 25px;
+          font-weight: 900;
+          margin: 10px 0 6px;
+          letter-spacing: -0.3px;
+          color: #FFFFFF;
+          line-height: 1.25;
+        }
+
+        .vta-modal-hero-desc {
+          font-size: 13.5px;
+          opacity: 0.95;
+          margin: 0 0 18px;
+          line-height: 1.45;
+          font-weight: 500;
+        }
+
+        .vta-modal-hero-ribbon {
+          background: rgba(255, 255, 255, 0.16);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          border: 1px solid rgba(255, 255, 255, 0.28);
+          border-radius: 12px;
+          padding: 12px 16px;
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+          gap: 12px;
+        }
+
+        .vta-modal-ribbon-item {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .vta-modal-ribbon-label {
+          font-size: 10.5px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          opacity: 0.85;
+          font-weight: 700;
+        }
+
+        .vta-modal-ribbon-val {
+          font-size: 14.5px;
+          font-weight: 900;
+          color: #FFFFFF;
+          margin-top: 2px;
+        }
+
+        .vta-modal-grid-2 {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+          margin-bottom: 20px;
+        }
+
+        .vta-modal-card-box {
+          background: #FFFFFF;
+          border: 1.5px solid #F1F5F9;
+          border-radius: 16px;
+          padding: 18px 20px;
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+        }
+
+        .vta-modal-card-title {
+          font-size: 12.5px;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: #64748B;
+          margin-bottom: 12px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .vta-modal-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px 0;
+          border-bottom: 1px dashed #F1F5F9;
+          font-size: 13px;
+          gap: 8px;
+        }
+
+        .vta-modal-row-label {
+          color: #64748B;
+          font-weight: 600;
+          white-space: nowrap;
+        }
+
+        .vta-modal-row-val {
+          color: #0F172A;
+          font-weight: 800;
+          text-align: right;
+          word-break: break-word;
+        }
+
+        .vta-modal-note {
+          background: #FFFBEB;
+          border: 1.5px solid #FDE68A;
+          border-radius: 16px;
+          padding: 18px 20px;
+          margin-bottom: 20px;
+        }
+
+        .vta-modal-note-title {
+          font-size: 12.5px;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: #B45309;
+          margin-bottom: 8px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .vta-modal-note-content {
+          font-size: 13.5px;
+          color: #334155;
+          line-height: 1.5;
+          font-weight: 500;
+          white-space: pre-wrap;
+        }
+
+        .vta-modal-wa-btn {
+          background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+          color: #FFFFFF !important;
+          font-weight: 800;
+          border-radius: 10px;
+          padding: 10px 18px;
+          font-size: 13.5px;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          text-decoration: none;
+          box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+          border: none;
+          cursor: pointer;
+        }
+
+        .vta-modal-wa-btn:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 6px 18px rgba(16, 185, 129, 0.45);
+        }
+
+        .vta-modal-call-btn {
+          background: #F1F5F9;
+          color: #0F172A !important;
+          font-weight: 800;
+          border-radius: 10px;
+          padding: 10px 18px;
+          font-size: 13.5px;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          text-decoration: none;
+          border: 1.5px solid #E2E8F0;
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+          cursor: pointer;
+        }
+
+        .vta-modal-call-btn:hover {
+          background: #E2E8F0;
+          transform: translateY(-1px);
+        }
+
+        @media (max-width: 640px) {
+          .vta-modal-grid-2 {
+            grid-template-columns: 1fr;
+          }
+          .vta-modal-hero-class {
+            font-size: 20px;
+          }
+          .vta-modal-hero-ribbon {
+            grid-template-columns: 1fr;
+          }
+          .vta-modal-footer {
+            flex-direction: column-reverse;
+            align-items: stretch;
+          }
+          .vta-modal-footer > div {
+            width: 100%;
+            justify-content: stretch;
+          }
+          .vta-modal-footer button, .vta-modal-footer a {
+            width: 100%;
+            justify-content: center;
+          }
+        }
+
+        /* ==========================================================================
+           Distinct Section Table Header Colors & Styles
+           ========================================================================== */
+        /* 1. Admissions Table Header - Warm Orange / Amber Theme */
+        .vta-thead-admissions th {
+          background: #FFF4EC !important;
+          color: #9A3412 !important;
+          border-bottom: 2.5px solid #FB923C !important;
+          font-weight: 800 !important;
+          letter-spacing: 0.5px !important;
+          text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+        }
+
+        /* 2. Enquiries Table Header - Crisp Emerald / Teal Theme */
+        .vta-thead-enquiries th {
+          background: #ECFDF5 !important;
+          color: #065F46 !important;
+          border-bottom: 2.5px solid #10B981 !important;
+          font-weight: 800 !important;
+          letter-spacing: 0.5px !important;
+          text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+        }
+
+        /* 3. Visitors Table Header - Royal Sky / Indigo Theme */
+        .vta-thead-visitors th {
+          background: #EFF6FF !important;
+          color: #1E40AF !important;
+          border-bottom: 2.5px solid #3B82F6 !important;
+          font-weight: 800 !important;
+          letter-spacing: 0.5px !important;
+          text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+        }
+
+        /* Table Section Identification Bars */
+        .vta-table-title-bar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 16px 22px;
+          border-bottom: 1.5px solid rgba(255, 107, 53, 0.12);
+          background: #FFFFFF;
+          border-top-left-radius: var(--vta-radius-xl);
+          border-top-right-radius: var(--vta-radius-xl);
+          flex-wrap: wrap;
+          gap: 12px;
+        }
+
+        .vta-table-title-bar-left {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+
+        .vta-table-title-bar h3 {
+          margin: 0;
+          font-size: 16.5px;
+          font-weight: 900;
+          color: #0F172A;
+          letter-spacing: -0.2px;
+        }
+
+        .vta-table-title-bar-admissions {
+          border-left: 4.5px solid #FF6B35;
+          background: linear-gradient(90deg, rgba(255, 107, 53, 0.05) 0%, #FFFFFF 30%);
+        }
+
+        .vta-table-title-bar-enquiries {
+          border-left: 4.5px solid #10B981;
+          background: linear-gradient(90deg, rgba(16, 185, 129, 0.05) 0%, #FFFFFF 30%);
+        }
+
+        .vta-table-title-bar-visitors {
+          border-left: 4.5px solid #3B82F6;
+          background: linear-gradient(90deg, rgba(59, 130, 246, 0.05) 0%, #FFFFFF 30%);
+        }
