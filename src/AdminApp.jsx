@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { supabase } from "./supabaseClient";
 import { parseEnquiryEligibility, CUTOFF_LABEL } from "./utils/ageEligibility";
 import "./admin.css";
@@ -665,6 +665,66 @@ function Dashboard({ admin, logout }) {
   const [pageSizeVis, setPageSizeVis] = useState(10);
   const [pageVis, setPageVis] = useState(1);
 
+  // Sliding pill active indicator for Admin Nav
+  const [adminPillStyle, setAdminPillStyle] = useState({
+    left: 0,
+    top: 0,
+    width: 0,
+    height: 0,
+    opacity: 0,
+  });
+
+  const adminNavRef = useRef(null);
+
+  const updateAdminPill = useCallback((targetTab) => {
+    const nav = adminNavRef.current;
+    if (!nav) return;
+
+    const targetBtn = nav.querySelector(`[data-tab-id="${targetTab}"]`);
+    if (!targetBtn) {
+      setAdminPillStyle(prev => ({ ...prev, opacity: 0 }));
+      return;
+    }
+
+    const navRect = nav.getBoundingClientRect();
+    const btnRect = targetBtn.getBoundingClientRect();
+
+    setAdminPillStyle({
+      left: Math.round(btnRect.left - navRect.left),
+      top: Math.round(btnRect.top - navRect.top),
+      width: Math.round(btnRect.width),
+      height: Math.round(btnRect.height),
+      opacity: 1,
+    });
+  }, []);
+
+  useEffect(() => {
+    updateAdminPill(tab);
+  }, [tab, admissions.length, enquiries.length, visitsCount, updateAdminPill]);
+
+  useEffect(() => {
+    const handleResize = () => updateAdminPill(tab);
+    window.addEventListener('resize', handleResize);
+
+    if (document.fonts) {
+      document.fonts.ready.then(() => updateAdminPill(tab));
+    }
+
+    const timer = setTimeout(() => updateAdminPill(tab), 150);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(timer);
+    };
+  }, [tab, updateAdminPill]);
+
+  useEffect(() => {
+    if (menuOpen) {
+      const timer = setTimeout(() => updateAdminPill(tab), 250);
+      return () => clearTimeout(timer);
+    }
+  }, [menuOpen, tab, updateAdminPill]);
+
   const fetchAll = async () => {
     setLoading(true);
     try {
@@ -1037,15 +1097,29 @@ function Dashboard({ admin, logout }) {
             </div>
           </a>
 
-          {/* Segmented Tab Navigation */}
-          <nav className={`vta-nav-pills ${menuOpen ? 'open' : ''}`}>
+          {/* Segmented Tab Navigation with Smoothly Gliding Box */}
+          <nav className={`vta-nav-pills ${menuOpen ? 'open' : ''}`} ref={adminNavRef}>
+            {/* The Hardware-Accelerated Sliding Indicator Box */}
+            <div
+              className="vta-nav-sliding-pill"
+              aria-hidden="true"
+              style={{
+                transform: `translate3d(${adminPillStyle.left}px, ${adminPillStyle.top}px, 0)`,
+                width: `${adminPillStyle.width}px`,
+                height: `${adminPillStyle.height}px`,
+                opacity: adminPillStyle.opacity,
+              }}
+            />
+
             {navItems.map(item => (
               <button
                 key={item.id}
                 type="button"
+                data-tab-id={item.id}
                 className={`vta-nav-pill-btn ${tab === item.id ? 'active' : ''}`}
                 onClick={() => {
                   setTab(item.id);
+                  updateAdminPill(item.id);
                   setSearch('');
                   setFilterProgram('');
                   setFilterStatus('');
