@@ -59,6 +59,86 @@ const parseUserAgent = (ua = '') => {
   return { isMobile, browser, os };
 };
 
+const parseVisitLocation = (v = {}) => {
+  if (!v) {
+    return {
+      city: '',
+      region: '',
+      country: '',
+      flag: '📍',
+      display: 'Location not logged',
+      displayWithFlag: '📍 Location not logged',
+      cleanReferrer: 'Direct / Link',
+      hasLocation: false,
+    };
+  }
+
+  // 1. Direct table columns if present
+  if (v.city || v.region || v.country) {
+    const city = (v.city || '').trim();
+    const region = (v.region || '').trim();
+    const country = (v.country || '').trim();
+    const isIndia = country.toLowerCase().includes('india') || country.toUpperCase() === 'IN';
+    const flag = isIndia ? '🇮🇳' : '📍';
+    const parts = [city, region, country].filter(Boolean);
+    const display = parts.join(', ') || 'Unknown Location';
+    const rawRef = v.referrer || '';
+    const cleanReferrer = rawRef && rawRef !== 'Direct/Unknown' ? rawRef : 'Direct / Link';
+    return {
+      city,
+      region,
+      country,
+      flag,
+      display,
+      displayWithFlag: `${flag} ${display}`,
+      cleanReferrer,
+      hasLocation: true,
+    };
+  }
+
+  // 2. Parse location tag from referrer: e.g. "Direct/Unknown [🇮🇳 Chennai, Tamil Nadu, IN]"
+  const rawRef = v.referrer || '';
+  const match = rawRef.match(/\[(.*?)\]$/);
+  let cleanReferrer = rawRef.replace(/\s*\[.*?\]$/, '').trim();
+  if (!cleanReferrer || cleanReferrer === 'Direct/Unknown') {
+    cleanReferrer = 'Direct / Link';
+  }
+
+  if (match && match[1]) {
+    const inside = match[1].trim();
+    const flagMatch = inside.match(/^(\p{Regional_Indicator}{2}|\p{Extended_Pictographic})/u);
+    const flag = flagMatch ? flagMatch[1] : (inside.includes('IN') || inside.includes('India') ? '🇮🇳' : '📍');
+    const textPart = (flagMatch ? inside.slice(flagMatch[0].length) : inside).trim();
+    const pieces = textPart.split(',').map(s => s.trim()).filter(Boolean);
+    const city = pieces[0] || '';
+    const region = pieces[1] || '';
+    const country = pieces[2] || (inside.includes('IN') ? 'India' : '');
+    const display = textPart || 'Unknown Location';
+
+    return {
+      city,
+      region,
+      country,
+      flag,
+      display,
+      displayWithFlag: `${flag} ${display}`,
+      cleanReferrer,
+      hasLocation: true,
+    };
+  }
+
+  return {
+    city: '',
+    region: '',
+    country: '',
+    flag: '📍',
+    display: 'Location not logged',
+    displayWithFlag: '📍 Location not logged',
+    cleanReferrer,
+    hasLocation: false,
+  };
+};
+
 const getWhatsAppUrl = (phone = '', message = '') => {
   const digits = (phone || '').replace(/\D/g, '');
   if (!digits) return '#';
@@ -908,13 +988,18 @@ function Dashboard({ admin, logout }) {
       sheetTitle = 'Website Traffic Logs';
       cleanData = data.map((v, index) => {
         const ua = parseUserAgent(v.user_agent);
+        const loc = parseVisitLocation(v);
         return {
           'S.No': index + 1,
           'Visit Date & Time': formatDate(v.created_at),
+          'Visitor Location': loc.hasLocation ? loc.displayWithFlag : 'Not logged',
+          'City': loc.city || '-',
+          'State / Region': loc.region || '-',
+          'Country': loc.country || '-',
           'Device Type': ua.isMobile ? 'Mobile' : 'Desktop',
           'Web Browser': ua.browser,
           'Operating System': ua.os,
-          'Traffic Source / Referrer': v.referrer && v.referrer !== 'Direct/Unknown' ? v.referrer : 'Direct / Link',
+          'Traffic Source / Referrer': loc.cleanReferrer,
           'Browser Language': v.language || 'en',
           'Screen Width': v.screen_width ? `${v.screen_width}px` : '-',
           'Full User Agent Details': v.user_agent || '-',
@@ -1003,9 +1088,14 @@ function Dashboard({ admin, logout }) {
     return visitsList.filter(v => {
       if (!search) return true;
       const q = search.toLowerCase();
+      const loc = parseVisitLocation(v);
       return (v.user_agent || '').toLowerCase().includes(q) ||
         (v.referrer || '').toLowerCase().includes(q) ||
-        (v.language || '').toLowerCase().includes(q);
+        (v.language || '').toLowerCase().includes(q) ||
+        loc.display.toLowerCase().includes(q) ||
+        loc.city.toLowerCase().includes(q) ||
+        loc.region.toLowerCase().includes(q) ||
+        loc.country.toLowerCase().includes(q);
     });
   }, [visitsList, search]);
 
@@ -1042,17 +1132,38 @@ function Dashboard({ admin, logout }) {
   const visitorStats = useMemo(() => {
     let mobile = 0;
     let desktop = 0;
+    const locCounts = {};
+
     visitsList.forEach(v => {
       const parsed = parseUserAgent(v.user_agent);
       if (parsed.isMobile) mobile++;
       else desktop++;
+
+      const loc = parseVisitLocation(v);
+      if (loc.hasLocation && loc.display) {
+        const key = loc.city ? `${loc.city}, ${loc.region || loc.country}` : loc.display;
+        locCounts[key] = (locCounts[key] || 0) + 1;
+      }
     });
+
+    let topLocation = 'Karaikudi & TN';
+    let topLocationCount = 0;
+    Object.entries(locCounts).forEach(([loc, cnt]) => {
+      if (cnt > topLocationCount) {
+        topLocationCount = cnt;
+        topLocation = loc;
+      }
+    });
+
     const total = visitsList.length || 1;
     return {
       mobile,
       desktop,
       mobilePct: Math.round((mobile / total) * 100),
       desktopPct: Math.round((desktop / total) * 100),
+      topLocation,
+      topLocationCount,
+      uniqueLocations: Object.keys(locCounts).length,
     };
   }, [visitsList]);
 
@@ -1942,6 +2053,21 @@ function Dashboard({ admin, logout }) {
 
               <div className="vta-stat-card" style={{ padding: 18 }}>
                 <div className="vta-stat-top">
+                  <span className="vta-stat-icon-wrap" style={{ background: 'rgba(234, 88, 12, 0.1)', color: '#EA580C' }}>
+                    📍
+                  </span>
+                  <span className="vta-stat-badge">
+                    {visitorStats.topLocationCount > 0 ? `${visitorStats.topLocationCount} hits` : 'Live'}
+                  </span>
+                </div>
+                <div className="vta-stat-val" style={{ fontSize: 20, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={visitorStats.topLocation}>
+                  {visitorStats.topLocation}
+                </div>
+                <div className="vta-stat-label">Top Visitor Location</div>
+              </div>
+
+              <div className="vta-stat-card" style={{ padding: 18 }}>
+                <div className="vta-stat-top">
                   <span className="vta-stat-icon-wrap" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10B981' }}>
                     📱
                   </span>
@@ -1982,7 +2108,7 @@ function Dashboard({ admin, logout }) {
                     <span className="vta-search-icon">🔍</span>
                     <input
                       type="text"
-                      placeholder="Search device, browser, or referrer..."
+                      placeholder="Search location, device, browser, or referrer..."
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                     />
@@ -2007,21 +2133,45 @@ function Dashboard({ admin, logout }) {
                     <tr>
                       <th>#</th>
                       <th>Time Visited</th>
+                      <th>Visitor Location</th>
                       <th>Device & Browser</th>
-                      <th>Referrer Source</th>
+                      <th>Traffic Source</th>
                       <th>Language</th>
-                      <th>Screen Size</th>
+                      <th>Screen</th>
                     </tr>
                   </thead>
                   <tbody>
                     {pagedVisits.map((v, i) => {
                       const ua = parseUserAgent(v.user_agent);
+                      const loc = parseVisitLocation(v);
                       return (
                         <tr key={v.id || i}>
                           <td style={{ color: '#94A3B8', fontWeight: 700 }}>{(pageVis - 1) * pageSizeVis + i + 1}</td>
                           <td>
                             <div className="vta-name-bold">{timeAgo(v.created_at)}</div>
                             <div className="vta-sub-text">{formatDate(v.created_at)}</div>
+                          </td>
+                          <td>
+                            {loc.hasLocation ? (
+                              <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <span style={{ fontSize: 16 }}>{loc.flag}</span>
+                                  <span className="vta-name-bold" style={{ fontSize: 13, color: '#1E293B' }}>
+                                    {loc.city ? `${loc.city}${loc.region ? `, ${loc.region}` : ''}` : loc.display}
+                                  </span>
+                                </div>
+                                {loc.country && (
+                                  <div className="vta-sub-text" style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
+                                    {loc.country}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#94A3B8' }}>
+                                <span style={{ fontSize: 13 }}>📍</span>
+                                <span style={{ fontSize: 12, fontStyle: 'italic' }}>Location not logged</span>
+                              </div>
+                            )}
                           </td>
                           <td>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -2032,13 +2182,13 @@ function Dashboard({ admin, logout }) {
                                 {ua.browser} ({ua.os})
                               </span>
                             </div>
-                            <div className="vta-sub-text" style={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={v.user_agent}>
+                            <div className="vta-sub-text" style={{ maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={v.user_agent}>
                               {v.user_agent}
                             </div>
                           </td>
                           <td>
-                            <span className="vta-badge-pill vta-badge-gray" title={v.referrer}>
-                              {v.referrer && v.referrer !== 'Direct/Unknown' ? v.referrer : '🔗 Direct / Link'}
+                            <span className="vta-badge-pill vta-badge-gray" title={loc.cleanReferrer}>
+                              {loc.cleanReferrer}
                             </span>
                           </td>
                           <td>
@@ -2056,7 +2206,7 @@ function Dashboard({ admin, logout }) {
                     })}
                     {fVisits.length === 0 && (
                       <tr>
-                        <td colSpan={6} style={{ textAlign: 'center', padding: 48, color: '#94A3B8' }}>
+                        <td colSpan={7} style={{ textAlign: 'center', padding: 48, color: '#94A3B8' }}>
                           No visitor logs captured yet. Ensure the visits table is configured in Supabase.
                         </td>
                       </tr>

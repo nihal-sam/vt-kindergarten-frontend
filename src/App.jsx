@@ -24,9 +24,59 @@ export default function App() {
     const logVisit = async () => {
       if (!sessionStorage.getItem("vt_visit_logged")) {
         try {
+          // Fetch location silently via IP geolocation (Zero permission dialogs)
+          let locTag = "";
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 2000);
+            let geo = null;
+            try {
+              const res = await fetch("https://ipwho.is/", { signal: controller.signal });
+              if (res.ok) {
+                const data = await res.json();
+                if (data && data.success !== false) {
+                  geo = {
+                    city: data.city,
+                    region: data.region,
+                    country: data.country_code || data.country,
+                    flag: data.flag?.emoji || (data.country_code === "IN" ? "🇮🇳" : "📍"),
+                  };
+                }
+              }
+            } catch {
+              try {
+                const res2 = await fetch("https://freeipapi.com/api/json", { signal: controller.signal });
+                if (res2.ok) {
+                  const data2 = await res2.json();
+                  if (data2 && data2.cityName) {
+                    geo = {
+                      city: data2.cityName,
+                      region: data2.regionName,
+                      country: data2.countryCode || data2.countryName,
+                      flag: data2.countryCode === "IN" ? "🇮🇳" : "📍",
+                    };
+                  }
+                }
+              } catch {}
+            }
+            clearTimeout(timeoutId);
+
+            if (geo) {
+              const parts = [geo.city, geo.region, geo.country].filter(Boolean);
+              if (parts.length > 0) {
+                locTag = ` [${geo.flag} ${parts.join(", ")}]`;
+              }
+            }
+          } catch {
+            // Geolocation fetch failed/timed out, proceed silently
+          }
+
+          const rawReferrer = document.referrer || "Direct/Unknown";
+          const referrerText = rawReferrer + locTag;
+
           await supabase.from('visits').insert([{ 
             user_agent: navigator.userAgent,
-            referrer: document.referrer || 'Direct/Unknown',
+            referrer: referrerText,
             language: navigator.language || 'Unknown',
             screen_width: window.innerWidth
           }]);
