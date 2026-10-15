@@ -349,22 +349,40 @@
         .vta-btn-excel {
           display: inline-flex;
           align-items: center;
-          gap: 7px;
-          background: #ECFDF5;
-          color: #065F46;
-          border: 1.5px solid #A7F3D0;
-          border-radius: var(--vta-radius-md);
-          padding: 10px 18px;
+          gap: 8px;
+          background: linear-gradient(135deg, #059669 0%, #047857 100%);
+          color: #FFFFFF;
+          border: 1.5px solid #047857;
+          border-radius: 10px;
+          padding: 9px 16px;
           font-family: var(--vta-font);
           font-size: 13.5px;
           font-weight: 800;
           cursor: pointer;
-          transition: all 0.2s ease;
+          box-shadow: 0 2px 8px rgba(5, 150, 105, 0.22);
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          white-space: nowrap;
         }
 
         .vta-btn-excel:hover {
-          background: #D1FAE5;
-          border-color: #6EE7B7;
+          background: linear-gradient(135deg, #047857 0%, #065F46 100%);
+          transform: translateY(-1.5px);
+          box-shadow: 0 4px 14px rgba(5, 150, 105, 0.35);
+          color: #FFFFFF;
+        }
+
+        .vta-btn-excel:active {
+          transform: translateY(0);
+        }
+
+        .vta-btn-excel .vta-excel-count {
+          background: rgba(255, 255, 255, 0.25);
+          color: #FFFFFF;
+          padding: 2px 8px;
+          border-radius: 9999px;
+          font-size: 11.5px;
+          font-weight: 800;
+          letter-spacing: 0.3px;
         }
 
         /* Stat Cards Grid */

@@ -799,47 +799,99 @@ function Dashboard({ admin, logout }) {
       alert('Spreadsheet export engine is initializing. Please try again in 2 seconds.');
       return;
     }
-    let cleanData;
+
+    if (!data || data.length === 0) {
+      alert('No records available to download in Excel.');
+      return;
+    }
+
+    let cleanData = [];
+    let sheetTitle = 'Data';
+
     if (name === 'Enquiries') {
+      sheetTitle = 'Parent Enquiries';
       cleanData = data.map((e, index) => {
         const info = parseEnquiryEligibility(e);
         return {
           'S.No': index + 1,
-          'Child Name': e.child_name || e.name || '-',
-          'Date of Birth': e.dob || '-',
-          'Age on 31 Mar 2026': info.calculatedAgeStr || '-',
-          'Eligibility': info.isEligible ? 'Eligible' : 'Not Eligible',
+          'Child Full Name': e.child_name || e.name || '-',
+          'Date of Birth (DOB)': e.dob || '-',
+          'Calculated Age (on 31 Mar 2026)': info.calculatedAgeStr || '-',
+          'Eligibility Status': info.isEligible ? 'ELIGIBLE' : 'NOT ELIGIBLE (< 2 YRS)',
           'Recommended Class': info.recommendedClass || '-',
-          'Parent Phone': e.phone || '-',
-          'Parent Email': e.email || '-',
-          'Parent Questions': info.parentNote || '-',
-          'Submission Date': formatDate(e.created_at),
+          'Parent Phone Number': e.phone || '-',
+          'Parent Email Address': e.email || '-',
+          'Parent Questions / Queries': info.parentNote || '-',
+          'Inquiry Submitted Date': formatDate(e.created_at),
         };
       });
     } else if (name === 'Admissions') {
+      sheetTitle = 'Student Admissions';
       cleanData = data.map((a, index) => ({
         'S.No': index + 1,
-        'Child Name': a.child_name || '-',
-        'Date of Birth': a.dob || '-',
+        'Child Full Name': a.child_name || '-',
+        'Date of Birth (DOB)': a.dob || '-',
         'Gender': a.gender || '-',
-        'Program / Class': a.program || '-',
-        'Parent Name': a.parent_name || '-',
+        'Enrolled Program': a.program || '-',
+        'Parent / Guardian Name': a.parent_name || '-',
         'Relationship': a.relation || 'Parent',
-        'Phone Number': a.phone || '-',
+        'Contact Phone': a.phone || '-',
         'Email Address': a.email || '-',
-        'Address': a.address || '-',
+        'Residential Address': a.address || '-',
         'Previous School': a.previous_school || '-',
-        'Additional Notes': a.message || '-',
-        'Application Status': a.status || 'pending',
-        'Submitted Date': formatDate(a.created_at),
+        'Parent Notes / Message': a.message || '-',
+        'Application Status': (a.status || 'pending').toUpperCase(),
+        'Application Submitted Date': formatDate(a.created_at),
       }));
+    } else if (name === 'Website_Visitors') {
+      sheetTitle = 'Website Traffic Logs';
+      cleanData = data.map((v, index) => {
+        const ua = parseUserAgent(v.user_agent);
+        return {
+          'S.No': index + 1,
+          'Visit Date & Time': formatDate(v.created_at),
+          'Device Type': ua.isMobile ? 'Mobile' : 'Desktop',
+          'Web Browser': ua.browser,
+          'Operating System': ua.os,
+          'Traffic Source / Referrer': v.referrer && v.referrer !== 'Direct/Unknown' ? v.referrer : 'Direct / Link',
+          'Browser Language': v.language || 'en',
+          'Screen Width': v.screen_width ? `${v.screen_width}px` : '-',
+          'Full User Agent Details': v.user_agent || '-',
+        };
+      });
     } else {
+      sheetTitle = name;
       cleanData = data.map(({ id, ...rest }) => rest);
     }
+
     const ws = window.XLSX.utils.json_to_sheet(cleanData);
+
+    // Compute generous, readable column widths for perfect spacing in Excel
+    if (cleanData.length > 0) {
+      const colKeys = Object.keys(cleanData[0]);
+      const colWidths = colKeys.map(key => {
+        let maxLen = key.length;
+        cleanData.forEach(row => {
+          const val = row[key];
+          if (val !== null && val !== undefined) {
+            const str = String(val);
+            const lineMax = Math.max(...str.split('\n').map(l => l.length));
+            if (lineMax > maxLen) maxLen = lineMax;
+          }
+        });
+        // Add 4 characters padding, min 12, max 55
+        return { wch: Math.min(Math.max(maxLen + 4, 12), 55) };
+      });
+      ws['!cols'] = colWidths;
+      ws['!rows'] = [{ hpt: 26 }]; // Spacious header row height
+    }
+
     const wb = window.XLSX.utils.book_new();
-    window.XLSX.utils.book_append_sheet(wb, ws, name);
-    window.XLSX.writeFile(wb, `VT_Kindergarten_${name}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    window.XLSX.utils.book_append_sheet(wb, ws, sheetTitle);
+
+    const safeDate = new Date().toISOString().slice(0, 10);
+    const fileName = `VT_Kindergarten_${name}_${safeDate}.xlsx`;
+    window.XLSX.writeFile(wb, fileName);
   };
 
   // Filtered lists
@@ -1098,8 +1150,10 @@ function Dashboard({ admin, logout }) {
                   type="button"
                   className="vta-btn-excel"
                   onClick={() => exportExcel(fAdmissions, 'Admissions')}
+                  title="Download complete Student Admissions (.xlsx) spreadsheet"
                 >
-                  📊 Export Excel
+                  <span>📥 Download Admissions (.xlsx)</span>
+                  <span className="vta-excel-count">{fAdmissions.length}</span>
                 </button>
               </>
             )}
@@ -1109,8 +1163,10 @@ function Dashboard({ admin, logout }) {
                 type="button"
                 className="vta-btn-excel"
                 onClick={() => exportExcel(fEnquiries, 'Enquiries')}
+                title="Download complete Parent Enquiries & Age Eligibility (.xlsx) spreadsheet"
               >
-                📊 Export Excel
+                <span>📥 Download Enquiries (.xlsx)</span>
+                <span className="vta-excel-count">{fEnquiries.length}</span>
               </button>
             )}
 
@@ -1119,8 +1175,10 @@ function Dashboard({ admin, logout }) {
                 type="button"
                 className="vta-btn-excel"
                 onClick={() => exportExcel(fVisits, 'Website_Visitors')}
+                title="Download Website Visitor Analytics (.xlsx) spreadsheet"
               >
-                📊 Export Visitor Logs
+                <span>📥 Download Visitor Logs (.xlsx)</span>
+                <span className="vta-excel-count">{fVisits.length}</span>
               </button>
             )}
           </div>
