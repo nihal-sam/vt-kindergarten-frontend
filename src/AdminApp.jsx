@@ -1073,10 +1073,10 @@ function Dashboard({ admin, logout }) {
               className="vta-btn-ghost"
               onClick={fetchAll}
               disabled={loading}
-              title={`Recall API & Reload fresh data ${lastRefreshed ? `(Last synced: ${lastRefreshed})` : ''}`}
+              title={`Refresh page ${lastRefreshed ? `(Last updated: ${lastRefreshed})` : ''}`}
             >
               <span className={loading ? 'vta-spin' : ''}>🔄</span>
-              <span className="vta-hide-mobile">{loading ? 'Syncing...' : 'Refresh'}</span>
+              <span className="vta-hide-mobile">{loading ? 'Refreshing...' : 'Refresh'}</span>
             </button>
 
             <div className="vta-user-chip">
@@ -1130,11 +1130,11 @@ function Dashboard({ admin, logout }) {
               className="vta-btn-ghost"
               onClick={fetchAll}
               disabled={loading}
-              title="Recall API & Refresh data from Supabase"
+              title="Refresh page"
               style={{ fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 6 }}
             >
               <span className={loading ? 'vta-spin' : ''}>🔄</span>
-              <span>{loading ? 'Recalling API...' : 'Refresh'}</span>
+              <span>{loading ? 'Refreshing...' : 'Refresh'}</span>
             </button>
 
             {tab === 'admissions' && (
@@ -1201,7 +1201,7 @@ function Dashboard({ admin, logout }) {
             boxShadow: '0 2px 10px rgba(255, 107, 53, 0.08)'
           }}>
             <span className="vta-spin" style={{ fontSize: 16 }}>🔄</span>
-            <span>Recalling API & synchronizing fresh data from Supabase...</span>
+            <span>Refreshing page data...</span>
           </div>
         )}
 
@@ -1223,11 +1223,11 @@ function Dashboard({ admin, logout }) {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ fontSize: 16 }}>✅</span>
-              <span>API successfully recalled! Data is completely up to date.</span>
+              <span>Page is refreshed correctly! All data is up to date.</span>
             </div>
             {lastRefreshed && (
               <span style={{ fontSize: 12.5, fontWeight: 700, color: '#047857' }}>
-                Synced at {lastRefreshed}
+                Refreshed at {lastRefreshed}
               </span>
             )}
           </div>
@@ -1465,9 +1465,6 @@ function Dashboard({ admin, logout }) {
                 </select>
 
                 <span className="vta-count-pill">{fAdmissions.length} records</span>
-                <span className="vta-count-pill" style={{ background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', fontWeight: 800 }}>
-                  📁 DB: student_admissions
-                </span>
               </div>
 
               <TablePaginationTop
@@ -1623,9 +1620,6 @@ function Dashboard({ admin, logout }) {
                 </select>
 
                 <span className="vta-count-pill">{fEnquiries.length} records</span>
-                <span className="vta-count-pill" style={{ background: '#ECFDF5', color: '#047857', border: '1px solid #A7F3D0', fontWeight: 800 }}>
-                  📁 DB: admissions (enquiries)
-                </span>
               </div>
 
               <TablePaginationTop
