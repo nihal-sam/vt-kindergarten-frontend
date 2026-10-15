@@ -1,69 +1,14 @@
 import { useMemo, useState } from "react";
 import { supabase } from "../supabaseClient";
-
-const CUTOFF_DATE = new Date(2026, 2, 31);
-const CUTOFF_LABEL = "31 March 2026";
-
-const eligibilityLevels = [
-  { grade: "Play Group", minYears: 2, accent: "orange" },
-  { grade: "Pre KG", minYears: 3, accent: "teal" },
-  { grade: "LKG", minYears: 4, accent: "yellow" },
-  { grade: "UKG", minYears: 5, accent: "purple" },
-];
-
-function parseLocalDate(value) {
-  if (!value) return null;
-  let year, month, day;
-  if (value.includes("-")) {
-    [year, month, day] = value.split("-").map(Number);
-  } else if (value.includes("/")) {
-    [day, month, year] = value.split("/").map(Number);
-  }
-  if (!year || !month || !day) return null;
-  return new Date(year, month - 1, day);
-}
-
-function getDaysInMonth(year, monthIndex) {
-  return new Date(year, monthIndex + 1, 0).getDate();
-}
-
-function getAgeOnCutoff(dateOfBirth) {
-  let years = CUTOFF_DATE.getFullYear() - dateOfBirth.getFullYear();
-  let months = CUTOFF_DATE.getMonth() - dateOfBirth.getMonth();
-  let days = CUTOFF_DATE.getDate() - dateOfBirth.getDate();
-
-  if (days < 0) {
-    months -= 1;
-    const previousMonth = CUTOFF_DATE.getMonth() - 1;
-    const previousMonthYear =
-      previousMonth < 0 ? CUTOFF_DATE.getFullYear() - 1 : CUTOFF_DATE.getFullYear();
-    const normalizedPreviousMonth = previousMonth < 0 ? 11 : previousMonth;
-    days += getDaysInMonth(previousMonthYear, normalizedPreviousMonth);
-  }
-
-  if (months < 0) {
-    years -= 1;
-    months += 12;
-  }
-
-  return { years, months, days };
-}
-
-function getEligibleGrade(age) {
-  return [...eligibilityLevels]
-    .reverse()
-    .find((level) => age.years >= level.minYears);
-}
-
-function formatAge(age) {
-  const parts = [
-    `${age.years} year${age.years === 1 ? "" : "s"}`,
-    `${age.months} month${age.months === 1 ? "" : "s"}`,
-  ];
-
-  if (age.days > 0) parts.push(`${age.days} day${age.days === 1 ? "" : "s"}`);
-  return parts.join(" ");
-}
+import {
+  CUTOFF_DATE,
+  CUTOFF_LABEL,
+  eligibilityLevels,
+  parseLocalDate,
+  getAgeOnCutoff,
+  getEligibleGrade,
+  formatAge,
+} from "../utils/ageEligibility";
 
 export default function AgeEligibilityCalculator({ onInteraction }) {
   const [childName, setChildName] = useState("");
@@ -115,27 +60,42 @@ export default function AgeEligibilityCalculator({ onInteraction }) {
 
     const age = getAgeOnCutoff(birthDate);
     const grade = getEligibleGrade(age);
+    const isEligible = Boolean(grade);
+    const formattedAge = formatAge(age);
+    const eligibleClass = isEligible ? grade.grade : "Not Eligible (< 2 Years)";
+    const eligibilityStatus = isEligible ? "Eligible" : "Not Eligible";
 
     setError("");
     setResult({
       age,
-      eligible: Boolean(grade),
+      eligible: isEligible,
       grade: grade?.grade || "",
       minYears: grade?.minYears || null,
     });
 
-    // Send Enquiry to Supabase
+    // Send Enquiry to Supabase admissions table
     setLoading(true);
     try {
+      const messageParts = [
+        `Calculated Age (on ${CUTOFF_LABEL}): ${formattedAge}`,
+        `Eligibility Status: ${eligibilityStatus}`,
+        `Recommended Class: ${eligibleClass}`,
+      ];
+      if (message && message.trim()) {
+        messageParts.push(`Parent Note: ${message.trim()}`);
+      }
+      messageParts.push(`(Source: Online Age Eligibility Calculator)`);
+
       const { error: supabaseError } = await supabase
         .from('admissions')
         .insert([{
           child_name: normalizedName,
           dob: dateOfBirth,
           phone,
-          email,
-          program: grade?.grade || 'Play Group',
-          message: `${message || 'Admission inquiry'}\n\n(Note: Online Age Eligibility Calculator)`
+          email: email?.trim() || null,
+          program: eligibleClass,
+          relation: eligibilityStatus,
+          message: messageParts.join('\n\n')
         }]);
 
       if (supabaseError) {
@@ -144,7 +104,7 @@ export default function AgeEligibilityCalculator({ onInteraction }) {
       } else {
         setSuccess(true);
         setChildName(''); setDateOfBirth(''); setPhone(''); setEmail(''); setMessage('');
-        setTimeout(() => setSuccess(false), 5000);
+        setTimeout(() => setSuccess(false), 6000);
       }
     } catch (err) {
       console.error('Network error:', err);

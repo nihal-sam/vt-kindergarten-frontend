@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "./supabaseClient";
+import { parseEnquiryEligibility, CUTOFF_LABEL } from "./utils/ageEligibility";
 import "./admin.css";
 
 const LOGO_SRC = '/assets/vt-logo.png';
@@ -670,7 +671,11 @@ function Dashboard({ admin, logout }) {
       }
 
       const allData = data || [];
-      const isEnquiry = (d) => !d.parent_name || d.parent_name.trim() === '' || (d.message && d.message.includes('Age Eligibility'));
+      const isEnquiry = (d) =>
+        !d.parent_name ||
+        d.parent_name.trim() === '' ||
+        (d.message && (d.message.includes('Age Eligibility') || d.message.includes('Calculated Age'))) ||
+        (d.relation === 'Eligible' || d.relation === 'Not Eligible');
       const adm = allData.filter(d => !isEnquiry(d));
       const enq = allData.filter(isEnquiry).map(d => ({ ...d, name: d.child_name || d.parent_name || 'Prospective Parent' }));
 
@@ -740,10 +745,10 @@ function Dashboard({ admin, logout }) {
   const deleteRecord = async (type, id) => {
     if (!confirm('Are you sure you want to permanently delete this record?')) return;
     try {
-      const table = (type === 'enquiry' || type === 'enquiries') ? 'enquiries' : 'admissions';
-      const { error } = await supabase.from(table).delete().eq('id', id);
-      if (error && table === 'enquiries') {
-        await supabase.from('admissions').delete().eq('id', id);
+      const { error } = await supabase.from('admissions').delete().eq('id', id);
+      if (error) {
+        const table = (type === 'enquiry' || type === 'enquiries') ? 'enquiries' : 'admissions';
+        await supabase.from(table).delete().eq('id', id);
       }
       fetchAll();
       if (viewItem?.data?.id === id) setViewItem(null);
@@ -757,7 +762,26 @@ function Dashboard({ admin, logout }) {
       alert('Spreadsheet export engine is initializing. Please try again in 2 seconds.');
       return;
     }
-    const cleanData = data.map(({ id, ...rest }) => rest);
+    let cleanData;
+    if (name === 'Enquiries') {
+      cleanData = data.map((e, index) => {
+        const info = parseEnquiryEligibility(e);
+        return {
+          'S.No': index + 1,
+          'Child Name': e.child_name || e.name || '-',
+          'Date of Birth': e.dob || '-',
+          'Age on 31 Mar 2026': info.calculatedAgeStr || '-',
+          'Eligibility': info.isEligible ? 'Eligible' : 'Not Eligible',
+          'Recommended Class': info.recommendedClass || '-',
+          'Parent Phone': e.phone || '-',
+          'Parent Email': e.email || '-',
+          'Parent Questions': info.parentNote || '-',
+          'Submission Date': formatDate(e.created_at),
+        };
+      });
+    } else {
+      cleanData = data.map(({ id, ...rest }) => rest);
+    }
     const ws = window.XLSX.utils.json_to_sheet(cleanData);
     const wb = window.XLSX.utils.book_new();
     window.XLSX.utils.book_append_sheet(wb, ws, name);
@@ -784,14 +808,26 @@ function Dashboard({ admin, logout }) {
 
   const fEnquiries = useMemo(() => {
     return enquiries.filter(e => {
+      const info = parseEnquiryEligibility(e);
       const q = search.toLowerCase();
       const matchQuery = !search ||
         (e.name || '').toLowerCase().includes(q) ||
+        (e.child_name || '').toLowerCase().includes(q) ||
+        (e.dob || '').toLowerCase().includes(q) ||
         (e.phone || '').includes(search) ||
         (e.email || '').toLowerCase().includes(q) ||
-        (e.message || '').toLowerCase().includes(q);
+        (e.message || '').toLowerCase().includes(q) ||
+        (info.calculatedAgeStr || '').toLowerCase().includes(q) ||
+        (info.recommendedClass || '').toLowerCase().includes(q);
 
-      const matchProgram = isProgramMatch(e.program, filterProgram);
+      let matchProgram = true;
+      if (filterProgram) {
+        if (filterProgram === 'Not Eligible') {
+          matchProgram = !info.isEligible;
+        } else {
+          matchProgram = isProgramMatch(info.recommendedClass, filterProgram);
+        }
+      }
       return matchQuery && matchProgram;
     });
   }, [enquiries, search, filterProgram]);
@@ -1191,7 +1227,7 @@ function Dashboard({ admin, logout }) {
                 <div className="vta-panel-header">
                   <div>
                     <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>Recent Enquiries</h3>
-                    <span className="vta-sub-text">Latest web contact messages</span>
+                    <span className="vta-sub-text">Latest age eligibility inquiries</span>
                   </div>
                   <button
                     type="button"
@@ -1206,35 +1242,53 @@ function Dashboard({ admin, logout }) {
                   <table className="vta-table">
                     <thead>
                       <tr>
-                        <th>Parent Name</th>
-                        <th>Program</th>
-                        <th>Message</th>
-                        <th>Date</th>
+                        <th>Child / Parent</th>
+                        <th>Age (31 Mar)</th>
+                        <th>Class & Eligibility</th>
+                        <th>Parent Note</th>
+                        <th>Time</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {enquiries.slice(0, 5).map((e, i) => (
-                        <tr key={i} style={{ cursor: 'pointer' }} onClick={() => setViewItem({ type: 'enquiry', data: e })}>
-                          <td>
-                            <div className="vta-name-bold">{e.name}</div>
-                            <div className="vta-sub-text">{e.phone}</div>
-                          </td>
-                          <td>
-                            <span className={`vta-badge-pill ${getProgramBadgeClass(e.program)}`}>
-                              {e.program || 'General'}
-                            </span>
-                          </td>
-                          <td style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {e.message || '-'}
-                          </td>
-                          <td>
-                            <span className="vta-sub-text">{timeAgo(e.created_at)}</span>
-                          </td>
-                        </tr>
-                      ))}
+                      {enquiries.slice(0, 5).map((e, i) => {
+                        const info = parseEnquiryEligibility(e);
+                        return (
+                          <tr key={i} style={{ cursor: 'pointer' }} onClick={() => setViewItem({ type: 'enquiry', data: e })}>
+                            <td>
+                              <div className="vta-name-bold">{e.child_name || e.name}</div>
+                              <div className="vta-sub-text">{e.phone || '-'}</div>
+                            </td>
+                            <td>
+                              <div style={{ fontWeight: 700, fontSize: 12.5, color: '#1E293B' }}>{info.calculatedAgeStr || '-'}</div>
+                            </td>
+                            <td>
+                              {info.isEligible ? (
+                                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                                  <span className={`vta-badge-pill ${getProgramBadgeClass(info.recommendedClass)}`}>
+                                    {info.recommendedClass}
+                                  </span>
+                                  <span className="vta-badge-pill vta-badge-green" style={{ fontSize: 10, padding: '2px 6px' }}>
+                                    ✓ Eligible
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="vta-badge-pill vta-badge-amber" style={{ fontSize: 11 }}>
+                                  ✕ Underage
+                                </span>
+                              )}
+                            </td>
+                            <td style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={info.parentNote}>
+                              {info.parentNote}
+                            </td>
+                            <td>
+                              <span className="vta-sub-text">{timeAgo(e.created_at)}</span>
+                            </td>
+                          </tr>
+                        );
+                      })}
                       {enquiries.length === 0 && (
                         <tr>
-                          <td colSpan={4} style={{ textAlign: 'center', padding: 32, color: '#94A3B8' }}>
+                          <td colSpan={5} style={{ textAlign: 'center', padding: 32, color: '#94A3B8' }}>
                             No parent enquiries yet.
                           </td>
                         </tr>
@@ -1445,11 +1499,12 @@ function Dashboard({ admin, logout }) {
                   value={filterProgram}
                   onChange={(e) => setFilterProgram(e.target.value)}
                 >
-                  <option value="">All Programs</option>
+                  <option value="">All Programs & Eligibility</option>
                   <option value="Play Group">Play Group (2+ yrs)</option>
                   <option value="Pre KG">Pre KG (3+ yrs)</option>
                   <option value="LKG">LKG (4+ yrs)</option>
                   <option value="UKG">UKG (5+ yrs)</option>
+                  <option value="Not Eligible">Not Eligible / Underage (&lt; 2 yrs)</option>
                 </select>
 
                 <span className="vta-count-pill">{fEnquiries.length} records</span>
@@ -1471,80 +1526,113 @@ function Dashboard({ admin, logout }) {
                 <thead>
                   <tr>
                     <th>#</th>
-                    <th>Parent / Sender</th>
-                    <th>Program</th>
-                    <th>Message</th>
-                    <th>Date</th>
+                    <th>Child & Contact Info</th>
+                    <th>Calculated Age</th>
+                    <th>Eligibility & Class</th>
+                    <th>Parent Note</th>
+                    <th>Submitted</th>
                     <th style={{ textAlign: 'right' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {pagedEnquiries.map((enq, i) => (
-                    <tr
-                      key={enq.id || i}
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => setViewItem({ type: 'enquiry', data: enq })}
-                    >
-                      <td style={{ color: '#94A3B8', fontWeight: 700 }}>{(pageEnq - 1) * pageSizeEnq + i + 1}</td>
-                      <td>
-                        <div className="vta-avatar-cell">
-                          <div className="vta-avatar-icon" style={{ background: '#ECFDF5', color: '#059669' }}>
-                            {(enq.name || 'P')[0].toUpperCase()}
+                  {pagedEnquiries.map((enq, i) => {
+                    const info = parseEnquiryEligibility(enq);
+                    return (
+                      <tr
+                        key={enq.id || i}
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => setViewItem({ type: 'enquiry', data: enq })}
+                      >
+                        <td style={{ color: '#94A3B8', fontWeight: 700 }}>{(pageEnq - 1) * pageSizeEnq + i + 1}</td>
+                        <td>
+                          <div className="vta-avatar-cell">
+                            <div className="vta-avatar-icon" style={{ background: '#ECFDF5', color: '#059669' }}>
+                              {(enq.child_name || enq.name || 'C')[0].toUpperCase()}
+                            </div>
+                            <div>
+                              <div className="vta-name-bold">{enq.child_name || enq.name}</div>
+                              <div className="vta-sub-text" style={{ marginTop: 2 }}>
+                                {enq.dob && <span>DOB: <strong>{enq.dob}</strong> &bull; </span>}
+                                <span>{enq.phone || 'No phone'}</span>
+                                {enq.email && <span> &bull; {enq.email}</span>}
+                              </div>
+                            </div>
                           </div>
-                          <div>
-                            <div className="vta-name-bold">{enq.name}</div>
-                            <div className="vta-sub-text">{enq.phone} &bull; {enq.email || 'No email'}</div>
+                        </td>
+                        <td>
+                          <div style={{ fontWeight: 800, color: '#0F172A', fontSize: 13.5 }}>
+                            {info.calculatedAgeStr || '-'}
                           </div>
-                        </div>
-                      </td>
-                      <td>
-                        <span className={`vta-badge-pill ${getProgramBadgeClass(enq.program)}`}>
-                          {enq.program || 'General'}
-                        </span>
-                      </td>
-                      <td style={{ maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {enq.message || '-'}
-                      </td>
-                      <td>
-                        <div className="vta-sub-text">{formatDate(enq.created_at)}</div>
-                      </td>
-                      <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
-                        <div className="vta-actions-cell" style={{ justifyContent: 'flex-end' }}>
-                          {enq.phone && (
-                            <a
-                              href={getWhatsAppUrl(enq.phone)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="vta-btn-action vta-btn-action-wa"
-                              title="Chat on WhatsApp"
-                            >
-                              💬
-                            </a>
+                          <div className="vta-sub-text" style={{ fontSize: 11, color: '#64748B' }}>
+                            On 31 Mar 2026
+                          </div>
+                        </td>
+                        <td>
+                          {info.isEligible ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
+                              <span className="vta-badge-pill vta-badge-green" style={{ fontWeight: 800, fontSize: 11 }}>
+                                ✓ Eligible
+                              </span>
+                              <span className={`vta-badge-pill ${getProgramBadgeClass(info.recommendedClass)}`} style={{ fontWeight: 700 }}>
+                                {info.recommendedClass}
+                              </span>
+                            </div>
+                          ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
+                              <span className="vta-badge-pill vta-badge-amber" style={{ fontWeight: 800, fontSize: 11 }}>
+                                ✕ Not Eligible
+                              </span>
+                              <span className="vta-badge-pill vta-badge-gray" style={{ fontSize: 11 }}>
+                                Under 2 Years
+                              </span>
+                            </div>
                           )}
-                          <button
-                            type="button"
-                            className="vta-btn-action"
-                            title="View full enquiry"
-                            onClick={() => setViewItem({ type: 'enquiry', data: enq })}
-                          >
-                            👁️
-                          </button>
-                          <button
-                            type="button"
-                            className="vta-btn-action vta-btn-action-del"
-                            title="Delete permanently"
-                            onClick={() => deleteRecord('enquiries', enq.id)}
-                          >
-                            🗑️
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={info.parentNote}>
+                          {info.parentNote}
+                        </td>
+                        <td>
+                          <div className="vta-sub-text">{timeAgo(enq.created_at)}</div>
+                          <div style={{ fontSize: 11, color: '#94A3B8' }}>{formatDate(enq.created_at).split(',')[0]}</div>
+                        </td>
+                        <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
+                          <div className="vta-actions-cell" style={{ justifyContent: 'flex-end' }}>
+                            {enq.phone && (
+                              <a
+                                href={getWhatsAppUrl(enq.phone)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="vta-btn-action vta-btn-action-wa"
+                                title="Chat on WhatsApp"
+                              >
+                                💬
+                              </a>
+                            )}
+                            <button
+                              type="button"
+                              className="vta-btn-action"
+                              title="View full enquiry"
+                              onClick={() => setViewItem({ type: 'enquiry', data: enq })}
+                            >
+                              👁️
+                            </button>
+                            <button
+                              type="button"
+                              className="vta-btn-action vta-btn-action-del"
+                              title="Delete permanently"
+                              onClick={() => deleteRecord('enquiries', enq.id)}
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                   {fEnquiries.length === 0 && (
                     <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: 48, color: '#94A3B8' }}>
-                        No enquiries found.
+                      <td colSpan={7} style={{ textAlign: 'center', padding: 48, color: '#94A3B8' }}>
+                        No enquiries found matching your search.
                       </td>
                     </tr>
                   )}
@@ -1694,80 +1782,198 @@ function Dashboard({ admin, logout }) {
       </main>
 
       {/* ================= DETAIL MODAL ================= */}
-      {viewItem && (
-        <div className="vta-modal-backdrop" onClick={() => setViewItem(null)}>
-          <div className="vta-modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="vta-modal-header">
-              <div>
-                <span className="vta-badge-pill vta-badge-orange" style={{ marginBottom: 6 }}>
-                  {viewItem.type === 'admission' ? 'Admission Application' : 'Parent Contact Enquiry'}
-                </span>
-                <h3>{viewItem.data.child_name || viewItem.data.name || 'Details'}</h3>
-              </div>
-              <button
-                type="button"
-                className="vta-modal-close-btn"
-                onClick={() => setViewItem(null)}
-              >
-                ✕
-              </button>
-            </div>
+      {viewItem && (() => {
+        const isEnq = viewItem.type === 'enquiry';
+        const enqInfo = isEnq ? parseEnquiryEligibility(viewItem.data) : null;
 
-            <div className="vta-modal-body">
-              {Object.entries(viewItem.data)
-                .filter(([k]) => k !== 'id' && k !== 'updated_at')
-                .map(([k, v]) => (
-                  <div key={k} className="vta-modal-field-row">
-                    <span className="vta-modal-key">{k.replace(/_/g, ' ')}</span>
-                    <span className="vta-modal-val">
-                      {k === 'created_at' ? formatDate(v) : (String(v) || '-')}
-                    </span>
-                  </div>
-                ))}
-            </div>
-
-            <div className="vta-modal-footer">
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                {viewItem.type === 'admission' && (
-                  <>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: '#64748B' }}>Status:</span>
-                    <select
-                      className={`vta-status-select ${viewItem.data.status || 'pending'}`}
-                      value={viewItem.data.status || 'pending'}
-                      onChange={(e) => updateStatus(viewItem.data.id, e.target.value)}
-                    >
-                      <option value="pending">⏳ Pending Review</option>
-                      <option value="approved">✓ Approved</option>
-                      <option value="rejected">✕ Rejected</option>
-                    </select>
-                  </>
-                )}
-              </div>
-
-              <div style={{ display: 'flex', gap: 8 }}>
-                {viewItem.data.phone && (
-                  <a
-                    href={getWhatsAppUrl(viewItem.data.phone)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="vta-btn-action-wa"
-                    style={{ padding: '8px 14px', borderRadius: 8, fontSize: 13, fontWeight: 800, textDecoration: 'none' }}
-                  >
-                    💬 WhatsApp Parent
-                  </a>
-                )}
+        return (
+          <div className="vta-modal-backdrop" onClick={() => setViewItem(null)}>
+            <div className="vta-modal-card" onClick={(e) => e.stopPropagation()}>
+              <div className="vta-modal-header">
+                <div>
+                  <span className={`vta-badge-pill ${isEnq ? (enqInfo.isEligible ? 'vta-badge-green' : 'vta-badge-amber') : 'vta-badge-orange'}`} style={{ marginBottom: 6 }}>
+                    {isEnq ? `Age Eligibility Enquiry • ${enqInfo.isEligible ? 'Eligible' : 'Not Eligible'}` : 'Admission Application'}
+                  </span>
+                  <h3>{viewItem.data.child_name || viewItem.data.name || 'Details'}</h3>
+                </div>
                 <button
                   type="button"
-                  className="vta-btn-secondary"
+                  className="vta-modal-close-btn"
                   onClick={() => setViewItem(null)}
                 >
-                  Close
+                  ✕
                 </button>
+              </div>
+
+              {isEnq ? (
+                <div className="vta-modal-body">
+                  {/* Eligibility Status Banner */}
+                  <div style={{
+                    background: enqInfo.isEligible ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+                    border: `1.5px solid ${enqInfo.isEligible ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+                    borderRadius: 12,
+                    padding: '16px 20px',
+                    marginBottom: 20,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: 12
+                  }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                        <span className={`vta-badge-pill ${enqInfo.isEligible ? 'vta-badge-green' : 'vta-badge-red'}`} style={{ fontWeight: 800, fontSize: 13 }}>
+                          {enqInfo.isEligible ? '✓ Eligible for Admission' : '✕ Not Eligible Yet'}
+                        </span>
+                        {enqInfo.isEligible && (
+                          <span className={`vta-badge-pill ${getProgramBadgeClass(enqInfo.recommendedClass)}`} style={{ fontWeight: 800, fontSize: 13 }}>
+                            Class: {enqInfo.recommendedClass}
+                          </span>
+                        )}
+                      </div>
+                      <p style={{ margin: 0, fontSize: 13, color: '#475569', fontWeight: 600 }}>
+                        {enqInfo.isEligible
+                          ? `Based on cutoff date (${CUTOFF_LABEL}), child qualifies for ${enqInfo.recommendedClass}.`
+                          : `Child must complete 2 years on ${CUTOFF_LABEL} for Play Group.`}
+                      </p>
+                    </div>
+                    <div style={{ background: '#FFFFFF', padding: '8px 14px', borderRadius: 10, border: '1px solid #E2E8F0', textAlign: 'right' }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase' }}>Calculated Age (on 31 Mar 2026)</div>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A' }}>{enqInfo.calculatedAgeStr || 'N/A'}</div>
+                    </div>
+                  </div>
+
+                  {/* Details Field Rows */}
+                  <div className="vta-modal-field-row">
+                    <span className="vta-modal-key">Child Name</span>
+                    <span className="vta-modal-val" style={{ fontWeight: 800, color: '#0F172A' }}>
+                      {viewItem.data.child_name || viewItem.data.name || '-'}
+                    </span>
+                  </div>
+                  <div className="vta-modal-field-row">
+                    <span className="vta-modal-key">Date of Birth (DOB)</span>
+                    <span className="vta-modal-val" style={{ fontWeight: 700 }}>
+                      {viewItem.data.dob || '-'}
+                    </span>
+                  </div>
+                  <div className="vta-modal-field-row">
+                    <span className="vta-modal-key">Age on 31 March 2026</span>
+                    <span className="vta-modal-val" style={{ color: '#0D9488', fontWeight: 800 }}>
+                      {enqInfo.calculatedAgeStr || '-'}
+                    </span>
+                  </div>
+                  <div className="vta-modal-field-row">
+                    <span className="vta-modal-key">Eligibility Status</span>
+                    <span className="vta-modal-val">
+                      <span className={`vta-badge-pill ${enqInfo.isEligible ? 'vta-badge-green' : 'vta-badge-amber'}`}>
+                        {enqInfo.isEligible ? '✓ Eligible' : '✕ Not Eligible (< 2 Yrs)'}
+                      </span>
+                    </span>
+                  </div>
+                  <div className="vta-modal-field-row">
+                    <span className="vta-modal-key">Recommended Class</span>
+                    <span className="vta-modal-val">
+                      <span className={`vta-badge-pill ${getProgramBadgeClass(enqInfo.recommendedClass)}`} style={{ fontWeight: 800 }}>
+                        {enqInfo.recommendedClass || 'None'}
+                      </span>
+                    </span>
+                  </div>
+                  <div className="vta-modal-field-row">
+                    <span className="vta-modal-key">Parent Phone</span>
+                    <span className="vta-modal-val" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ fontWeight: 700 }}>{viewItem.data.phone || '-'}</span>
+                      {viewItem.data.phone && (
+                        <a href={`tel:${viewItem.data.phone}`} className="vta-btn-ghost" style={{ padding: '2px 8px', fontSize: 12 }}>
+                          📞 Call
+                        </a>
+                      )}
+                    </span>
+                  </div>
+                  <div className="vta-modal-field-row">
+                    <span className="vta-modal-key">Parent Email</span>
+                    <span className="vta-modal-val">{viewItem.data.email || 'None provided'}</span>
+                  </div>
+                  <div className="vta-modal-field-row">
+                    <span className="vta-modal-key">Parent Questions / Note</span>
+                    <span className="vta-modal-val" style={{ background: '#F8FAFC', padding: '10px 14px', borderRadius: 8, whiteSpace: 'pre-wrap', width: '100%' }}>
+                      {enqInfo.parentNote}
+                    </span>
+                  </div>
+                  <div className="vta-modal-field-row">
+                    <span className="vta-modal-key">Received At</span>
+                    <span className="vta-modal-val">{formatDate(viewItem.data.created_at)}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="vta-modal-body">
+                  {Object.entries(viewItem.data)
+                    .filter(([k]) => k !== 'id' && k !== 'updated_at')
+                    .map(([k, v]) => (
+                      <div key={k} className="vta-modal-field-row">
+                        <span className="vta-modal-key">{k.replace(/_/g, ' ')}</span>
+                        <span className="vta-modal-val">
+                          {k === 'created_at' ? formatDate(v) : (String(v) || '-')}
+                        </span>
+                      </div>
+                    ))}
+                </div>
+              )}
+
+              <div className="vta-modal-footer">
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  {viewItem.type === 'admission' && (
+                    <>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#64748B' }}>Status:</span>
+                      <select
+                        className={`vta-status-select ${viewItem.data.status || 'pending'}`}
+                        value={viewItem.data.status || 'pending'}
+                        onChange={(e) => updateStatus(viewItem.data.id, e.target.value)}
+                      >
+                        <option value="pending">⏳ Pending Review</option>
+                        <option value="approved">✓ Approved</option>
+                        <option value="rejected">✕ Rejected</option>
+                      </select>
+                    </>
+                  )}
+                  {isEnq && (
+                    <button
+                      type="button"
+                      className="vta-btn-action vta-btn-action-del"
+                      style={{ padding: '6px 12px', fontSize: 12.5 }}
+                      onClick={() => {
+                        deleteRecord('enquiries', viewItem.data.id);
+                      }}
+                    >
+                      🗑️ Delete Enquiry
+                    </button>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {viewItem.data.phone && (
+                    <a
+                      href={getWhatsAppUrl(viewItem.data.phone)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="vta-btn-action-wa"
+                      style={{ padding: '8px 14px', borderRadius: 8, fontSize: 13, fontWeight: 800, textDecoration: 'none' }}
+                    >
+                      💬 WhatsApp Parent
+                    </a>
+                  )}
+                  <button
+                    type="button"
+                    className="vta-btn-secondary"
+                    onClick={() => setViewItem(null)}
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
