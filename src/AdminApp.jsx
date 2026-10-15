@@ -338,9 +338,18 @@ function AdmissionApplicationBox({ onSubmitted, onCancel }) {
     setLoading(true);
     setError('');
     try {
-      const { error: supabaseError } = await supabase
-        .from('admissions')
+      // 1. Insert into dedicated student_admissions table
+      let { error: supabaseError } = await supabase
+        .from('student_admissions')
         .insert([{ ...form, status: 'pending' }]);
+
+      // Fallback to legacy admissions if student_admissions table is not yet created
+      if (supabaseError && (supabaseError.message?.includes('student_admissions') || supabaseError.code === '42P01')) {
+        const { error: fallbackErr } = await supabase
+          .from('admissions')
+          .insert([{ ...form, status: 'pending' }]);
+        supabaseError = fallbackErr;
+      }
 
       if (supabaseError) {
         setError(supabaseError.message || 'Submission failed. Please try again.');
@@ -658,33 +667,48 @@ function Dashboard({ admin, logout }) {
   const fetchAll = async () => {
     setLoading(true);
     try {
-      // 1. Fetch Admissions & Enquiries from Supabase API
-      const { data, error } = await supabase
+      // 1. Fetch Enquiries from existing admissions table
+      const { data: enqRaw, error: enqErr } = await supabase
         .from('admissions')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('API Recall Error (admissions):', error);
-        if (error.message.includes('JWT')) logout();
+      if (enqErr) {
+        console.error('API Recall Error (enquiries):', enqErr);
+        if (enqErr.message.includes('JWT')) logout();
         return;
       }
 
-      const allData = data || [];
+      // 2. Fetch Admissions from dedicated student_admissions table
+      let admList = [];
+      const { data: admData, error: admErr } = await supabase
+        .from('student_admissions')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (admErr) {
+        // Fallback to admissions table if student_admissions table is not yet created
+        admList = (enqRaw || []).filter(d => d.parent_name && d.parent_name.trim() !== '');
+      } else {
+        admList = admData || [];
+      }
+
+      // Filter enquiries from admissions table
       const isEnquiry = (d) =>
         !d.parent_name ||
         d.parent_name.trim() === '' ||
         (d.message && (d.message.includes('Age Eligibility') || d.message.includes('Calculated Age'))) ||
         (d.relation === 'Eligible' || d.relation === 'Not Eligible');
-      const adm = allData.filter(d => !isEnquiry(d));
-      const enq = allData.filter(isEnquiry).map(d => ({ ...d, name: d.child_name || d.parent_name || 'Prospective Parent' }));
 
+      const enqList = (enqRaw || []).filter(isEnquiry).map(d => ({
+        ...d,
+        name: d.child_name || d.parent_name || 'Prospective Parent'
+      }));
 
+      setAdmissions(admList);
+      setEnquiries(enqList);
 
-      setAdmissions(adm);
-      setEnquiries(enq);
-
-      // 2. Fetch Visitor Analytics from Supabase API
+      // 3. Fetch Visitor Analytics from Supabase API
       try {
         const { data: vData, count, error: vError } = await supabase
           .from('visits')
@@ -700,11 +724,12 @@ function Dashboard({ admin, logout }) {
         console.error("Visits table query note:", e);
       }
 
-      // 3. Stats Calculation
+      // 4. Stats Calculation
+      const combinedAll = admList.concat(enqList);
       setStats({
-        this_month: allData.filter(d => new Date(d.created_at).getMonth() === new Date().getMonth()).length,
-        pending: adm.filter(d => !d.status || d.status === 'pending').length,
-        approved: adm.filter(d => d.status === 'approved').length,
+        this_month: combinedAll.filter(d => d.created_at && new Date(d.created_at).getMonth() === new Date().getMonth()).length,
+        pending: admList.filter(d => !d.status || d.status === 'pending').length,
+        approved: admList.filter(d => d.status === 'approved').length,
       });
 
       const nowTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -724,10 +749,19 @@ function Dashboard({ admin, logout }) {
 
   const updateStatus = async (id, newStatus) => {
     try {
-      const { error } = await supabase
-        .from('admissions')
+      let { error } = await supabase
+        .from('student_admissions')
         .update({ status: newStatus })
         .eq('id', id);
+
+      if (error) {
+        // Fallback to legacy admissions table
+        const { error: fallbackErr } = await supabase
+          .from('admissions')
+          .update({ status: newStatus })
+          .eq('id', id);
+        error = fallbackErr;
+      }
 
       if (error) {
         alert('Failed to update status: ' + error.message);
@@ -745,10 +779,13 @@ function Dashboard({ admin, logout }) {
   const deleteRecord = async (type, id) => {
     if (!confirm('Are you sure you want to permanently delete this record?')) return;
     try {
-      const { error } = await supabase.from('admissions').delete().eq('id', id);
-      if (error) {
-        const table = (type === 'enquiry' || type === 'enquiries') ? 'enquiries' : 'admissions';
-        await supabase.from(table).delete().eq('id', id);
+      if (type === 'admission' || type === 'admissions') {
+        const { error } = await supabase.from('student_admissions').delete().eq('id', id);
+        if (error) {
+          await supabase.from('admissions').delete().eq('id', id);
+        }
+      } else {
+        await supabase.from('admissions').delete().eq('id', id);
       }
       fetchAll();
       if (viewItem?.data?.id === id) setViewItem(null);
@@ -779,6 +816,23 @@ function Dashboard({ admin, logout }) {
           'Submission Date': formatDate(e.created_at),
         };
       });
+    } else if (name === 'Admissions') {
+      cleanData = data.map((a, index) => ({
+        'S.No': index + 1,
+        'Child Name': a.child_name || '-',
+        'Date of Birth': a.dob || '-',
+        'Gender': a.gender || '-',
+        'Program / Class': a.program || '-',
+        'Parent Name': a.parent_name || '-',
+        'Relationship': a.relation || 'Parent',
+        'Phone Number': a.phone || '-',
+        'Email Address': a.email || '-',
+        'Address': a.address || '-',
+        'Previous School': a.previous_school || '-',
+        'Additional Notes': a.message || '-',
+        'Application Status': a.status || 'pending',
+        'Submitted Date': formatDate(a.created_at),
+      }));
     } else {
       cleanData = data.map(({ id, ...rest }) => rest);
     }
@@ -1353,6 +1407,9 @@ function Dashboard({ admin, logout }) {
                 </select>
 
                 <span className="vta-count-pill">{fAdmissions.length} records</span>
+                <span className="vta-count-pill" style={{ background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', fontWeight: 800 }}>
+                  📁 DB: student_admissions
+                </span>
               </div>
 
               <TablePaginationTop
@@ -1508,6 +1565,9 @@ function Dashboard({ admin, logout }) {
                 </select>
 
                 <span className="vta-count-pill">{fEnquiries.length} records</span>
+                <span className="vta-count-pill" style={{ background: '#ECFDF5', color: '#047857', border: '1px solid #A7F3D0', fontWeight: 800 }}>
+                  📁 DB: admissions (enquiries)
+                </span>
               </div>
 
               <TablePaginationTop
