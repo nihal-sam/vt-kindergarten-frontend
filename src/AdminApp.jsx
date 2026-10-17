@@ -727,17 +727,6 @@ function Dashboard({ admin, logout }) {
   const [search, setSearch] = useState('');
   const [filterProgram, setFilterProgram] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
-  const [filterLocVis, setFilterLocVis] = useState('tn');
-  const [hiddenVisitIds, setHiddenVisitIds] = useState(() => {
-    try {
-      const saved = localStorage.getItem('vt_hidden_visit_ids');
-      if (saved) return JSON.parse(saved);
-      // Auto-hide the 40 known US crawler/demo visits by default
-      return [259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 280, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307];
-    } catch {
-      return [];
-    }
-  });
   const [viewItem, setViewItem] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -932,15 +921,6 @@ function Dashboard({ admin, logout }) {
         if (error) {
           await supabase.from('admissions').delete().eq('id', id);
         }
-      } else if (type === 'visit' || type === 'visits' || type === 'visitors') {
-        const next = Array.from(new Set([...hiddenVisitIds, id]));
-        setHiddenVisitIds(next);
-        try {
-          localStorage.setItem('vt_hidden_visit_ids', JSON.stringify(next));
-        } catch (_) {}
-        try {
-          await supabase.from('visits').delete().eq('id', id);
-        } catch (_) {}
       } else {
         await supabase.from('admissions').delete().eq('id', id);
       }
@@ -949,36 +929,6 @@ function Dashboard({ admin, logout }) {
     } catch (e) {
       alert('Error deleting record');
     }
-  };
-
-  const removeOuterTNDemoLogs = async () => {
-    const outerItems = visitsList.filter(v => {
-      const raw = (v.referrer || '').toLowerCase();
-      return raw.includes('[') && raw.includes(']') && !raw.includes('tamil nadu') && !raw.includes('tamilnadu');
-    });
-
-    if (outerItems.length === 0) {
-      alert('No outer Tamil Nadu (demo) visitor logs found. Your visitor logs are already clean!');
-      return;
-    }
-
-    if (!confirm(`Found ${outerItems.length} demo / outer Tamil Nadu logs (US bot/preview sessions). Remove them from the portal?`)) {
-      return;
-    }
-
-    const outerIds = outerItems.map(v => v.id);
-    const next = Array.from(new Set([...hiddenVisitIds, ...outerIds]));
-    setHiddenVisitIds(next);
-    try {
-      localStorage.setItem('vt_hidden_visit_ids', JSON.stringify(next));
-    } catch (_) {}
-
-    try {
-      await supabase.from('visits').delete().in('id', outerIds);
-    } catch (_) {}
-
-    alert(`Successfully removed ${outerItems.length} outer Tamil Nadu demo logs!`);
-    fetchAll();
   };
 
   const exportExcel = (data, name) => {
@@ -1132,27 +1082,6 @@ function Dashboard({ admin, logout }) {
 
   const fVisits = useMemo(() => {
     return visitsList.filter(v => {
-      // 1. Exclude individually deleted/hidden visitor IDs
-      if (hiddenVisitIds.includes(v.id)) return false;
-
-      // 2. Location filtering
-      const rawRef = (v.referrer || '').toLowerCase();
-      const hasLoc = rawRef.includes('[') && rawRef.includes(']');
-      const isTN = hasLoc && (rawRef.includes('tamil nadu') || rawRef.includes('tamilnadu'));
-      const isOuterTN = hasLoc && !isTN;
-
-      if (filterLocVis === 'tn') {
-        // Tamil Nadu Only
-        if (!isTN) return false;
-      } else if (filterLocVis === 'clean') {
-        // Clean: Exclude outer-TN demo views (allow TN and unlogged organic visits)
-        if (isOuterTN) return false;
-      } else if (filterLocVis === 'outer_tn') {
-        // Show only outer TN demo views
-        if (!isOuterTN) return false;
-      }
-
-      // 3. Search query
       if (!search) return true;
       const q = search.toLowerCase();
       const loc = parseVisitLocation(v);
@@ -1164,7 +1093,7 @@ function Dashboard({ admin, logout }) {
         loc.region.toLowerCase().includes(q) ||
         loc.country.toLowerCase().includes(q);
     });
-  }, [visitsList, search, filterLocVis, hiddenVisitIds]);
+  }, [visitsList, search]);
 
   // Reset pagination when search or filters change
   useEffect(() => {
@@ -1177,7 +1106,7 @@ function Dashboard({ admin, logout }) {
 
   useEffect(() => {
     setPageVis(1);
-  }, [search, filterLocVis]);
+  }, [search]);
 
   // Paginated item slices
   const pagedAdmissions = useMemo(() => {
@@ -1200,9 +1129,8 @@ function Dashboard({ admin, logout }) {
     let mobile = 0;
     let desktop = 0;
     const locCounts = {};
-    const baseList = fVisits;
 
-    baseList.forEach(v => {
+    visitsList.forEach(v => {
       const parsed = parseUserAgent(v.user_agent);
       if (parsed.isMobile) mobile++;
       else desktop++;
@@ -1214,7 +1142,7 @@ function Dashboard({ admin, logout }) {
       }
     });
 
-    let topLocation = 'Karaikudi, TN';
+    let topLocation = 'Karaikudi & TN';
     let topLocationCount = 0;
     Object.entries(locCounts).forEach(([loc, cnt]) => {
       if (cnt > topLocationCount) {
@@ -1223,9 +1151,8 @@ function Dashboard({ admin, logout }) {
       }
     });
 
-    const total = baseList.length || 1;
+    const total = visitsList.length || 1;
     return {
-      total: baseList.length,
       mobile,
       desktop,
       mobilePct: Math.round((mobile / total) * 100),
@@ -1234,7 +1161,7 @@ function Dashboard({ admin, logout }) {
       topLocationCount,
       uniqueLocations: Object.keys(locCounts).length,
     };
-  }, [fVisits]);
+  }, [visitsList]);
 
   const navItems = [
     { id: 'overview', label: 'Overview', icon: '📊', count: null },
@@ -2114,12 +2041,10 @@ function Dashboard({ admin, logout }) {
                   <span className="vta-stat-icon-wrap" style={{ background: 'rgba(244, 63, 94, 0.1)', color: '#F43F5E' }}>
                     👥
                   </span>
-                  <span className="vta-stat-badge">{filterLocVis === 'tn' ? 'Tamil Nadu' : 'Total'}</span>
+                  <span className="vta-stat-badge">Total</span>
                 </div>
-                <div className="vta-stat-val" style={{ fontSize: 28 }}>{visitorStats.total}</div>
-                <div className="vta-stat-label">
-                  {filterLocVis === 'tn' ? 'Tamil Nadu Visits Logged' : 'Total Visits Displayed'}
-                </div>
+                <div className="vta-stat-val" style={{ fontSize: 28 }}>{visitsCount}</div>
+                <div className="vta-stat-label">Total Visits Logged</div>
               </div>
 
               <div className="vta-stat-card" style={{ padding: 18 }}>
@@ -2134,7 +2059,7 @@ function Dashboard({ admin, logout }) {
                 <div className="vta-stat-val" style={{ fontSize: 20, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={visitorStats.topLocation}>
                   {visitorStats.topLocation}
                 </div>
-                <div className="vta-stat-label">Top Location</div>
+                <div className="vta-stat-label">Top Visitor Location</div>
               </div>
 
               <div className="vta-stat-card" style={{ padding: 18 }}>
@@ -2173,8 +2098,8 @@ function Dashboard({ admin, logout }) {
                 </div>
               </div>
 
-              <div className="vta-panel-header" style={{ flexWrap: 'wrap', gap: 12 }}>
-                <div className="vta-filters-group" style={{ flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+              <div className="vta-panel-header">
+                <div className="vta-filters-group">
                   <div className="vta-search-box">
                     <span className="vta-search-icon">🔍</span>
                     <input
@@ -2184,75 +2109,7 @@ function Dashboard({ admin, logout }) {
                       onChange={(e) => setSearch(e.target.value)}
                     />
                   </div>
-
-                  {/* Location Filter Dropdown */}
-                  <select
-                    style={{
-                      padding: '8px 12px',
-                      borderRadius: 8,
-                      border: '1px solid #CBD5E1',
-                      background: '#FFF',
-                      fontSize: 13,
-                      fontWeight: 600,
-                      color: '#1E293B',
-                      cursor: 'pointer'
-                    }}
-                    value={filterLocVis}
-                    onChange={(e) => setFilterLocVis(e.target.value)}
-                  >
-                    <option value="tn">📍 Tamil Nadu Only (Clean View)</option>
-                    <option value="clean">🛡️ Genuine Traffic (Exclude Demo)</option>
-                    <option value="all">🌐 All Logs Raw ({visitsList.length})</option>
-                    <option value="outer_tn">🚫 Outer TN / Demo Logs</option>
-                  </select>
-
-                  <button
-                    type="button"
-                    style={{
-                      background: '#FEF2F2',
-                      border: '1px solid #FECACA',
-                      color: '#DC2626',
-                      fontWeight: 700,
-                      fontSize: 12,
-                      padding: '8px 14px',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      borderRadius: 8,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s'
-                    }}
-                    title="Remove all outer Tamil Nadu / US demo bot views"
-                    onClick={removeOuterTNDemoLogs}
-                  >
-                    🧹 Remove Outer TN Demo Logs
-                  </button>
-
-                  {hiddenVisitIds.length > 0 && (
-                    <button
-                      type="button"
-                      style={{
-                        background: '#F1F5F9',
-                        border: '1px solid #E2E8F0',
-                        color: '#64748B',
-                        fontSize: 12,
-                        padding: '8px 10px',
-                        borderRadius: 8,
-                        cursor: 'pointer'
-                      }}
-                      title="Reset hidden demo logs"
-                      onClick={() => {
-                        if (confirm('Reset all hidden logs and display them again?')) {
-                          setHiddenVisitIds([]);
-                          localStorage.removeItem('vt_hidden_visit_ids');
-                        }
-                      }}
-                    >
-                      ↩️ Reset ({hiddenVisitIds.length} hidden)
-                    </button>
-                  )}
-
-                  <span className="vta-count-pill">{fVisits.length} logs displayed</span>
+                  <span className="vta-count-pill">{fVisits.length} logs captured</span>
                 </div>
 
                 <TablePaginationTop
@@ -2277,7 +2134,6 @@ function Dashboard({ admin, logout }) {
                       <th>Traffic Source</th>
                       <th>Language</th>
                       <th>Screen</th>
-                      <th>Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2341,23 +2197,13 @@ function Dashboard({ admin, logout }) {
                               {v.screen_width ? `${v.screen_width}px` : '-'}
                             </span>
                           </td>
-                          <td>
-                            <button
-                              type="button"
-                              className="vta-btn-action-icon vta-btn-action-delete"
-                              title="Permanently remove this visitor log"
-                              onClick={() => deleteRecord('visits', v.id)}
-                            >
-                              🗑️
-                            </button>
-                          </td>
                         </tr>
                       );
                     })}
                     {fVisits.length === 0 && (
                       <tr>
-                        <td colSpan={8} style={{ textAlign: 'center', padding: 48, color: '#94A3B8' }}>
-                          No visitor logs found matching your location filter.
+                        <td colSpan={7} style={{ textAlign: 'center', padding: 48, color: '#94A3B8' }}>
+                          No visitor logs captured yet. Ensure the visits table is configured in Supabase.
                         </td>
                       </tr>
                     )}
