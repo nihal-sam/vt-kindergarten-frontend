@@ -297,7 +297,7 @@ const s = {
 };
 
 function LoginPage({ onLocalLogin }) {
-  const [form, setForm] = useState({ email: 'admin@vtkindergarten.com', password: '' });
+  const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -371,7 +371,7 @@ function LoginPage({ onLocalLogin }) {
             <input
               style={s.inp}
               type="email"
-              placeholder="admin@vtkindergarten.com"
+              placeholder="Enter your email address"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               required
@@ -393,10 +393,6 @@ function LoginPage({ onLocalLogin }) {
             {loading ? 'Signing In...' : 'Sign In to Admin'}
           </button>
         </form>
-        <p style={{ textAlign: 'center', marginTop: 16, fontSize: 12, color: '#888' }}>
-          Admin 1: admin@vtkindergarten.com / admin123<br />
-          Admin 2: admin2@vtkindergarten.com / admin123
-        </p>
       </div>
     </div>
   );
