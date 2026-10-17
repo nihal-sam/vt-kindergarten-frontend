@@ -22,6 +22,12 @@ export default function App() {
 
   useEffect(() => {
     const logVisit = async () => {
+      // Do not track automated headless bots, preview crawlers, or test agents
+      const isBot =
+        navigator.webdriver ||
+        /bot|crawler|spider|headless|lighthouse|preview|checker|curl|wget/i.test(navigator.userAgent || '');
+      if (isBot) return;
+
       if (!sessionStorage.getItem("vt_visit_logged")) {
         try {
           // Fetch location silently via IP geolocation (Zero permission dialogs)
