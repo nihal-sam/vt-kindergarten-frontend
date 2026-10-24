@@ -268,6 +268,9 @@ export default function BillGeneration({ admissions = [], enquiries = [] }) {
   // Modal State for Viewing Receipt
   const [activeModalReceipt, setActiveModalReceipt] = useState(null);
 
+  // Background Action Receipt Target (for Print/Download without opening modal)
+  const [actionReceiptTarget, setActionReceiptTarget] = useState(null);
+
   // Current Date
   const today = new Date();
   const todayISO = today.toISOString().split('T')[0];
@@ -319,8 +322,8 @@ export default function BillGeneration({ admissions = [], enquiries = [] }) {
           return {
             id: item.id,
             created_at: item.created_at,
-            studentName: item.child_name || extra.studentName || '-',
-            className: item.program || extra.className || 'Play Group',
+            studentName: item.child_name || extra.student_name || extra.studentName || '-',
+            className: item.program || extra.class_name || extra.className || 'Play Group',
             receiptNo: extra.receipt_no || extra.receiptNo || `VT-${item.id}`,
             description: extra.description || 'Tuition fees',
             period: extra.period || '-',
@@ -330,7 +333,7 @@ export default function BillGeneration({ admissions = [], enquiries = [] }) {
             paymentDate: extra.payment_date || item.created_at?.split('T')[0] || todayISO,
             paymentMethod: extra.payment_method || extra.paymentMethod || 'ONLINE (UPI)',
             formattedDate: extra.formatted_date || extra.formattedDate || '',
-            parentPhone: item.phone || extra.parentPhone || '',
+            parentPhone: item.phone || extra.parent_phone || extra.parentPhone || '',
           };
         });
 
@@ -475,31 +478,36 @@ export default function BillGeneration({ admissions = [], enquiries = [] }) {
     return true;
   };
 
-  // 1. Print Action: Save to API + Print Directly
+  // 1. Print Action: Save to API + Print Directly (WITHOUT opening modal)
   const handlePrintReceipt = async (receiptObj = currentReceiptObj) => {
-    if (!receiptObj.studentName.trim() && !validateForm()) return;
+    if (!receiptObj.studentName?.trim() && !validateForm()) return;
     
-    // Save to API
-    await saveReceiptToAPI(receiptObj);
-    // Open in modal and trigger print
-    setActiveModalReceipt(receiptObj);
+    // Save to API if new receipt
+    if (!receiptObj.id) {
+      await saveReceiptToAPI(receiptObj);
+    }
+    setActionReceiptTarget(receiptObj);
     setTimeout(() => {
       window.print();
-    }, 400);
+    }, 250);
   };
 
-  // 2. Download PNG Action: Save to API + Render Image
+  // 2. Download PNG Action: Save to API + Render Image (WITHOUT opening modal)
   const handleDownloadImage = async (receiptObj = currentReceiptObj) => {
-    if (!receiptObj.studentName.trim() && !validateForm()) return;
+    if (!receiptObj.studentName?.trim() && !validateForm()) return;
     setDownloading(true);
 
-    // Save to API
-    await saveReceiptToAPI(receiptObj);
-    setActiveModalReceipt(receiptObj);
+    // Save to API if new receipt
+    if (!receiptObj.id) {
+      await saveReceiptToAPI(receiptObj);
+    }
+    setActionReceiptTarget(receiptObj);
 
     setTimeout(async () => {
       try {
-        const targetEl = modalReceiptRef.current || hiddenReceiptRef.current;
+        const targetEl = (activeModalReceipt && modalReceiptRef.current)
+          ? modalReceiptRef.current
+          : hiddenReceiptRef.current;
         if (!targetEl) return;
 
         const canvas = await html2canvas(targetEl, {
@@ -523,13 +531,16 @@ export default function BillGeneration({ admissions = [], enquiries = [] }) {
       } finally {
         setDownloading(false);
       }
-    }, 300);
+    }, 250);
   };
 
-  // 3. Share WhatsApp Action
-  const handleShareWhatsApp = (receiptObj = currentReceiptObj) => {
-    if (!receiptObj.studentName.trim() && !validateForm()) return;
-    saveReceiptToAPI(receiptObj);
+  // 3. Share WhatsApp Action: Save to API + Open WhatsApp (WITHOUT opening modal)
+  const handleShareWhatsApp = async (receiptObj = currentReceiptObj) => {
+    if (!receiptObj.studentName?.trim() && !validateForm()) return;
+
+    if (!receiptObj.id) {
+      await saveReceiptToAPI(receiptObj);
+    }
 
     const phone = (receiptObj.parentPhone || '').replace(/\D/g, '');
     const fullPhone = phone.length === 10 ? `91${phone}` : phone;
@@ -615,17 +626,20 @@ _Thank you for your payment!_`;
           body * {
             visibility: hidden !important;
           }
+          #vt-print-receipt,
+          #vt-print-receipt *,
           #vt-modal-receipt-print-target,
           #vt-modal-receipt-print-target * {
             visibility: visible !important;
           }
+          #vt-print-receipt,
           #vt-modal-receipt-print-target {
             position: absolute !important;
             left: 0 !important;
             top: 0 !important;
             width: 100% !important;
-            max-width: 100% !important;
-            margin: 0 !important;
+            max-width: 640px !important;
+            margin: 0 auto !important;
             padding: 14px !important;
             border: 2px solid #000 !important;
             box-shadow: none !important;
@@ -658,29 +672,35 @@ _Thank you for your payment!_`;
       {/* ================= SECTION 1: CENTERED FEE RECEIPT DETAILS FORM ================= */}
       <div style={{ maxWidth: 680, width: '100%', margin: '0 auto' }}>
         
-        {/* Quick Fill Dropdown if admissions exist */}
-        {admissions.length > 0 && (
+        {/* Quick Fill Dropdown from Enquiries */}
+        {enquiries && enquiries.length > 0 && (
           <div style={{ background: 'linear-gradient(135deg, #FFF9F5 0%, #FFF3EC 100%)', border: '1px solid rgba(255, 107, 53, 0.2)', borderRadius: 12, padding: '12px 16px', marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
               <span style={{ fontSize: 11.5, fontWeight: 800, color: '#FF6B35', letterSpacing: 0.5 }}>
-                ⚡ QUICK-FILL FROM ADMISSION CANDIDATES
+                ⚡ QUICK-FILL FROM ENQUIRIES
               </span>
-              <span style={{ fontSize: 11, color: '#78716C' }}>{admissions.length} Students Available</span>
+              <span style={{ fontSize: 11, color: '#78716C' }}>{enquiries.length} Enquiries Available</span>
             </div>
             <select
               style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', background: '#FFFFFF', fontSize: 13, fontWeight: 600, color: '#1E293B' }}
               onChange={(e) => {
-                const selected = admissions.find(a => (a.child_name || a.parent_name) === e.target.value);
+                const selected = enquiries.find(enq => {
+                  const candidateName = enq.child_name || enq.name || enq.parent_name || '';
+                  return candidateName === e.target.value;
+                });
                 if (selected) handleQuickFill(selected);
               }}
               defaultValue=""
             >
-              <option value="" disabled>Select student to auto-fill details...</option>
-              {admissions.map((s, idx) => (
-                <option key={idx} value={s.child_name || s.parent_name}>
-                  {s.child_name || s.parent_name} ({s.program || 'Kindergarten'}) - {s.phone || 'No phone'}
-                </option>
-              ))}
+              <option value="" disabled>Select enquiry candidate to auto-fill details...</option>
+              {enquiries.map((s, idx) => {
+                const displayName = s.child_name || s.name || s.parent_name || `Enquiry #${s.id || idx + 1}`;
+                return (
+                  <option key={idx} value={displayName}>
+                    {displayName} ({s.program || 'Kindergarten'}) - {s.phone || 'No phone'}
+                  </option>
+                );
+              })}
             </select>
           </div>
         )}
@@ -916,18 +936,7 @@ _Thank you for your payment!_`;
             )}
 
             {/* Action Buttons Toolbar */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, marginTop: 24 }}>
-              
-              {/* Preview in Modal Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  if (validateForm()) setActiveModalReceipt(currentReceiptObj);
-                }}
-                style={{ background: '#3B82F6', color: '#FFF', fontWeight: 800, fontSize: 13, padding: '12px 14px', borderRadius: 10, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-              >
-                👁️ View Modal
-              </button>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginTop: 24 }}>
 
               {/* Print Receipt */}
               <button
@@ -955,7 +964,7 @@ _Thank you for your payment!_`;
                 onClick={() => handleShareWhatsApp()}
                 style={{ background: '#10B981', color: '#FFF', fontWeight: 800, fontSize: 13, padding: '12px 14px', borderRadius: 10, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
               >
-                📲 WhatsApp
+                📲 WhatsApp Share
               </button>
 
             </div>
@@ -1245,9 +1254,21 @@ _Thank you for your payment!_`;
         </div>
       )}
 
-      {/* Hidden container used for offscreen capture if needed */}
-      <div style={{ position: 'fixed', left: -9999, top: -9999, opacity: 0, pointerEvents: 'none' }}>
-        <ReceiptCard receipt={currentReceiptObj} innerRef={hiddenReceiptRef} />
+      {/* Hidden container used for offscreen capture & direct print without opening modal */}
+      <div
+        id={activeModalReceipt ? 'vt-hidden-receipt' : 'vt-print-receipt'}
+        ref={hiddenReceiptRef}
+        style={{
+          position: 'fixed',
+          left: 0,
+          top: 0,
+          width: 640,
+          background: '#ffffff',
+          zIndex: -9999,
+          pointerEvents: 'none',
+        }}
+      >
+        <ReceiptCard receipt={actionReceiptTarget || currentReceiptObj} />
       </div>
 
     </div>
