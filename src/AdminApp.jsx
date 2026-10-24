@@ -826,9 +826,9 @@ function Dashboard({ admin, logout }) {
 
       if (admErr) {
         // Fallback to admissions table if student_admissions table is not yet created
-        admList = (enqRaw || []).filter(d => d.parent_name && d.parent_name.trim() !== '');
+        admList = (enqRaw || []).filter(d => d.parent_name && d.parent_name.trim() !== '' && d.relation !== 'Fee Receipt');
       } else {
-        admList = admData || [];
+        admList = (admData || []).filter(d => d.relation !== 'Fee Receipt');
       }
 
       // Filter enquiries from admissions table
