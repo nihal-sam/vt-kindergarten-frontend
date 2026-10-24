@@ -444,18 +444,21 @@ export default function BillGeneration({ admissions = [], enquiries = [] }) {
           parent_name: receiptData.studentName,
           relation: 'Fee Receipt',
           status: 'paid',
-          phone: receiptData.parentPhone || null,
+          phone: receiptData.parentPhone?.trim() || '7358293839',
           message: JSON.stringify(payload)
         }])
         .select();
 
       if (error) {
-        console.warn('API save note:', error.message);
+        console.error('API save error:', error.message);
+        setErrorBanner(`Database Note: ${error.message}`);
+        setTimeout(() => setErrorBanner(''), 6000);
+      } else {
+        setSuccessBanner(`✅ Receipt #${receiptData.receiptNo} for ${receiptData.studentName} successfully stored in API database!`);
+        setTimeout(() => setSuccessBanner(''), 5000);
       }
 
-      setSuccessBanner(`✅ Receipt #${receiptData.receiptNo} for ${receiptData.studentName} successfully stored in API database!`);
-      setTimeout(() => setSuccessBanner(''), 5000);
-      fetchReceipts();
+      await fetchReceipts();
       return data && data[0] ? data[0] : null;
     } catch (e) {
       console.error('Error saving receipt to API:', e);
