@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import html2canvas from 'html2canvas';
 import { supabase } from '../supabaseClient';
+import { ICON_EMAIL_B64, ICON_PHONE_B64 } from './receiptIcons';
 
 // Helper: Convert Number to Indian Currency Words
 export function numberToWordsINR(num) {
@@ -142,90 +143,231 @@ function ReceiptCard({ receipt, innerRef }) {
       </div>
 
       {/* 2. Address & Contact Bar (3 columns with borders) */}
-      <div style={{ width: '100%', border: '1.5px solid #000000', boxSizing: 'border-box', display: 'grid', gridTemplateColumns: '2fr 1.6fr 1.4fr', fontSize: 11, lineHeight: 1.35, marginBottom: -1.5 }}>
-        <div style={{ padding: '6px 8px', borderRight: '1.5px solid #000000', display: 'flex', alignItems: 'center', fontWeight: 500 }}>
-          Address: No 11, Subramaniyapuram<br />
-          7<sup>th</sup> street, South extension, Karaikudi-2
-        </div>
-        <div style={{ padding: '6px 8px', borderRight: '1.5px solid #000000', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontWeight: 500 }}>
-          <span style={{ fontSize: 12 }}>✉️</span>
-          <span>vtkindergarten@gmail.com</span>
-        </div>
-        <div style={{ padding: '6px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontWeight: 600 }}>
-          <span style={{ fontSize: 12 }}>📞</span>
-          <span>73-58-29-3839</span>
-        </div>
-      </div>
+      <table
+        style={{
+          width: '100%',
+          borderCollapse: 'collapse',
+          border: '1.5px solid #000000',
+          borderBottom: 'none',
+          tableLayout: 'fixed',
+          boxSizing: 'border-box',
+          margin: 0,
+          background: '#FFFFFF',
+        }}
+      >
+        <tbody>
+          <tr>
+            <td
+              style={{
+                width: '38%',
+                borderRight: '1.5px solid #000000',
+                padding: '6px 8px',
+                verticalAlign: 'middle',
+                boxSizing: 'border-box',
+              }}
+            >
+              <div style={{ fontSize: 10.5, fontWeight: 500, color: '#000000', lineHeight: 1.4, textAlign: 'left' }}>
+                <div style={{ whiteSpace: 'nowrap' }}>Address: No 11, Subramaniyapuram</div>
+                <div style={{ whiteSpace: 'nowrap' }}>7th street, South extension, Karaikudi-2</div>
+              </div>
+            </td>
+            <td
+              style={{
+                width: '37%',
+                borderRight: '1.5px solid #000000',
+                padding: '5px 6px',
+                verticalAlign: 'middle',
+                textAlign: 'center',
+                boxSizing: 'border-box',
+              }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                <img
+                  src={ICON_EMAIL_B64}
+                  alt="Email"
+                  style={{ width: 16, height: 11, display: 'block', margin: '0 auto 3px auto' }}
+                />
+                <div style={{ fontSize: 11, fontWeight: 500, color: '#000000', whiteSpace: 'nowrap', textAlign: 'center' }}>
+                  vtkindergarten@gmail.com
+                </div>
+              </div>
+            </td>
+            <td
+              style={{
+                width: '25%',
+                padding: '5px 6px',
+                verticalAlign: 'middle',
+                textAlign: 'center',
+                boxSizing: 'border-box',
+              }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                <img
+                  src={ICON_PHONE_B64}
+                  alt="Phone"
+                  style={{ width: 14, height: 14, display: 'block', margin: '0 auto 2px auto' }}
+                />
+                <div style={{ fontSize: 11.5, fontWeight: 600, color: '#000000', whiteSpace: 'nowrap', textAlign: 'center' }}>
+                  73-58-29-3839
+                </div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
       {/* 3. Student Details & Receipt No Box (2 columns) */}
-      <div style={{ width: '100%', border: '1.5px solid #000000', boxSizing: 'border-box', display: 'grid', gridTemplateColumns: '1.2fr 1fr', fontSize: 13, marginBottom: -1.5 }}>
-        <div style={{ borderRight: '1.5px solid #000000', padding: '8px 12px' }}>
-          <div style={{ fontWeight: 700, marginBottom: 12, fontSize: 13.5 }}>Student Details:</div>
-          <div style={{ marginBottom: 10, display: 'flex', alignItems: 'baseline' }}>
-            <span style={{ fontWeight: 700, width: 75 }}>Name :</span>
-            <span style={{ fontWeight: 700, fontSize: 14 }}>{receipt.studentName || '-'}</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'baseline' }}>
-            <span style={{ fontWeight: 700, width: 75 }}>Class :</span>
-            <span style={{ fontWeight: 600 }}>{effectiveClass || '-'}</span>
-          </div>
-        </div>
-
-        <div style={{ padding: 0 }}>
-          <div style={{ padding: '6px 12px', borderBottom: '1.5px solid #000000' }}>
-            <div style={{ fontWeight: 700, fontSize: 13 }}>Receipt No:</div>
-            <div style={{ fontWeight: 600, fontSize: 13, marginTop: 4 }}>{receipt.receiptNo || '-'}</div>
-          </div>
-          <div style={{ padding: '6px 12px' }}>
-            <div style={{ fontWeight: 700, fontSize: 13 }}>Payment Month</div>
-            <div style={{ fontWeight: 600, fontSize: 13, marginTop: 4 }}>{receipt.period || '-'}</div>
-          </div>
-        </div>
-      </div>
+      <table
+        style={{
+          width: '100%',
+          borderCollapse: 'collapse',
+          border: '1.5px solid #000000',
+          borderBottom: 'none',
+          tableLayout: 'fixed',
+          boxSizing: 'border-box',
+          margin: 0,
+          background: '#FFFFFF',
+          fontSize: 13,
+        }}
+      >
+        <tbody>
+          <tr>
+            <td
+              style={{
+                width: '54%',
+                borderRight: '1.5px solid #000000',
+                padding: '8px 12px',
+                verticalAlign: 'top',
+                boxSizing: 'border-box',
+              }}
+            >
+              <div style={{ fontWeight: 700, marginBottom: 12, fontSize: 13.5 }}>Student Details:</div>
+              <div style={{ marginBottom: 10, display: 'flex', alignItems: 'baseline' }}>
+                <span style={{ fontWeight: 700, width: 75 }}>Name :</span>
+                <span style={{ fontWeight: 700, fontSize: 14 }}>{receipt.studentName || '-'}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline' }}>
+                <span style={{ fontWeight: 700, width: 75 }}>Class :</span>
+                <span style={{ fontWeight: 600 }}>{effectiveClass || '-'}</span>
+              </div>
+            </td>
+            <td
+              style={{
+                width: '46%',
+                padding: 0,
+                verticalAlign: 'top',
+                boxSizing: 'border-box',
+              }}
+            >
+              <div style={{ padding: '6px 12px', borderBottom: '1.5px solid #000000' }}>
+                <div style={{ fontWeight: 700, fontSize: 13 }}>Receipt No:</div>
+                <div style={{ fontWeight: 600, fontSize: 13, marginTop: 4 }}>{receipt.receiptNo || '-'}</div>
+              </div>
+              <div style={{ padding: '6px 12px' }}>
+                <div style={{ fontWeight: 700, fontSize: 13 }}>Payment Month</div>
+                <div style={{ fontWeight: 600, fontSize: 13, marginTop: 4 }}>{receipt.period || '-'}</div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
       {/* 4. Fees Grid Table */}
-      <table style={{ width: '100%', borderCollapse: 'collapse', border: '1.5px solid #000000', marginBottom: -1.5 }}>
+      <table
+        style={{
+          width: '100%',
+          borderCollapse: 'collapse',
+          border: '1.5px solid #000000',
+          borderBottom: 'none',
+          tableLayout: 'fixed',
+          margin: 0,
+          boxSizing: 'border-box',
+        }}
+      >
         <thead>
           <tr>
-            <th style={{ width: '45%', border: '1.5px solid #000000', padding: '8px 12px', fontSize: 13, color: '#0284C7', fontWeight: 700, textAlign: 'left' }}>Description</th>
-            <th style={{ width: '30%', border: '1.5px solid #000000', padding: '8px 12px', fontSize: 13, color: '#0284C7', fontWeight: 700, textAlign: 'left' }}>Period</th>
-            <th style={{ width: '25%', border: '1.5px solid #000000', padding: '8px 12px', fontSize: 13, color: '#0284C7', fontWeight: 700, textAlign: 'right' }}>Amount in INR</th>
+            <th style={{ width: '45%', borderRight: '1.5px solid #000000', borderBottom: '1.5px solid #000000', padding: '8px 12px', fontSize: 13, color: '#0284C7', fontWeight: 700, textAlign: 'left' }}>Description</th>
+            <th style={{ width: '30%', borderRight: '1.5px solid #000000', borderBottom: '1.5px solid #000000', padding: '8px 12px', fontSize: 13, color: '#0284C7', fontWeight: 700, textAlign: 'left' }}>Period</th>
+            <th style={{ width: '25%', borderBottom: '1.5px solid #000000', padding: '8px 12px', fontSize: 13, color: '#0284C7', fontWeight: 700, textAlign: 'right' }}>Amount in INR</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td style={{ border: '1.5px solid #000000', padding: '8px 12px', fontSize: 13, fontWeight: 500, height: 28 }}>{receipt.description || 'Tuition fees'}</td>
-            <td style={{ border: '1.5px solid #000000', padding: '8px 12px', fontSize: 13, fontWeight: 500 }}>{receipt.period || '-'}</td>
-            <td style={{ border: '1.5px solid #000000', padding: '8px 12px', fontSize: 13, textAlign: 'right', fontWeight: 600 }}>{formattedAmount}</td>
+            <td style={{ borderRight: '1.5px solid #000000', borderBottom: '1.5px solid #000000', padding: '8px 12px', fontSize: 13, fontWeight: 500, height: 28 }}>{receipt.description || 'Tuition fees'}</td>
+            <td style={{ borderRight: '1.5px solid #000000', borderBottom: '1.5px solid #000000', padding: '8px 12px', fontSize: 13, fontWeight: 500 }}>{receipt.period || '-'}</td>
+            <td style={{ borderBottom: '1.5px solid #000000', padding: '8px 12px', fontSize: 13, textAlign: 'right', fontWeight: 600 }}>{formattedAmount}</td>
           </tr>
           <tr>
-            <td colSpan={2} style={{ border: '1.5px solid #000000', padding: '8px 12px', fontSize: 13, textAlign: 'right', color: '#0284C7', fontWeight: 700 }}>Total</td>
-            <td style={{ border: '1.5px solid #000000', padding: '8px 12px', fontSize: 13, textAlign: 'right', color: '#0284C7', fontWeight: 700 }}>{formattedAmount}</td>
+            <td colSpan={2} style={{ borderRight: '1.5px solid #000000', padding: '8px 12px', fontSize: 13, textAlign: 'right', color: '#0284C7', fontWeight: 700 }}>Total</td>
+            <td style={{ padding: '8px 12px', fontSize: 13, textAlign: 'right', color: '#0284C7', fontWeight: 700 }}>{formattedAmount}</td>
           </tr>
         </tbody>
       </table>
 
       {/* 5. Total Amount in Words */}
-      <div style={{ width: '100%', border: '1.5px solid #000000', boxSizing: 'border-box', padding: '8px 12px', fontSize: 12.5, color: '#0284C7', fontWeight: 700, marginBottom: -1.5 }}>
+      <div
+        style={{
+          width: '100%',
+          border: '1.5px solid #000000',
+          borderBottom: 'none',
+          boxSizing: 'border-box',
+          padding: '8px 12px',
+          fontSize: 12.5,
+          color: '#0284C7',
+          fontWeight: 700,
+          margin: 0,
+        }}
+      >
         Total Amount (in words):&nbsp;&nbsp;{amountWords}
       </div>
 
       {/* 6. Payment Information Box */}
-      <div style={{ width: '100%', border: '1.5px solid #000000', boxSizing: 'border-box', display: 'grid', gridTemplateColumns: '1.2fr 1.8fr', fontSize: 12.5 }}>
-        <div style={{ padding: 12, borderRight: '1.5px solid #000000', display: 'flex', alignItems: 'center', fontWeight: 600 }}>
-          Payment Information
-        </div>
-        <div style={{ padding: '8px 12px' }}>
-          <div style={{ display: 'flex', margin: '4px 0' }}>
-            <span style={{ width: 130, fontWeight: 600 }}>Payment Date</span>
-            <span>:&nbsp;&nbsp;{formattedDate || '-'}</span>
-          </div>
-          <div style={{ display: 'flex', margin: '4px 0' }}>
-            <span style={{ width: 130, fontWeight: 600 }}>Payment Method</span>
-            <span>:&nbsp;&nbsp;{receipt.paymentMethod || 'ONLINE (UPI)'}</span>
-          </div>
-        </div>
-      </div>
+      <table
+        style={{
+          width: '100%',
+          borderCollapse: 'collapse',
+          border: '1.5px solid #000000',
+          tableLayout: 'fixed',
+          boxSizing: 'border-box',
+          margin: 0,
+          background: '#FFFFFF',
+          fontSize: 12.5,
+        }}
+      >
+        <tbody>
+          <tr>
+            <td
+              style={{
+                width: '40%',
+                borderRight: '1.5px solid #000000',
+                padding: '12px',
+                verticalAlign: 'middle',
+                fontWeight: 600,
+                boxSizing: 'border-box',
+              }}
+            >
+              Payment Information
+            </td>
+            <td
+              style={{
+                width: '60%',
+                padding: '8px 12px',
+                verticalAlign: 'middle',
+                boxSizing: 'border-box',
+              }}
+            >
+              <div style={{ display: 'flex', margin: '4px 0' }}>
+                <span style={{ width: 130, fontWeight: 600 }}>Payment Date</span>
+                <span>:&nbsp;&nbsp;{formattedDate || '-'}</span>
+              </div>
+              <div style={{ display: 'flex', margin: '4px 0' }}>
+                <span style={{ width: 130, fontWeight: 600 }}>Payment Method</span>
+                <span>:&nbsp;&nbsp;{receipt.paymentMethod || 'ONLINE (UPI)'}</span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
       {/* 7. Footer Notice & Thank You */}
       <div style={{ fontSize: 12, color: '#262626', marginTop: 14 }}>
@@ -514,8 +656,9 @@ export default function BillGeneration({ admissions = [], enquiries = [] }) {
         if (!targetEl) return;
 
         const canvas = await html2canvas(targetEl, {
-          scale: 2.5,
+          scale: 3.0,
           useCORS: true,
+          allowTaint: true,
           backgroundColor: '#ffffff',
           logging: false,
         });
@@ -561,8 +704,13 @@ export default function BillGeneration({ admissions = [], enquiries = [] }) {
 • *Payment Date:* ${receiptObj.formattedDate || formatOrdinalDate(receiptObj.paymentDate)}
 • *Payment Mode:* ${receiptObj.paymentMethod}
 ━━━━━━━━━━━━━━━━━━━━
-_Address: No 11, Subramaniyapuram 7th street, South extension, Karaikudi-2_
-_Contact: 73-58-29-3839 | vtkindergarten@gmail.com_
+📍 *Address:*
+No 11, Subramaniyapuram,
+7th street, South extension, Karaikudi-2
+
+📞 *Phone:* 73-58-29-3839
+✉️ *Email:* vtkindergarten@gmail.com
+━━━━━━━━━━━━━━━━━━━━
 _Thank you for your payment!_`;
 
     const url = fullPhone 
@@ -1260,7 +1408,6 @@ _Thank you for your payment!_`;
       {/* Hidden container used for offscreen capture & direct print without opening modal */}
       <div
         id={activeModalReceipt ? 'vt-hidden-receipt' : 'vt-print-receipt'}
-        ref={hiddenReceiptRef}
         style={{
           position: 'fixed',
           left: 0,
@@ -1271,7 +1418,7 @@ _Thank you for your payment!_`;
           pointerEvents: 'none',
         }}
       >
-        <ReceiptCard receipt={actionReceiptTarget || currentReceiptObj} />
+        <ReceiptCard receipt={actionReceiptTarget || currentReceiptObj} innerRef={hiddenReceiptRef} />
       </div>
 
     </div>
