@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { supabase } from "./supabaseClient";
 import { parseEnquiryEligibility, CUTOFF_LABEL } from "./utils/ageEligibility";
+import BillGeneration from "./components/BillGeneration";
 import "./admin.css";
 
 const LOGO_SRC = '/assets/vt-logo.png';
@@ -1168,6 +1169,7 @@ function Dashboard({ admin, logout }) {
     { id: 'admissions', label: 'Admissions', icon: '🎓', count: admissions.length },
     { id: 'enquiries', label: 'Enquiries', icon: '✉️', count: enquiries.length },
     { id: 'visitors', label: 'Live Visitors', icon: '👥', count: visitsCount, live: true },
+    { id: 'billing', label: 'Bill Generation', icon: '🧾', count: null },
   ];
 
   const statCards = [
@@ -1326,6 +1328,15 @@ function Dashboard({ admin, logout }) {
                 </span>
                 <h1 style={{ margin: '4px 0 6px' }}>Live Website Visitors & Activity Log</h1>
                 <p>Live tracking of prospective parents browsing vtkindergarten.in with device, OS, screen & referral metrics.</p>
+              </>
+            )}
+            {tab === 'billing' && (
+              <>
+                <span className="vta-badge-pill vta-badge-purple" style={{ marginBottom: 6, fontSize: 11, fontWeight: 800 }}>
+                  🧾 BILL GENERATION • Official Fees Receipt Desk
+                </span>
+                <h1 style={{ margin: '4px 0 6px' }}>Student Fees Receipt & Bill Generator</h1>
+                <p>Generate, print, download, and share official VT Kindergarten fee receipts matching school specifications.</p>
               </>
             )}
           </div>
@@ -2212,6 +2223,11 @@ function Dashboard({ admin, logout }) {
               </div>
             </div>
           </>
+        )}
+
+        {/* ================= TAB 5: BILL GENERATION ================= */}
+        {tab === 'billing' && (
+          <BillGeneration admissions={admissions} enquiries={enquiries} />
         )}
       </main>
 

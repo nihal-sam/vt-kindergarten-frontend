@@ -1508,3 +1508,8 @@
           border-left: 4.5px solid #3B82F6;
           background: linear-gradient(90deg, rgba(59, 130, 246, 0.05) 0%, #FFFFFF 30%);
         }
+
+        .vta-table-title-bar-billing {
+          border-left: 4.5px solid #8B5CF6;
+          background: linear-gradient(90deg, rgba(139, 92, 246, 0.05) 0%, #FFFFFF 30%);
+        }
