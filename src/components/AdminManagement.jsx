@@ -423,36 +423,6 @@ export default function AdminManagement({ currentAdmin, onLogout }) {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-
-            {/* Filter by Status Pills */}
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {[
-                { id: 'pending', label: `⏳ Pending (${pendingCount})`, color: '#F59E0B' },
-                { id: 'approved', label: `✅ Approved (${approvedCount})`, color: '#10B981' },
-                { id: 'rejected', label: `❌ Rejected (${rejectedCount})`, color: '#EF4444' },
-                { id: 'all', label: `👥 All (${admins.length})`, color: '#475569' },
-              ].map((btn) => (
-                <button
-                  key={btn.id}
-                  type="button"
-                  onClick={() => setStatusFilter(btn.id)}
-                  style={{
-                    padding: '7px 14px',
-                    borderRadius: 8,
-                    fontSize: 12.5,
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    background: statusFilter === btn.id ? btn.color : '#F1F5F9',
-                    color: statusFilter === btn.id ? '#FFFFFF' : '#475569',
-                    border: `1.5px solid ${statusFilter === btn.id ? btn.color : '#CBD5E1'}`,
-                    boxShadow: statusFilter === btn.id ? '0 2px 8px rgba(0,0,0,0.15)' : 'none',
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  {btn.label}
-                </button>
-              ))}
-            </div>
           </div>
 
           <span className="vta-count-pill">
