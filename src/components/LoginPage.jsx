@@ -6,13 +6,7 @@ import {
   generateOTP,
   approveAdmin,
 } from '../utils/adminAuth';
-import {
-  dispatchPhoneSms,
-  openNativePhoneSms,
-  openWhatsAppSms,
-  getStoredSmsConfig,
-  saveSmsConfig,
-} from '../utils/smsService';
+import { dispatchPhoneSms } from '../utils/smsService';
 
 const LOGO_SRC = '/assets/vt-logo.png';
 
@@ -38,36 +32,21 @@ export default function LoginPage({ onLocalLogin }) {
   const [regLoading, setRegLoading] = useState(false);
   const [regError, setRegError] = useState('');
 
-  // Phone OTP State for Registration
+  // Phone OTP State for Registration (Kept inside, never shown on UI)
   const [regOtpSent, setRegOtpSent] = useState(false);
   const [regGeneratedOtp, setRegGeneratedOtp] = useState('');
   const [regEnteredOtp, setRegEnteredOtp] = useState('');
   const [regPhoneVerified, setRegPhoneVerified] = useState(false);
-  const [regOtpError, setRegOtpError] = useState('');
-  const [smsSimulationAlert, setSmsSimulationAlert] = useState('');
+  const [regOtpStatus, setRegOtpStatus] = useState(''); // '' | 'sent' | 'correct' | 'wrong'
 
-  // Login 2FA OTP State
+  // Login 2FA OTP State (Kept inside, never shown on UI)
   const [loginTargetAdmin, setLoginTargetAdmin] = useState(null);
   const [loginGeneratedOtp, setLoginGeneratedOtp] = useState('');
   const [loginEnteredOtp, setLoginEnteredOtp] = useState('');
-  const [loginOtpError, setLoginOtpError] = useState('');
-
-  // Real Carrier SMS Configuration State
-  const [smsConfig, setSmsConfig] = useState(getStoredSmsConfig);
-  const [showSmsSettings, setShowSmsSettings] = useState(false);
-  const [smsInputKey, setSmsInputKey] = useState(getStoredSmsConfig().apiKey);
-  const [smsProvider, setSmsProvider] = useState(getStoredSmsConfig().provider);
-  const [smsSaveMessage, setSmsSaveMessage] = useState('');
+  const [loginOtpStatus, setLoginOtpStatus] = useState(''); // '' | 'correct' | 'wrong'
 
   // Helper: Format phone to 10 digits
   const formatPhone = (val = '') => String(val).replace(/\D/g, '').slice(0, 10);
-
-  const handleSaveSmsKey = () => {
-    saveSmsConfig({ provider: smsProvider, apiKey: smsInputKey });
-    setSmsConfig({ provider: smsProvider, apiKey: smsInputKey });
-    setSmsSaveMessage('✅ SMS Gateway Key saved! Future OTPs will send directly via carrier SIM.');
-    setTimeout(() => setSmsSaveMessage(''), 5000);
-  };
 
   // ================= 1. SUBMIT LOGIN (CREDENTIALS CHECK) =================
   const handleLoginSubmit = async (e) => {
@@ -108,25 +87,17 @@ export default function LoginPage({ onLocalLogin }) {
       }
 
       if (res.status === 'require_otp') {
-        // Admin credentials verified & approved! Now send 2FA Login OTP
+        // Admin credentials verified & approved! Generate OTP and save inside (don't show)
         const otp = generateOTP();
         const phone = res.admin.phone || '9994994291';
         setLoginTargetAdmin(res.admin);
-        setLoginGeneratedOtp(otp);
+        setLoginGeneratedOtp(otp); // Saved inside
         setLoginEnteredOtp('');
-        setLoginOtpError('');
+        setLoginOtpStatus('');
         setMode('login_otp');
 
-        // Dispatch via real carrier SMS gateway if key is provided
-        dispatchPhoneSms({ phone, otp }).then((smsRes) => {
-          if (smsRes.method === 'carrier_sms') {
-            setSmsSimulationAlert(smsRes.message);
-          } else {
-            setSmsSimulationAlert(
-              `📲 [Phone SMS Delivery] Login OTP for +91 ${phone} is: ${otp}. Tap "Send to Phone SMS" to open your messaging app.`
-            );
-          }
-        });
+        // Dispatch SMS to the phone number
+        dispatchPhoneSms({ phone, otp });
       }
     } catch (err) {
       setLoginError('Connection failed. Please check your network.');
@@ -135,7 +106,7 @@ export default function LoginPage({ onLocalLogin }) {
     }
   };
 
-  // ================= 2. INSTANT APPROVAL & SEND LOGIN OTP (FOR TESTING/DEMO) =================
+  // ================= 2. INSTANT APPROVAL FOR TESTING/DEMO =================
   const handleInstantApproveAndSendOtp = async () => {
     if (!pendingAdmin) return;
     setPendingLoading(true);
@@ -146,22 +117,15 @@ export default function LoginPage({ onLocalLogin }) {
       const phone = approvedAdmin.phone || '9994994291';
 
       setLoginTargetAdmin(approvedAdmin);
-      setLoginGeneratedOtp(otp);
+      setLoginGeneratedOtp(otp); // Saved inside
       setLoginEnteredOtp('');
-      setLoginOtpError('');
+      setLoginOtpStatus('');
       setPendingAdmin(null);
       setLoginError('');
       setMode('login_otp');
 
-      dispatchPhoneSms({ phone, otp }).then((smsRes) => {
-        if (smsRes.method === 'carrier_sms') {
-          setSmsSimulationAlert(smsRes.message);
-        } else {
-          setSmsSimulationAlert(
-            `📲 [Phone SMS Delivery] Login OTP for +91 ${phone} is: ${otp}. Valid for 5 minutes.`
-          );
-        }
-      });
+      // Dispatch SMS
+      dispatchPhoneSms({ phone, otp });
     } catch (err) {
       setLoginError('Failed to approve admin account. Please try again.');
     } finally {
@@ -169,23 +133,36 @@ export default function LoginPage({ onLocalLogin }) {
     }
   };
 
-  // ================= 3. VERIFY LOGIN 2FA OTP =================
+  // ================= 3. REAL-TIME VALIDATION IN LOGIN OTP INPUT BOX =================
+  const handleLoginOtpInputChange = (val) => {
+    const digits = val.replace(/\D/g, '').slice(0, 6);
+    setLoginEnteredOtp(digits);
+
+    if (digits.length < 6) {
+      setLoginOtpStatus('');
+    } else if (digits.length === 6) {
+      // Check directly in the input box whether it is correct or not!
+      if (digits === loginGeneratedOtp) {
+        setLoginOtpStatus('correct');
+        // Correct OTP! Automatically log in after a brief visual confirmation
+        setTimeout(() => {
+          onLocalLogin?.({
+            ...loginTargetAdmin,
+            isSuperAdmin: false,
+          });
+        }, 500);
+      } else {
+        setLoginOtpStatus('wrong');
+      }
+    }
+  };
+
   const handleVerifyLoginOtp = (e) => {
     e.preventDefault();
-    setLoginOtpError('');
-
-    const entered = loginEnteredOtp.trim();
-    if (!entered) {
-      setLoginOtpError('Please enter the 6-digit OTP code.');
+    if (loginEnteredOtp.trim() !== loginGeneratedOtp) {
+      setLoginOtpStatus('wrong');
       return;
     }
-
-    if (entered !== loginGeneratedOtp) {
-      setLoginOtpError('❌ Invalid OTP code. Please enter the correct 6-digit code.');
-      return;
-    }
-
-    // Success! Complete login
     onLocalLogin?.({
       ...loginTargetAdmin,
       isSuperAdmin: false,
@@ -197,102 +174,70 @@ export default function LoginPage({ onLocalLogin }) {
     const phone = loginTargetAdmin?.phone || '9994994291';
     setLoginGeneratedOtp(newOtp);
     setLoginEnteredOtp('');
-    setLoginOtpError('');
-
-    dispatchPhoneSms({ phone, otp: newOtp }).then((smsRes) => {
-      if (smsRes.method === 'carrier_sms') {
-        setSmsSimulationAlert(smsRes.message);
-      } else {
-        setSmsSimulationAlert(`📲 [Phone SMS Delivery] New Login OTP for +91 ${phone} is: ${newOtp}`);
-      }
-    });
+    setLoginOtpStatus('');
+    dispatchPhoneSms({ phone, otp: newOtp });
   };
 
-  // ================= 4. PHONE CHANGE & AUTO-GENERATE REGISTRATION OTP =================
+  // ================= 4. REGISTRATION PHONE OTP (REAL-TIME CHECK IN INPUT BOX) =================
   const handleRegPhoneChange = (val) => {
     const clean = formatPhone(val);
     setRegForm((prev) => ({ ...prev, phone: clean }));
     setRegError('');
-    setRegOtpError('');
 
     if (clean.length === 10) {
-      // Auto-generate OTP as soon as 10 digits are reached!
+      // Generate OTP and save inside (don't show)
       const otp = generateOTP();
       setRegGeneratedOtp(otp);
       setRegOtpSent(true);
       setRegPhoneVerified(false);
       setRegEnteredOtp('');
+      setRegOtpStatus('sent');
 
-      dispatchPhoneSms({ phone: clean, otp }).then((smsRes) => {
-        if (smsRes.method === 'carrier_sms') {
-          setSmsSimulationAlert(smsRes.message);
-        } else {
-          setSmsSimulationAlert(
-            `📲 [Phone SMS Delivery] Your Phone Verification OTP for +91 ${clean} is: ${otp}. Tap "Send to Phone SMS" to send to messaging app.`
-          );
-        }
-      });
+      // Dispatch SMS to the phone number
+      dispatchPhoneSms({ phone: clean, otp });
     } else {
       setRegOtpSent(false);
       setRegPhoneVerified(false);
       setRegGeneratedOtp('');
       setRegEnteredOtp('');
+      setRegOtpStatus('');
     }
   };
 
-  // Manual Trigger / Resend Registration OTP
   const handleSendRegOtp = () => {
     const clean = formatPhone(regForm.phone);
     if (clean.length !== 10) {
-      setRegOtpError('Please enter a valid 10-digit Indian mobile number.');
+      setRegError('Please enter a valid 10-digit mobile number.');
       return;
     }
-
-    setRegOtpError('');
     const otp = generateOTP();
     setRegGeneratedOtp(otp);
     setRegOtpSent(true);
     setRegPhoneVerified(false);
     setRegEnteredOtp('');
+    setRegOtpStatus('sent');
+    dispatchPhoneSms({ phone: clean, otp });
+  };
 
-    dispatchPhoneSms({ phone: clean, otp }).then((smsRes) => {
-      if (smsRes.method === 'carrier_sms') {
-        setSmsSimulationAlert(smsRes.message);
+  // Check OTP directly in the input box as the user types
+  const handleRegOtpInputChange = (val) => {
+    const digits = val.replace(/\D/g, '').slice(0, 6);
+    setRegEnteredOtp(digits);
+
+    if (digits.length < 6) {
+      setRegOtpStatus('sent');
+      setRegPhoneVerified(false);
+    } else if (digits.length === 6) {
+      // Check directly in the input box whether it is correct or not!
+      if (digits === regGeneratedOtp) {
+        setRegOtpStatus('correct');
+        setRegPhoneVerified(true);
+        setRegError('');
       } else {
-        setSmsSimulationAlert(
-          `📲 [Phone SMS Delivery] Your Phone Verification OTP for +91 ${clean} is: ${otp}. (Valid for 5 minutes)`
-        );
+        setRegOtpStatus('wrong');
+        setRegPhoneVerified(false);
       }
-    });
-  };
-
-  // 1-Click Auto-Fill & Verify Registration OTP
-  const handleAutoFillAndVerifyRegOtp = () => {
-    if (!regGeneratedOtp) return;
-    setRegEnteredOtp(regGeneratedOtp);
-    setRegPhoneVerified(true);
-    setRegOtpError('');
-    setSmsSimulationAlert(`✅ Mobile +91 ${formatPhone(regForm.phone)} successfully verified with OTP!`);
-  };
-
-  // Manual Verify Phone OTP for Registration
-  const handleVerifyRegPhoneOtp = (e) => {
-    if (e && e.preventDefault) e.preventDefault();
-    setRegOtpError('');
-
-    if (!regEnteredOtp.trim()) {
-      setRegOtpError('Please enter the 6-digit OTP code.');
-      return;
     }
-
-    if (regEnteredOtp.trim() !== regGeneratedOtp) {
-      setRegOtpError('❌ Invalid OTP. Enter the 6-digit code shown above.');
-      return;
-    }
-
-    setRegPhoneVerified(true);
-    setRegOtpError('');
-    setSmsSimulationAlert(`✅ Mobile +91 ${formatPhone(regForm.phone)} verified successfully!`);
   };
 
   // ================= 5. SUBMIT REGISTRATION =================
@@ -302,23 +247,15 @@ export default function LoginPage({ onLocalLogin }) {
 
     const cleanPhone = formatPhone(regForm.phone);
     if (cleanPhone.length !== 10) {
-      setRegError('Please enter a valid 10-digit Indian mobile number.');
+      setRegError('Please enter a valid 10-digit mobile number.');
       return;
     }
 
-    // Auto-verify if OTP is generated to prevent unnecessary blocking
     if (!regPhoneVerified) {
-      if (regGeneratedOtp && (regEnteredOtp === regGeneratedOtp || !regEnteredOtp)) {
+      if (regEnteredOtp.length === 6 && regEnteredOtp === regGeneratedOtp) {
         setRegPhoneVerified(true);
-        setRegEnteredOtp(regGeneratedOtp);
       } else {
-        const otp = generateOTP();
-        setRegGeneratedOtp(otp);
-        setRegOtpSent(true);
-        setSmsSimulationAlert(
-          `📲 [Phone SMS Delivery] Verification OTP for +91 ${cleanPhone} is: ${otp}`
-        );
-        setRegError('Please verify your phone number with the 6-digit OTP code.');
+        setRegError('Please enter the correct 6-digit OTP sent to your phone message.');
         return;
       }
     }
@@ -370,25 +307,10 @@ export default function LoginPage({ onLocalLogin }) {
         boxSizing: 'border-box',
       }}
     >
-      <style>{`
-        @keyframes pulseAlert {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.02); }
-        }
-        @keyframes greenGlow {
-          0%, 100% { box-shadow: 0 0 15px rgba(16, 185, 129, 0.4); }
-          50% { box-shadow: 0 0 25px rgba(16, 185, 129, 0.7); }
-        }
-        .vta-auth-inp:focus {
-          border-color: #FF6B35 !important;
-          background: rgba(255,255,255,0.12) !important;
-        }
-      `}</style>
-
       <div
         style={{
           width: '100%',
-          maxWidth: mode === 'register' ? 510 : 450,
+          maxWidth: mode === 'register' ? 490 : 430,
           background: 'rgba(255, 255, 255, 0.05)',
           backdropFilter: 'blur(24px)',
           WebkitBackdropFilter: 'blur(24px)',
@@ -401,43 +323,6 @@ export default function LoginPage({ onLocalLogin }) {
           position: 'relative',
         }}
       >
-        {/* Real Carrier SMS & Delivery Alert Banner */}
-        {smsSimulationAlert && (
-          <div
-            style={{
-              background: 'linear-gradient(135deg, #065F46 0%, #047857 100%)',
-              border: '1.5px solid #34D399',
-              borderRadius: 14,
-              padding: '12px 16px',
-              marginBottom: 18,
-              fontSize: 12.5,
-              fontWeight: 700,
-              color: '#FFFFFF',
-              boxShadow: '0 8px 24px rgba(6, 95, 70, 0.4)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 6,
-              animation: 'pulseAlert 0.4s ease',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 11, letterSpacing: 0.5, textTransform: 'uppercase', color: '#A7F3D0' }}>
-                📱 Phone SMS Message Delivery Status
-              </span>
-              <button
-                type="button"
-                onClick={() => setSmsSimulationAlert('')}
-                style={{ background: 'none', border: 'none', color: '#FFFFFF', cursor: 'pointer', fontWeight: 800 }}
-              >
-                ✕
-              </button>
-            </div>
-            <div style={{ fontSize: 13, color: '#FFFFFF', wordBreak: 'break-word', lineHeight: 1.4 }}>
-              {smsSimulationAlert}
-            </div>
-          </div>
-        )}
-
         {/* Portal Header */}
         <div style={{ textAlign: 'center', marginBottom: 22 }}>
           <img
@@ -481,7 +366,6 @@ export default function LoginPage({ onLocalLogin }) {
                 setMode('login');
                 setLoginError('');
                 setPendingAdmin(null);
-                setSmsSimulationAlert('');
               }}
               style={{
                 background: mode === 'login' ? 'linear-gradient(135deg, #FF6B35, #FFA149)' : 'transparent',
@@ -502,7 +386,6 @@ export default function LoginPage({ onLocalLogin }) {
               onClick={() => {
                 setMode('register');
                 setRegError('');
-                setSmsSimulationAlert('');
               }}
               style={{
                 background: mode === 'register' ? 'linear-gradient(135deg, #FF6B35, #FFA149)' : 'transparent',
@@ -661,7 +544,6 @@ export default function LoginPage({ onLocalLogin }) {
                   fontSize: 12.5,
                   color: '#FEF3C7',
                   lineHeight: 1.5,
-                  boxShadow: '0 4px 16px rgba(245, 158, 11, 0.2)',
                 }}
               >
                 <div style={{ fontWeight: 800, color: '#FBBF24', fontSize: 13, marginBottom: 4 }}>
@@ -755,7 +637,6 @@ export default function LoginPage({ onLocalLogin }) {
                 fontWeight: 800,
                 cursor: 'pointer',
                 boxShadow: '0 8px 24px rgba(255, 107, 53, 0.35)',
-                transition: 'transform 0.15s, opacity 0.15s',
               }}
             >
               {loginLoading ? 'Verifying Credentials...' : 'Sign In to Admin Portal'}
@@ -790,207 +671,162 @@ export default function LoginPage({ onLocalLogin }) {
         )}
 
         {/* ==============================================================
-            MODE 2: LOGIN 2FA PHONE OTP CHALLENGE
+            MODE 2: LOGIN 2FA PHONE OTP CHALLENGE (NO VISIBLE OTP, VALIDATES IN BOX)
             ============================================================== */}
         {mode === 'login_otp' && (
           <div>
-            <div style={{ textAlign: 'center', marginBottom: 16 }}>
-              <div style={{ fontSize: 32, marginBottom: 4 }}>🔐</div>
-              <h3 style={{ fontSize: 18, fontWeight: 800, margin: '0 0 6px', color: '#FFFFFF' }}>
+            <div style={{ textAlign: 'center', marginBottom: 20 }}>
+              <div style={{ fontSize: 36, marginBottom: 6 }}>🔐</div>
+              <h3 style={{ fontSize: 19, fontWeight: 800, margin: '0 0 6px', color: '#FFFFFF' }}>
                 Two-Factor Phone OTP Verification
               </h3>
-              <p style={{ fontSize: 12.5, color: 'rgba(255, 255, 255, 0.7)', margin: 0, lineHeight: 1.4 }}>
-                Enter the 6-digit OTP code sent to your mobile number:
+              <p style={{ fontSize: 13, color: 'rgba(255, 255, 255, 0.7)', margin: 0, lineHeight: 1.5 }}>
+                An SMS with a 6-digit OTP code was sent to your phone message:
                 <br />
-                <strong style={{ color: '#38BDF8', fontSize: 14 }}>
+                <strong style={{ color: '#38BDF8', fontSize: 15 }}>
                   +91 {loginTargetAdmin?.phone || '9994994291'}
                 </strong>
               </p>
             </div>
 
-            {/* High-Visibility Generated OTP Card with Phone SMS App & Auto Fill */}
-            {loginGeneratedOtp && (
-              <div
-                style={{
-                  background: 'rgba(16, 185, 129, 0.14)',
-                  border: '1.5px solid #10B981',
-                  borderRadius: 14,
-                  padding: '15px 16px',
-                  textAlign: 'center',
-                  marginBottom: 18,
-                  animation: 'greenGlow 2.5s infinite',
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 11.5,
-                    color: '#A7F3D0',
-                    fontWeight: 800,
-                    textTransform: 'uppercase',
-                    letterSpacing: 1,
-                    marginBottom: 4,
-                  }}
-                >
-                  📱 Phone SMS Message Code for +91 {loginTargetAdmin?.phone || '9994994291'}
-                </div>
-                <div
-                  style={{
-                    fontSize: 34,
-                    fontWeight: 900,
-                    letterSpacing: 8,
-                    color: '#34D399',
-                    fontFamily: 'monospace',
-                    margin: '6px 0 12px',
-                  }}
-                >
-                  {loginGeneratedOtp}
-                </div>
-
-                {/* 3 Direct Actions: Native Phone SMS, WhatsApp, 1-Click Auto-Fill */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const phone = loginTargetAdmin?.phone || '9994994291';
-                      openNativePhoneSms(phone, loginGeneratedOtp);
-                    }}
-                    style={{
-                      background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)',
-                      color: '#FFFFFF',
-                      border: 'none',
-                      borderRadius: 9,
-                      padding: '9px 10px',
-                      fontSize: 12,
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      boxShadow: '0 4px 14px rgba(2, 132, 199, 0.35)',
-                    }}
-                  >
-                    📱 Open Phone SMS
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const phone = loginTargetAdmin?.phone || '9994994291';
-                      openWhatsAppSms(phone, loginGeneratedOtp);
-                    }}
-                    style={{
-                      background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
-                      color: '#FFFFFF',
-                      border: 'none',
-                      borderRadius: 9,
-                      padding: '9px 10px',
-                      fontSize: 12,
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      boxShadow: '0 4px 14px rgba(37, 211, 102, 0.35)',
-                    }}
-                  >
-                    💬 Send to WhatsApp
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLoginEnteredOtp(loginGeneratedOtp);
-                    setLoginOtpError('');
-                  }}
-                  style={{
-                    width: '100%',
-                    background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                    color: '#FFFFFF',
-                    border: 'none',
-                    borderRadius: 9,
-                    padding: '8px 14px',
-                    fontSize: 12.5,
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)',
-                  }}
-                >
-                  ⚡ 1-Click Auto-Fill Code ({loginGeneratedOtp})
-                </button>
-              </div>
-            )}
-
             <form onSubmit={handleVerifyLoginOtp}>
-              <div style={{ marginBottom: 16 }}>
+              <div style={{ marginBottom: 18 }}>
                 <label
                   style={{
                     display: 'block',
                     fontSize: 12,
-                    fontWeight: 700,
-                    color: 'rgba(255, 255, 255, 0.8)',
-                    marginBottom: 6,
+                    fontWeight: 800,
+                    color: 'rgba(255, 255, 255, 0.75)',
+                    marginBottom: 8,
                     textAlign: 'center',
+                    letterSpacing: 0.5,
+                    textTransform: 'uppercase',
                   }}
                 >
-                  ENTER 6-DIGIT LOGIN OTP
+                  Enter 6-Digit OTP From Phone Message
                 </label>
-                <input
-                  className="vta-auth-inp"
-                  type="text"
-                  maxLength={6}
-                  placeholder="• • • • • •"
-                  value={loginEnteredOtp}
-                  onChange={(e) => setLoginEnteredOtp(e.target.value.replace(/\D/g, ''))}
-                  autoFocus
-                  required
-                  style={{
-                    width: '100%',
-                    background: 'rgba(255, 255, 255, 0.08)',
-                    border: '2px solid rgba(255, 107, 53, 0.5)',
-                    borderRadius: 14,
-                    padding: '13px',
-                    color: '#FF6B35',
-                    fontSize: 24,
-                    fontWeight: 900,
-                    letterSpacing: 8,
-                    textAlign: 'center',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                    fontFamily: 'monospace',
-                  }}
-                />
-              </div>
 
-              {loginOtpError && (
-                <div
-                  style={{
-                    background: 'rgba(239, 68, 68, 0.15)',
-                    border: '1px solid rgba(239, 68, 68, 0.35)',
-                    borderRadius: 10,
-                    padding: '10px 14px',
-                    color: '#FCA5A5',
-                    fontSize: 12.5,
-                    fontWeight: 700,
-                    marginBottom: 16,
-                    textAlign: 'center',
-                  }}
-                >
-                  {loginOtpError}
+                {/* Input box that checks whether it is correct or not directly inside */}
+                <div style={{ position: 'relative' }}>
+                  <input
+                    className="vta-auth-inp"
+                    type="text"
+                    maxLength={6}
+                    placeholder="• • • • • •"
+                    value={loginEnteredOtp}
+                    onChange={(e) => handleLoginOtpInputChange(e.target.value)}
+                    autoFocus
+                    required
+                    style={{
+                      width: '100%',
+                      background: 'rgba(255, 255, 255, 0.08)',
+                      border: `2.5px solid ${
+                        loginOtpStatus === 'correct'
+                          ? '#10B981'
+                          : loginOtpStatus === 'wrong'
+                          ? '#EF4444'
+                          : 'rgba(255, 107, 53, 0.5)'
+                      }`,
+                      borderRadius: 14,
+                      padding: '14px 44px 14px 16px',
+                      color: loginOtpStatus === 'correct' ? '#34D399' : '#FFFFFF',
+                      fontSize: 24,
+                      fontWeight: 900,
+                      letterSpacing: 8,
+                      textAlign: 'center',
+                      fontFamily: 'monospace',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                      transition: 'border-color 0.2s, box-shadow 0.2s',
+                      boxShadow:
+                        loginOtpStatus === 'correct'
+                          ? '0 0 20px rgba(16, 185, 129, 0.4)'
+                          : loginOtpStatus === 'wrong'
+                          ? '0 0 20px rgba(239, 68, 68, 0.4)'
+                          : 'none',
+                    }}
+                  />
+                  {loginOtpStatus === 'correct' && (
+                    <span
+                      style={{
+                        position: 'absolute',
+                        right: 14,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        fontSize: 20,
+                      }}
+                    >
+                      ✅
+                    </span>
+                  )}
+                  {loginOtpStatus === 'wrong' && (
+                    <span
+                      style={{
+                        position: 'absolute',
+                        right: 14,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        fontSize: 20,
+                      }}
+                    >
+                      ❌
+                    </span>
+                  )}
                 </div>
-              )}
+
+                {loginOtpStatus === 'correct' && (
+                  <div
+                    style={{
+                      color: '#34D399',
+                      fontSize: 12.5,
+                      fontWeight: 800,
+                      marginTop: 8,
+                      textAlign: 'center',
+                    }}
+                  >
+                    ✅ OTP Verified Successfully! Logging you in...
+                  </div>
+                )}
+                {loginOtpStatus === 'wrong' && (
+                  <div
+                    style={{
+                      color: '#F87171',
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      marginTop: 8,
+                      textAlign: 'center',
+                    }}
+                  >
+                    ❌ Incorrect OTP. Please check your phone message and enter the correct code.
+                  </div>
+                )}
+              </div>
 
               <button
                 type="submit"
+                disabled={loginEnteredOtp.length !== 6 || loginOtpStatus === 'wrong'}
                 style={{
                   width: '100%',
-                  background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                  background:
+                    loginOtpStatus === 'correct'
+                      ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)'
+                      : 'linear-gradient(135deg, #FF6B35 0%, #FF8A00 100%)',
                   color: '#FFFFFF',
                   border: 'none',
                   borderRadius: 12,
                   padding: '14px',
                   fontSize: 15,
                   fontWeight: 800,
-                  cursor: 'pointer',
-                  boxShadow: '0 8px 24px rgba(16, 185, 129, 0.35)',
+                  cursor: loginEnteredOtp.length === 6 ? 'pointer' : 'not-allowed',
+                  opacity: loginEnteredOtp.length === 6 ? 1 : 0.6,
+                  boxShadow: '0 8px 24px rgba(255, 107, 53, 0.35)',
                   marginBottom: 14,
+                  transition: 'all 0.2s',
                 }}
               >
-                Verify OTP & Enter Admin Dashboard ➔
+                {loginOtpStatus === 'correct'
+                  ? 'Verified! Entering Dashboard...'
+                  : 'Verify OTP & Enter Admin Dashboard'}
               </button>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
@@ -1007,7 +843,7 @@ export default function LoginPage({ onLocalLogin }) {
                     textDecoration: 'underline',
                   }}
                 >
-                  🔄 Resend OTP Code
+                  🔄 Resend SMS OTP
                 </button>
 
                 <button
@@ -1016,7 +852,6 @@ export default function LoginPage({ onLocalLogin }) {
                     setMode('login');
                     setLoginError('');
                     setPendingAdmin(null);
-                    setSmsSimulationAlert('');
                   }}
                   style={{
                     background: 'none',
@@ -1027,7 +862,7 @@ export default function LoginPage({ onLocalLogin }) {
                     cursor: 'pointer',
                   }}
                 >
-                  ← Back to Email Sign In
+                  ← Back to Sign In
                 </button>
               </div>
             </form>
@@ -1035,7 +870,7 @@ export default function LoginPage({ onLocalLogin }) {
         )}
 
         {/* ==============================================================
-            MODE 3: REGISTER AS ADMIN
+            MODE 3: REGISTER AS ADMIN (NO VISIBLE OTP, REAL-TIME INPUT VALIDATION)
             ============================================================== */}
         {mode === 'register' && (
           <form onSubmit={handleRegisterSubmit}>
@@ -1052,8 +887,8 @@ export default function LoginPage({ onLocalLogin }) {
                 lineHeight: 1.4,
               }}
             >
-              ℹ️ <strong>Phone OTP Verification Required:</strong> Enter 10-digit mobile number (e.g. 9994994291). OTP
-              will generate automatically and deliver to your phone message.
+              ℹ️ <strong>Phone OTP Verification Required:</strong> Enter 10-digit mobile number. An OTP will be sent to
+              your phone message. Super Admin confirms registration.
             </div>
 
             {/* Full Name */}
@@ -1124,7 +959,7 @@ export default function LoginPage({ onLocalLogin }) {
               />
             </div>
 
-            {/* Phone Number with OTP verification block */}
+            {/* Phone Number with Real-time Validating Input Box */}
             <div style={{ marginBottom: 14 }}>
               <div
                 style={{
@@ -1137,32 +972,11 @@ export default function LoginPage({ onLocalLogin }) {
                 <label style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255, 255, 255, 0.8)' }}>
                   Mobile Phone (10 Digits) <span style={{ color: '#FF6B35' }}>*</span>
                 </label>
-                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  {!regPhoneVerified && (
-                    <button
-                      type="button"
-                      onClick={() => handleRegPhoneChange('9994994291')}
-                      style={{
-                        background: 'rgba(255, 107, 53, 0.2)',
-                        border: '1px solid rgba(255, 107, 53, 0.4)',
-                        borderRadius: 6,
-                        color: '#FFA149',
-                        fontSize: 10.5,
-                        fontWeight: 800,
-                        padding: '2px 8px',
-                        cursor: 'pointer',
-                      }}
-                      title="Quick fill 9994994291"
-                    >
-                      📲 Use 9994994291
-                    </button>
-                  )}
-                  {regPhoneVerified && (
-                    <span style={{ color: '#34D399', fontSize: 12, fontWeight: 800 }}>
-                      ✅ +91 {regForm.phone} Verified
-                    </span>
-                  )}
-                </div>
+                {regPhoneVerified && (
+                  <span style={{ color: '#34D399', fontSize: 12, fontWeight: 800 }}>
+                    ✅ +91 {regForm.phone} Verified
+                  </span>
+                )}
               </div>
 
               <div style={{ display: 'flex', gap: 8 }}>
@@ -1204,156 +1018,143 @@ export default function LoginPage({ onLocalLogin }) {
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  {regOtpSent ? '🔄 Resend OTP' : '📲 Send OTP'}
+                  {regOtpSent ? '🔄 Resend SMS' : '📲 Send SMS OTP'}
                 </button>
               </div>
 
-              {/* Sub-block for Phone SMS dispatch & OTP verification */}
+              {/* Real-time validating OTP input box (Checks whether it is correct or not inside) */}
               {regOtpSent && !regPhoneVerified && (
-                <div
-                  style={{
-                    marginTop: 10,
-                    background: 'rgba(255, 107, 53, 0.14)',
-                    border: '1.5px solid #FF6B35',
-                    borderRadius: 12,
-                    padding: '12px 14px',
-                    boxShadow: '0 4px 16px rgba(255, 107, 53, 0.25)',
-                    animation: 'pulseAlert 0.4s ease',
-                  }}
-                >
+                <div style={{ marginTop: 12 }}>
                   <div
                     style={{
                       display: 'flex',
-                      justifyContent: 'space-between',
                       alignItems: 'center',
-                      marginBottom: 8,
-                    }}
-                  >
-                    <span style={{ fontSize: 12, fontWeight: 800, color: '#FFA149' }}>
-                      📲 Phone SMS OTP for +91 {regForm.phone}:
-                    </span>
-                    <span
-                      style={{
-                        background: '#FF6B35',
-                        color: '#FFFFFF',
-                        fontFamily: 'monospace',
-                        fontSize: 15,
-                        fontWeight: 900,
-                        letterSpacing: 2,
-                        padding: '2px 8px',
-                        borderRadius: 6,
-                      }}
-                    >
-                      {regGeneratedOtp}
-                    </span>
-                  </div>
-
-                  {/* Actions: Phone SMS app, WhatsApp, 1-Click Auto-Fill */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 8 }}>
-                    <button
-                      type="button"
-                      onClick={() => openNativePhoneSms(regForm.phone, regGeneratedOtp)}
-                      style={{
-                        background: 'linear-gradient(135deg, #0284C7, #0369A1)',
-                        color: '#FFFFFF',
-                        border: 'none',
-                        borderRadius: 8,
-                        padding: '8px 10px',
-                        fontSize: 11.5,
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                        boxShadow: '0 4px 12px rgba(2, 132, 199, 0.35)',
-                      }}
-                    >
-                      📱 Open Phone SMS
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => openWhatsAppSms(regForm.phone, regGeneratedOtp)}
-                      style={{
-                        background: 'linear-gradient(135deg, #25D366, #128C7E)',
-                        color: '#FFFFFF',
-                        border: 'none',
-                        borderRadius: 8,
-                        padding: '8px 10px',
-                        fontSize: 11.5,
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                        boxShadow: '0 4px 12px rgba(37, 211, 102, 0.35)',
-                      }}
-                    >
-                      💬 Send to WhatsApp
-                    </button>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleAutoFillAndVerifyRegOtp}
-                    style={{
-                      width: '100%',
-                      background: 'linear-gradient(135deg, #10B981, #059669)',
-                      color: '#FFFFFF',
-                      border: 'none',
-                      borderRadius: 8,
-                      padding: '8px 12px',
+                      justifyContent: 'space-between',
+                      marginBottom: 6,
                       fontSize: 12,
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      marginBottom: 8,
-                      boxShadow: '0 4px 12px rgba(16, 185, 129, 0.35)',
+                      color: '#93C5FD',
+                      fontWeight: 700,
                     }}
                   >
-                    ⚡ 1-Click Auto-Fill & Verify ({regGeneratedOtp})
-                  </button>
+                    <span>📲 SMS Sent to +91 {regForm.phone}</span>
+                    <button
+                      type="button"
+                      onClick={handleSendRegOtp}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#38BDF8',
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                      }}
+                    >
+                      Resend SMS
+                    </button>
+                  </div>
 
-                  <div style={{ display: 'flex', gap: 6 }}>
+                  <div style={{ position: 'relative' }}>
                     <input
                       type="text"
                       maxLength={6}
-                      placeholder="Enter 6-digit OTP"
+                      placeholder="Enter 6-digit OTP from SMS"
                       value={regEnteredOtp}
-                      onChange={(e) => setRegEnteredOtp(e.target.value.replace(/\D/g, ''))}
+                      onChange={(e) => handleRegOtpInputChange(e.target.value)}
+                      autoFocus
                       style={{
-                        flex: 1,
-                        background: 'rgba(255,255,255,0.12)',
-                        border: '1px solid rgba(255,255,255,0.25)',
-                        borderRadius: 8,
-                        padding: '8px 10px',
-                        color: '#FFFFFF',
-                        fontSize: 14,
-                        fontWeight: 800,
-                        letterSpacing: 2,
+                        width: '100%',
+                        background: 'rgba(255, 255, 255, 0.08)',
+                        border: `2px solid ${
+                          regOtpStatus === 'correct'
+                            ? '#10B981'
+                            : regOtpStatus === 'wrong'
+                            ? '#EF4444'
+                            : 'rgba(255, 255, 255, 0.25)'
+                        }`,
+                        borderRadius: 12,
+                        padding: '12px 40px 12px 16px',
+                        color: regOtpStatus === 'correct' ? '#34D399' : '#FFFFFF',
+                        fontSize: 18,
+                        fontWeight: 900,
+                        letterSpacing: 6,
                         textAlign: 'center',
-                        outline: 'none',
                         fontFamily: 'monospace',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                        transition: 'border-color 0.2s, box-shadow 0.2s',
+                        boxShadow:
+                          regOtpStatus === 'correct'
+                            ? '0 0 16px rgba(16, 185, 129, 0.35)'
+                            : regOtpStatus === 'wrong'
+                            ? '0 0 16px rgba(239, 68, 68, 0.35)'
+                            : 'none',
                       }}
                     />
-
-                    <button
-                      type="button"
-                      onClick={handleVerifyRegPhoneOtp}
-                      style={{
-                        background: '#FF6B35',
-                        color: '#FFFFFF',
-                        border: 'none',
-                        borderRadius: 8,
-                        padding: '8px 12px',
-                        fontSize: 12,
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      Verify
-                    </button>
+                    {regOtpStatus === 'correct' && (
+                      <span
+                        style={{
+                          position: 'absolute',
+                          right: 14,
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          fontSize: 18,
+                        }}
+                      >
+                        ✅
+                      </span>
+                    )}
+                    {regOtpStatus === 'wrong' && (
+                      <span
+                        style={{
+                          position: 'absolute',
+                          right: 14,
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          fontSize: 18,
+                        }}
+                      >
+                        ❌
+                      </span>
+                    )}
                   </div>
 
-                  {regOtpError && (
-                    <div style={{ color: '#F87171', fontSize: 11.5, fontWeight: 700, marginTop: 6 }}>
-                      {regOtpError}
+                  {regOtpStatus === 'correct' && (
+                    <div
+                      style={{
+                        color: '#34D399',
+                        fontSize: 12,
+                        fontWeight: 800,
+                        marginTop: 6,
+                        textAlign: 'center',
+                      }}
+                    >
+                      ✅ OTP Verified Successfully! Mobile +91 {regForm.phone} confirmed.
+                    </div>
+                  )}
+                  {regOtpStatus === 'wrong' && (
+                    <div
+                      style={{
+                        color: '#F87171',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        marginTop: 6,
+                        textAlign: 'center',
+                      }}
+                    >
+                      ❌ Incorrect OTP. Please check your phone message and enter the correct code.
+                    </div>
+                  )}
+                  {regOtpStatus === 'sent' && (
+                    <div
+                      style={{
+                        color: 'rgba(255, 255, 255, 0.6)',
+                        fontSize: 11.5,
+                        marginTop: 4,
+                        textAlign: 'center',
+                      }}
+                    >
+                      Enter the 6-digit code received on your phone message.
                     </div>
                   )}
                 </div>
@@ -1471,24 +1272,26 @@ export default function LoginPage({ onLocalLogin }) {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={regLoading}
+              disabled={regLoading || !regPhoneVerified}
               style={{
                 width: '100%',
-                background: 'linear-gradient(135deg, #FF6B35 0%, #FF8A00 100%)',
+                background: regPhoneVerified
+                  ? 'linear-gradient(135deg, #FF6B35 0%, #FF8A00 100%)'
+                  : 'rgba(255, 255, 255, 0.15)',
                 color: '#FFFFFF',
                 border: 'none',
                 borderRadius: 12,
                 padding: '14px',
                 fontSize: 14.5,
                 fontWeight: 800,
-                cursor: 'pointer',
-                boxShadow: '0 8px 24px rgba(255, 107, 53, 0.35)',
+                cursor: regPhoneVerified ? 'pointer' : 'not-allowed',
+                boxShadow: regPhoneVerified ? '0 8px 24px rgba(255, 107, 53, 0.35)' : 'none',
               }}
             >
               {regLoading
                 ? 'Registering Account...'
                 : !regPhoneVerified
-                ? 'Verify OTP & Submit Admin Registration'
+                ? 'Verify Phone OTP to Submit Registration'
                 : 'Submit Admin Registration'}
             </button>
 
@@ -1568,7 +1371,6 @@ export default function LoginPage({ onLocalLogin }) {
                   });
                   setLoginError('');
                   setPendingAdmin(null);
-                  setSmsSimulationAlert('');
                 }}
                 style={{
                   width: '100%',
@@ -1593,7 +1395,6 @@ export default function LoginPage({ onLocalLogin }) {
                   setLoginForm({ email: regForm.email, password: '' });
                   setLoginError('');
                   setPendingAdmin(null);
-                  setSmsSimulationAlert('');
                 }}
                 style={{
                   width: '100%',
@@ -1613,105 +1414,6 @@ export default function LoginPage({ onLocalLogin }) {
             </div>
           </div>
         )}
-
-        {/* Footer Gateway Configuration Toggle */}
-        <div style={{ textAlign: 'center', marginTop: 22, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 14 }}>
-          <button
-            type="button"
-            onClick={() => setShowSmsSettings(!showSmsSettings)}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'rgba(255, 255, 255, 0.5)',
-              fontSize: 11.5,
-              fontWeight: 700,
-              cursor: 'pointer',
-              textDecoration: 'underline',
-            }}
-          >
-            ⚙️ {showSmsSettings ? 'Hide SMS Gateway API Settings' : 'Configure Direct Carrier SMS (Fast2SMS / 2Factor)'}
-          </button>
-
-          {showSmsSettings && (
-            <div
-              style={{
-                marginTop: 12,
-                background: 'rgba(0, 0, 0, 0.35)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                borderRadius: 12,
-                padding: '12px 14px',
-                textAlign: 'left',
-              }}
-            >
-              <div style={{ fontSize: 11.5, fontWeight: 800, color: '#38BDF8', marginBottom: 6 }}>
-                Direct Telecom SMS Gateway Setup
-              </div>
-              <p style={{ fontSize: 11, color: 'rgba(255, 255, 255, 0.7)', margin: '0 0 8px', lineHeight: 1.4 }}>
-                Enter your Fast2SMS or 2Factor API Key below. When set, OTPs will be dispatched directly to your mobile phone SIM via telecom carrier SMS:
-              </p>
-
-              <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
-                <select
-                  value={smsProvider}
-                  onChange={(e) => setSmsProvider(e.target.value)}
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    borderRadius: 6,
-                    color: '#FFFFFF',
-                    fontSize: 11.5,
-                    padding: '6px 8px',
-                    outline: 'none',
-                  }}
-                >
-                  <option value="fast2sms" style={{ background: '#1E293B', color: '#FFF' }}>Fast2SMS</option>
-                  <option value="twofactor" style={{ background: '#1E293B', color: '#FFF' }}>2Factor.in</option>
-                </select>
-
-                <input
-                  type="text"
-                  placeholder="Paste your SMS API Key"
-                  value={smsInputKey}
-                  onChange={(e) => setSmsInputKey(e.target.value)}
-                  style={{
-                    flex: 1,
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    borderRadius: 6,
-                    color: '#FFFFFF',
-                    fontSize: 11.5,
-                    padding: '6px 10px',
-                    outline: 'none',
-                  }}
-                />
-
-                <button
-                  type="button"
-                  onClick={handleSaveSmsKey}
-                  style={{
-                    background: '#10B981',
-                    color: '#FFFFFF',
-                    border: 'none',
-                    borderRadius: 6,
-                    padding: '6px 12px',
-                    fontSize: 11.5,
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Save
-                </button>
-              </div>
-
-              {smsSaveMessage && (
-                <div style={{ fontSize: 11, color: '#34D399', fontWeight: 700 }}>
-                  {smsSaveMessage}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
       </div>
     </div>
   );
