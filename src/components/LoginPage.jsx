@@ -537,54 +537,6 @@ export default function LoginPage({ onLocalLogin }) {
             ============================================================== */}
         {mode === 'login' && (
           <form onSubmit={handleLoginSubmit}>
-            {/* Super Admin Info Hint */}
-            <div
-              style={{
-                background: 'rgba(124, 58, 237, 0.15)',
-                border: '1px solid rgba(139, 92, 246, 0.35)',
-                borderRadius: 11,
-                padding: '10px 14px',
-                marginBottom: 16,
-                fontSize: 12,
-                color: '#E9D5FF',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 8,
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 16 }}>👑</span>
-                <div>
-                  Super Admin: <strong>superadmin@vtkindergarten.com</strong>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setLoginForm({
-                    email: SUPER_ADMIN_CREDENTIALS.email,
-                    password: SUPER_ADMIN_CREDENTIALS.password,
-                  });
-                  setLoginError('');
-                  setPendingAdmin(null);
-                }}
-                style={{
-                  background: 'rgba(139, 92, 246, 0.3)',
-                  border: '1px solid rgba(167, 139, 250, 0.5)',
-                  borderRadius: 6,
-                  color: '#FFFFFF',
-                  fontSize: 11,
-                  fontWeight: 800,
-                  padding: '4px 8px',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                ⚡ Fill
-              </button>
-            </div>
-
             {/* Email Address */}
             <div style={{ marginBottom: 15 }}>
               <label
