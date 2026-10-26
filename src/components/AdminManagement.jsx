@@ -82,9 +82,9 @@ export default function AdminManagement({ currentAdmin, onLogout }) {
           showNotification('error', `Failed to reject admin: ${res.error}`);
         }
       } else if (type === 'delete') {
-        const res = await deleteAdmin(admin.id);
+        const res = await deleteAdmin(admin.id, admin.email);
         if (res.success) {
-          showNotification('info', `Admin account "${admin.name}" deleted.`);
+          showNotification('info', `Admin account "${admin.name}" deleted successfully.`);
           await loadAdmins();
         } else {
           showNotification('error', `Failed to delete admin: ${res.error}`);

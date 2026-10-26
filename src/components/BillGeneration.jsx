@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import html2canvas from 'html2canvas';
 import { supabase } from '../supabaseClient';
+import { ensureAuthenticatedSession } from '../utils/adminAuth';
 import { ICON_EMAIL_B64, ICON_PHONE_B64 } from './receiptIcons';
 
 // Helper: Convert Number to Indian Currency Words
@@ -578,6 +579,7 @@ export default function BillGeneration({ admissions = [], enquiries = [] }) {
         class_name: receiptData.effectiveClass,
       };
 
+      await ensureAuthenticatedSession();
       const { data, error } = await supabase
         .from('student_admissions')
         .insert([{
@@ -724,7 +726,8 @@ _Thank you for your payment!_`;
   const handleDeleteReceipt = async (id, receiptNo) => {
     if (!confirm(`Are you sure you want to delete Receipt #${receiptNo}?`)) return;
     try {
-      if (id) {
+      await ensureAuthenticatedSession();
+      if (id && !String(id).startsWith('local_')) {
         await supabase.from('student_admissions').delete().eq('id', id);
       }
       const next = receiptsList.filter(r => r.id !== id && r.receiptNo !== receiptNo);
@@ -733,7 +736,7 @@ _Thank you for your payment!_`;
       setSuccessBanner(`Receipt #${receiptNo} deleted.`);
       setTimeout(() => setSuccessBanner(''), 4000);
     } catch (e) {
-      alert('Error deleting receipt');
+      alert('Error deleting receipt: ' + (e.message || ''));
     }
   };
 

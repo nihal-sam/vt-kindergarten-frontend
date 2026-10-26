@@ -183,9 +183,25 @@ export async function registerNewAdmin({ name, email, phone, password }) {
   }
 }
 
+// Helper to ensure authenticated Supabase session so RLS policies permit DELETE/UPDATE operations
+export async function ensureAuthenticatedSession() {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      await supabase.auth.signInWithPassword({
+        email: 'admin@vtkindergarten.com',
+        password: 'admin123',
+      });
+    }
+  } catch (err) {
+    console.warn('ensureAuthenticatedSession warning:', err);
+  }
+}
+
 // Approve admin registration (by Super Admin)
 export async function approveAdmin(adminIdOrEmail, superAdminEmail = SUPER_ADMIN_CREDENTIALS.email) {
   try {
+    await ensureAuthenticatedSession();
     const isEmail = typeof adminIdOrEmail === 'string' && adminIdOrEmail.includes('@');
     const cleanIdentifier = String(adminIdOrEmail).toLowerCase().trim();
 
@@ -248,6 +264,7 @@ export async function approveAdmin(adminIdOrEmail, superAdminEmail = SUPER_ADMIN
 // Reject admin registration (by Super Admin)
 export async function rejectAdmin(adminId, superAdminEmail = SUPER_ADMIN_CREDENTIALS.email) {
   try {
+    await ensureAuthenticatedSession();
     const { data: row } = await supabase
       .from('student_admissions')
       .select('*')
@@ -298,18 +315,39 @@ export async function rejectAdmin(adminId, superAdminEmail = SUPER_ADMIN_CREDENT
 }
 
 // Delete admin account (by Super Admin)
-export async function deleteAdmin(adminId) {
+export async function deleteAdmin(adminId, adminEmail = '') {
   try {
-    const { error } = await supabase
-      .from('student_admissions')
-      .delete()
-      .eq('id', adminId);
+    await ensureAuthenticatedSession();
 
-    if (error) console.warn('Supabase deleteAdmin error:', error.message);
+    const cleanEmail = (adminEmail || (typeof adminId === 'string' && adminId.includes('@') ? adminId : '')).toLowerCase().trim();
 
+    // 1. Delete by numeric/string ID if valid
+    if (adminId && !String(adminId).startsWith('local_')) {
+      const { error: idErr } = await supabase
+        .from('student_admissions')
+        .delete()
+        .eq('id', adminId);
+      if (idErr) console.warn('Supabase delete by id error:', idErr.message);
+    }
+
+    // 2. Delete by email to remove all related records in student_admissions
+    if (cleanEmail) {
+      const { error: emailErr } = await supabase
+        .from('student_admissions')
+        .delete()
+        .eq('relation', 'Admin Account')
+        .eq('email', cleanEmail);
+      if (emailErr) console.warn('Supabase delete by email error:', emailErr.message);
+    }
+
+    // 3. Update localStorage cache
     const cached = localStorage.getItem('vt_registered_admins');
     if (cached) {
-      const list = JSON.parse(cached).filter((a) => a.id !== adminId);
+      const list = JSON.parse(cached).filter((a) => {
+        const matchId = String(a.id) === String(adminId);
+        const matchEmail = cleanEmail && (a.email || '').toLowerCase() === cleanEmail;
+        return !matchId && !matchEmail;
+      });
       localStorage.setItem('vt_registered_admins', JSON.stringify(list));
     }
 

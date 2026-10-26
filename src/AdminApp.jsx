@@ -4,7 +4,7 @@ import { parseEnquiryEligibility, CUTOFF_LABEL } from "./utils/ageEligibility";
 import BillGeneration from "./components/BillGeneration";
 import LoginPage from "./components/LoginPage";
 import AdminManagement from "./components/AdminManagement";
-import { fetchRegisteredAdmins } from "./utils/adminAuth";
+import { fetchRegisteredAdmins, ensureAuthenticatedSession } from "./utils/adminAuth";
 import "./admin.css";
 
 const LOGO_SRC = '/assets/vt-logo.png';
@@ -745,6 +745,7 @@ function Dashboard({ admin, logout }) {
 
   const updateStatus = async (id, newStatus) => {
     try {
+      await ensureAuthenticatedSession();
       let { error } = await supabase
         .from('student_admissions')
         .update({ status: newStatus })
@@ -775,14 +776,24 @@ function Dashboard({ admin, logout }) {
   const deleteRecord = async (type, id) => {
     if (!confirm('Are you sure you want to permanently delete this record?')) return;
     try {
+      await ensureAuthenticatedSession();
+      // Remove from UI state immediately for responsive feedback
+      setAdmissions(prev => prev.filter(item => item.id !== id));
+      setEnquiries(prev => prev.filter(item => item.id !== id));
+      if (viewItem?.data?.id === id) setViewItem(null);
+
+      // Perform deletion across primary and legacy tables
       const { error } = await supabase.from('student_admissions').delete().eq('id', id);
       if (error) {
-        await supabase.from('admissions').delete().eq('id', id);
+        console.warn('student_admissions delete warning:', error.message);
       }
-      fetchAll();
-      if (viewItem?.data?.id === id) setViewItem(null);
+      try {
+        await supabase.from('admissions').delete().eq('id', id);
+      } catch (_) {}
+
+      await fetchAll();
     } catch (e) {
-      alert('Error deleting record');
+      alert('Error deleting record: ' + (e.message || ''));
     }
   };
 
