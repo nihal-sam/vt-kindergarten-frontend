@@ -546,6 +546,7 @@ function Dashboard({ admin, logout }) {
   const [viewItem, setViewItem] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // Poll / fetch pending admin registrations for Super Admin
   useEffect(() => {
@@ -1108,7 +1109,7 @@ function Dashboard({ admin, logout }) {
             <button
               type="button"
               className={`vta-btn-logout-prominent ${isSuperAdmin ? 'is-super-admin' : ''}`}
-              onClick={logout}
+              onClick={() => setShowLogoutConfirm(true)}
               title={`Sign Out of ${isSuperAdmin ? 'Super Admin' : 'Admin'} Console`}
             >
               <span className="vta-logout-icon">🚪</span>
@@ -2086,7 +2087,7 @@ function Dashboard({ admin, logout }) {
 
         {/* ================= TAB 6: ADMIN APPROVALS (SUPER ADMIN) ================= */}
         {tab === 'admin_management' && isSuperAdmin && (
-          <AdminManagement currentAdmin={admin} onLogout={logout} />
+          <AdminManagement currentAdmin={admin} onLogout={() => setShowLogoutConfirm(true)} />
         )}
       </main>
 
@@ -2507,6 +2508,194 @@ function Dashboard({ admin, logout }) {
           </div>
         );
       })()}
+
+      {/* ================= LOGOUT CONFIRMATION MODAL ================= */}
+      {showLogoutConfirm && (
+        <div
+          className="vta-modal-backdrop"
+          onClick={() => setShowLogoutConfirm(false)}
+          style={{
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+            background: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(8px)',
+          }}
+        >
+          <div
+            className="vta-modal-card"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: 420,
+              width: '100%',
+              borderRadius: 20,
+              overflow: 'hidden',
+              boxShadow: '0 24px 60px rgba(0, 0, 0, 0.25)',
+              border: '1.5px solid #FEE2E2',
+              background: '#FFFFFF',
+              textAlign: 'center',
+              padding: 0,
+            }}
+          >
+            {/* Top decorative header */}
+            <div
+              style={{
+                background: 'linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%)',
+                padding: '28px 24px 20px',
+                borderBottom: '1px solid #FECACA',
+                position: 'relative',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setShowLogoutConfirm(false)}
+                style={{
+                  position: 'absolute',
+                  top: 14,
+                  right: 14,
+                  background: 'rgba(0, 0, 0, 0.05)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: 30,
+                  height: 30,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  fontSize: 14,
+                  color: '#64748B',
+                  fontWeight: 800,
+                }}
+                title="Cancel & Close"
+              >
+                ✕
+              </button>
+
+              <div
+                style={{
+                  width: 58,
+                  height: 58,
+                  borderRadius: '50%',
+                  background: '#FEE2E2',
+                  border: '2px solid #FCA5A5',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 26,
+                  margin: '0 auto 12px',
+                  boxShadow: '0 4px 14px rgba(220, 38, 38, 0.15)',
+                }}
+              >
+                🚪
+              </div>
+
+              <h3
+                style={{
+                  margin: '0 0 6px',
+                  fontSize: 20,
+                  fontWeight: 800,
+                  color: '#991B1B',
+                  letterSpacing: -0.3,
+                }}
+              >
+                Do you want to logout?
+              </h3>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: 13.5,
+                  color: '#7F1D1D',
+                  lineHeight: 1.5,
+                }}
+              >
+                {isSuperAdmin
+                  ? 'Are you sure you want to end your Super Admin session?'
+                  : 'Are you sure you want to log out of the Admin Portal?'}
+              </p>
+            </div>
+
+            {/* Modal Actions */}
+            <div
+              style={{
+                padding: '20px 24px 24px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12,
+                background: '#FFFFFF',
+              }}
+            >
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <button
+                  type="button"
+                  onClick={() => setShowLogoutConfirm(false)}
+                  style={{
+                    padding: '11px 16px',
+                    borderRadius: 12,
+                    border: '1.5px solid #E2E8F0',
+                    background: '#F8FAFC',
+                    color: '#475569',
+                    fontSize: 14,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#F1F5F9';
+                    e.currentTarget.style.borderColor = '#CBD5E1';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#F8FAFC';
+                    e.currentTarget.style.borderColor = '#E2E8F0';
+                  }}
+                >
+                  No, Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowLogoutConfirm(false);
+                    logout();
+                  }}
+                  style={{
+                    padding: '11px 16px',
+                    borderRadius: 12,
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+                    color: '#FFFFFF',
+                    fontSize: 14,
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    boxShadow: '0 4px 14px rgba(220, 38, 38, 0.25)',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                    e.currentTarget.style.boxShadow = '0 6px 18px rgba(220, 38, 38, 0.35)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 4px 14px rgba(220, 38, 38, 0.25)';
+                  }}
+                >
+                  <span>🚪</span>
+                  <span>Yes, Logout</span>
+                </button>
+              </div>
+
+              <div style={{ fontSize: 11.5, color: '#94A3B8' }}>
+                🔒 Your session will be safely terminated.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
