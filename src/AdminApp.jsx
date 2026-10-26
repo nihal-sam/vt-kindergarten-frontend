@@ -630,45 +630,52 @@ function Dashboard({ admin, logout }) {
   const fetchAll = async () => {
     setLoading(true);
     try {
-      // 1. Fetch Enquiries from existing admissions table
-      const { data: enqRaw, error: enqErr } = await supabase
-        .from('admissions')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (enqErr) {
-        console.error('API Recall Error (enquiries):', enqErr);
-        if (enqErr.message.includes('JWT')) logout();
-        return;
-      }
-
-      // 2. Fetch Admissions from dedicated student_admissions table
-      let admList = [];
+      // 1. Fetch Admissions & Enquiries from primary cloud table student_admissions
       const { data: admData, error: admErr } = await supabase
         .from('student_admissions')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (admErr) {
-        // Fallback to admissions table if student_admissions table is not yet created
-        admList = (enqRaw || []).filter(d => d.parent_name && d.parent_name.trim() !== '' && d.relation !== 'Fee Receipt' && d.relation !== 'Admin Account');
-      } else {
-        admList = (admData || []).filter(d => d.relation !== 'Fee Receipt' && d.relation !== 'Admin Account');
+      // 2. Fetch from legacy admissions table if exists to merge any older records
+      const { data: enqRaw, error: enqErr } = await supabase
+        .from('admissions')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (admErr && enqErr) {
+        console.error('API Recall Error:', admErr || enqErr);
+        if ((admErr?.message || '').includes('JWT') || (enqErr?.message || '').includes('JWT')) logout();
+        return;
       }
 
-      // Filter enquiries from admissions table
-      const isEnquiry = (d) =>
-        d.relation !== 'Fee Receipt' &&
-        d.relation !== 'Admin Account' &&
-        (!d.parent_name ||
-          d.parent_name.trim() === '' ||
-          (d.message && (d.message.includes('Age Eligibility') || d.message.includes('Calculated Age'))) ||
-          (d.relation === 'Eligible' || d.relation === 'Not Eligible'));
+      // Merge records (excluding Fee Receipts and Admin Accounts)
+      const allRows = [
+        ...(admData || []),
+        ...(enqRaw || []).filter(r => !(admData || []).some(s => s.id === r.id))
+      ].filter(d => d.relation !== 'Fee Receipt' && d.relation !== 'Admin Account');
 
-      const enqList = (enqRaw || []).filter(isEnquiry).map(d => ({
+      // Comprehensive Enquiry Filter:
+      // Matches records created from Age Eligibility Calculator or parent enquiries
+      const isEnquiry = (d) =>
+        d.relation === 'Eligible' ||
+        d.relation === 'Not Eligible' ||
+        d.relation === 'Enquiry' ||
+        (d.message && (
+          d.message.includes('Eligibility') ||
+          d.message.includes('Calculated Age') ||
+          d.message.includes('Age Eligibility') ||
+          d.message.includes('Source: Online') ||
+          d.message.includes('Age Criteria')
+        )) ||
+        (!d.parent_name || d.parent_name.trim() === '' || d.parent_name === d.child_name);
+
+      const enqList = allRows.filter(isEnquiry).map(d => ({
         ...d,
         name: d.child_name || d.parent_name || 'Prospective Parent'
       }));
+
+      // Admissions are official student registration applications
+      const admList = allRows.filter(d => !isEnquiry(d));
 
       setAdmissions(admList);
       setEnquiries(enqList);
@@ -744,12 +751,8 @@ function Dashboard({ admin, logout }) {
   const deleteRecord = async (type, id) => {
     if (!confirm('Are you sure you want to permanently delete this record?')) return;
     try {
-      if (type === 'admission' || type === 'admissions') {
-        const { error } = await supabase.from('student_admissions').delete().eq('id', id);
-        if (error) {
-          await supabase.from('admissions').delete().eq('id', id);
-        }
-      } else {
+      const { error } = await supabase.from('student_admissions').delete().eq('id', id);
+      if (error) {
         await supabase.from('admissions').delete().eq('id', id);
       }
       fetchAll();
@@ -1030,8 +1033,8 @@ function Dashboard({ admin, logout }) {
             <div className="vta-brand-text">
               <h2>VT Kindergarten</h2>
               <span>
-                <span className="vta-brand-live-dot" />
-                Admin Portal
+                <span className={isSuperAdmin ? 'vta-brand-super-dot' : 'vta-brand-live-dot'} />
+                {isSuperAdmin ? '👑 Super Admin Console' : 'Admin Portal'}
               </span>
             </div>
           </a>
@@ -1117,7 +1120,7 @@ function Dashboard({ admin, logout }) {
           <div className="vta-navbar-actions">
             <a href="/" target="_blank" rel="noopener noreferrer" className="vta-btn-ghost" title="Open live public website">
               <span>🌐</span>
-              <span className="vta-hide-mobile">Live Website</span>
+              <span className="vta-hide-laptop">Live Website</span>
             </a>
 
             <button
@@ -1128,7 +1131,7 @@ function Dashboard({ admin, logout }) {
               title={`Refresh page ${lastRefreshed ? `(Last updated: ${lastRefreshed})` : ''}`}
             >
               <span className={loading ? 'vta-spin' : ''}>🔄</span>
-              <span className="vta-hide-mobile">{loading ? 'Refreshing...' : 'Refresh'}</span>
+              <span className="vta-hide-laptop">{loading ? 'Refreshing...' : 'Refresh'}</span>
             </button>
 
             {/* User Profile Badge */}
@@ -1145,7 +1148,7 @@ function Dashboard({ admin, logout }) {
               >
                 {isSuperAdmin ? '👑' : (admin?.name || admin?.email || 'A')[0].toUpperCase()}
               </div>
-              <div className="vta-hide-mobile" style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
+              <div className="vta-hide-laptop" style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
                 <span className="vta-user-name" style={{ fontSize: 13, fontWeight: 800, color: isSuperAdmin ? '#581C87' : 'inherit' }}>
                   {admin?.name || admin?.email?.split('@')[0] || 'Admin'}
                 </span>
@@ -1807,10 +1810,15 @@ function Dashboard({ admin, logout }) {
                             </div>
                             <div>
                               <div className="vta-name-bold">{enq.child_name || enq.name}</div>
+                              {enq.parent_name && enq.parent_name !== (enq.child_name || enq.name) && (
+                                <div style={{ fontSize: 11.5, color: '#475569', fontWeight: 600 }}>
+                                  Parent: {enq.parent_name}
+                                </div>
+                              )}
                               <div className="vta-sub-text" style={{ marginTop: 2 }}>
                                 {enq.dob && <span>DOB: <strong>{enq.dob}</strong> &bull; </span>}
-                                <span>{enq.phone || 'No phone'}</span>
-                                {enq.email && <span> &bull; {enq.email}</span>}
+                                <span>📞 {enq.phone || 'No phone'}</span>
+                                {enq.email && <span> &bull; ✉️ {enq.email}</span>}
                               </div>
                             </div>
                           </div>
@@ -2285,6 +2293,14 @@ function Dashboard({ admin, logout }) {
                       <div className="vta-modal-card-title">
                         <span>👨‍👩‍👧</span> Parent Contact
                       </div>
+                      {viewItem.data.parent_name && viewItem.data.parent_name !== viewItem.data.child_name && (
+                        <div className="vta-modal-row">
+                          <span className="vta-modal-row-label">Parent / Guardian</span>
+                          <span className="vta-modal-row-val" style={{ fontWeight: 800 }}>
+                            {viewItem.data.parent_name}
+                          </span>
+                        </div>
+                      )}
                       <div className="vta-modal-row">
                         <span className="vta-modal-row-label">Mobile Phone</span>
                         <span className="vta-modal-row-val" style={{ letterSpacing: '0.3px' }}>

@@ -72,13 +72,13 @@
         }
 
         .vta-brand-logo {
-          width: 56px;
-          height: 56px;
+          width: 44px;
+          height: 44px;
           border-radius: 50%;
-          padding: 3px;
+          padding: 2px;
           background: #fff;
           border: 2px solid rgba(255, 107, 53, 0.35);
-          box-shadow: 0 4px 16px rgba(255, 107, 53, 0.25);
+          box-shadow: 0 2px 10px rgba(255, 107, 53, 0.2);
           object-fit: contain;
           flex-shrink: 0;
         }
@@ -108,6 +108,15 @@
           border-radius: 50%;
           background: #10B981;
           box-shadow: 0 0 8px #10B981;
+          animation: vta-pulse 2s infinite;
+        }
+
+        .vta-brand-super-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: #7C3AED;
+          box-shadow: 0 0 8px #7C3AED;
           animation: vta-pulse 2s infinite;
         }
 
@@ -146,14 +155,14 @@
         .vta-nav-pill-btn {
           display: flex;
           align-items: center;
-          gap: 8px;
-          padding: 8px 16px;
+          gap: 6px;
+          padding: 7px 13px;
           border-radius: 10px;
           border: none;
           background: transparent !important;
           color: #78716C;
           font-family: var(--vta-font);
-          font-size: 13.5px;
+          font-size: 13px;
           font-weight: 700;
           cursor: pointer;
           transition: color 0.25s ease;
@@ -1199,8 +1208,23 @@
           to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-        /* Mobile Responsive */
-        @media (max-width: 900px) {
+                @media (max-width: 1280px) {
+          .vta-hide-laptop {
+            display: none !important;
+          }
+          .vta-nav-pill-btn {
+            padding: 6px 10px;
+            font-size: 12px;
+            gap: 4px;
+          }
+          .vta-navbar-inner {
+            padding: 10px 20px;
+            gap: 14px;
+          }
+        }
+
+        /* Mobile & Tablet Responsive */
+        @media (max-width: 1040px) {
           .vta-hide-mobile {
             display: none !important;
           }

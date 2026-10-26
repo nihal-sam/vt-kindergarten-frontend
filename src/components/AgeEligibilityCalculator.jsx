@@ -86,17 +86,37 @@ export default function AgeEligibilityCalculator({ onInteraction }) {
       }
       messageParts.push(`(Source: Online Age Eligibility Calculator)`);
 
-      const { error: supabaseError } = await supabase
-        .from('admissions')
+      // Insert enquiry into primary cloud table student_admissions (with fallback to admissions)
+      let { error: supabaseError } = await supabase
+        .from('student_admissions')
         .insert([{
           child_name: normalizedName,
           dob: dateOfBirth,
           phone,
           email: email?.trim() || null,
           program: eligibleClass,
-          relation: eligibilityStatus,
-          message: messageParts.join('\n\n')
+          relation: eligibilityStatus || 'Eligible',
+          parent_name: normalizedName,
+          message: messageParts.join('\n\n'),
+          status: 'pending'
         }]);
+
+      if (supabaseError) {
+        const { error: fallbackErr } = await supabase
+          .from('admissions')
+          .insert([{
+            child_name: normalizedName,
+            dob: dateOfBirth,
+            phone,
+            email: email?.trim() || null,
+            program: eligibleClass,
+            relation: eligibilityStatus || 'Eligible',
+            parent_name: normalizedName,
+            message: messageParts.join('\n\n'),
+            status: 'pending'
+          }]);
+        supabaseError = fallbackErr;
+      }
 
       if (supabaseError) {
         console.error('Supabase error:', supabaseError);
