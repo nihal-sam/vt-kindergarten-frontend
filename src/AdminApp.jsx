@@ -1198,7 +1198,7 @@ function Dashboard({ admin, logout }) {
                   🛡️ SUPER ADMIN CONTROL • Administrator Accounts & Approvals
                 </span>
                 <h1 style={{ margin: '4px 0 6px' }}>Admin Registrations & Phone Verification Desk</h1>
-                <p>Review, confirm, or revoke portal administrator registrations with phone number OTP verification.</p>
+                <p>Review, confirm, or revoke portal administrator registrations with CAPTCHA security verification.</p>
               </>
             )}
           </div>

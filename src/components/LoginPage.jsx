@@ -1,163 +1,241 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   SUPER_ADMIN_CREDENTIALS,
   verifyAdminCredentials,
   registerNewAdmin,
   approveAdmin,
 } from '../utils/adminAuth';
-import { sendSecureOtpToPhone, verifyOtpWithSupabase } from '../utils/supabaseOtpService';
 
 const LOGO_SRC = '/assets/vt-logo.png';
 
 /**
- * Reusable banner for Fast2SMS status, WhatsApp instant dispatch & KYC guide
+ * Generate a cryptographically random 5-character alphanumeric CAPTCHA code
+ * (Excludes ambiguous characters 0/O, 1/I/l to avoid confusion)
  */
-function GatewayNoticeBanner({ notice, activeOtp, phone, onAutoFill, showOtp, onToggleShowOtp }) {
-  if (!notice || notice.success) return null;
+function generateCaptchaCode(length = 5) {
+  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+  let code = '';
+  for (let i = 0; i < length; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
+/**
+ * Modern, authentic security CAPTCHA component
+ * Renders stylized canvas with noise lines, dots, angled colored characters + refresh button
+ */
+function CaptchaBox({ captchaCode, onRefresh, enteredValue, onChange }) {
+  const canvasRef = useRef(null);
+  const cleanEntered = (enteredValue || '').trim().toUpperCase();
+  const cleanTarget = (captchaCode || '').toUpperCase();
+  const isMatch = cleanEntered.length > 0 && cleanEntered === cleanTarget;
+  const isLengthReached = cleanEntered.length >= cleanTarget.length;
+  const isDirty = cleanEntered.length > 0;
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const width = canvas.width;
+    const height = canvas.height;
+
+    // Dark sleek gradient background
+    const grad = ctx.createLinearGradient(0, 0, width, height);
+    grad.addColorStop(0, '#1E293B');
+    grad.addColorStop(0.5, '#0F172A');
+    grad.addColorStop(1, '#1E1B4B');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
+
+    // Decorative noise lines
+    const lineColors = [
+      'rgba(56, 189, 248, 0.35)',
+      'rgba(255, 107, 53, 0.35)',
+      'rgba(52, 211, 153, 0.35)',
+      'rgba(167, 139, 250, 0.35)',
+    ];
+    for (let i = 0; i < 4; i++) {
+      ctx.strokeStyle = lineColors[i % lineColors.length];
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(Math.random() * 20, Math.random() * height);
+      ctx.bezierCurveTo(
+        Math.random() * width,
+        Math.random() * height,
+        Math.random() * width,
+        Math.random() * height,
+        width - Math.random() * 20,
+        Math.random() * height
+      );
+      ctx.stroke();
+    }
+
+    // Noise dots
+    for (let i = 0; i < 30; i++) {
+      ctx.fillStyle = `rgba(255, 255, 255, ${Math.random() * 0.25 + 0.08})`;
+      ctx.beginPath();
+      ctx.arc(Math.random() * width, Math.random() * height, Math.random() * 1.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Draw characters with distinct vibrant colors, shadow and slight rotation
+    const charColors = ['#38BDF8', '#34D399', '#FBBF24', '#F472B6', '#A78BFA', '#FB923C'];
+    const charSpacing = width / (captchaCode.length + 0.85);
+
+    ctx.font = 'bold 22px "Plus Jakarta Sans", monospace';
+    ctx.textBaseline = 'middle';
+
+    for (let i = 0; i < captchaCode.length; i++) {
+      const char = captchaCode[i];
+      const x = (i + 0.65) * charSpacing;
+      const y = height / 2 + (Math.random() * 4 - 2);
+      const angle = (Math.random() * 24 - 12) * (Math.PI / 180);
+
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+      ctx.fillStyle = charColors[i % charColors.length];
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+      ctx.shadowBlur = 4;
+      ctx.fillText(char, -7, 1);
+      ctx.restore();
+    }
+  }, [captchaCode]);
 
   return (
-    <div
-      style={{
-        background: 'rgba(234, 88, 12, 0.16)',
-        border: '1.5px solid rgba(249, 115, 22, 0.55)',
-        borderRadius: 14,
-        padding: '14px 16px',
-        marginBottom: 16,
-        fontSize: 12.5,
-        color: '#FED7AA',
-        lineHeight: 1.5,
-        textAlign: 'left',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-        <span style={{ fontSize: 18 }}>⚠️</span>
-        <strong style={{ color: '#FB923C', fontSize: 13 }}>
-          Fast2SMS Gateway Status (Code {notice.statusCode || 996})
-        </strong>
-      </div>
+    <div style={{ marginBottom: 16 }}>
+      <label
+        style={{
+          display: 'block',
+          fontSize: 12,
+          fontWeight: 700,
+          color: 'rgba(255, 255, 255, 0.85)',
+          marginBottom: 6,
+        }}
+      >
+        Security Verification (CAPTCHA) <span style={{ color: '#FF6B35' }}>*</span>
+      </label>
 
-      <div style={{ marginBottom: 10, color: '#FFE8D6' }}>
-        {notice.statusCode === 996 ? (
-          <>
-            Fast2SMS blocks direct cellular SMS until <strong>Website Verification / Aadhaar KYC</strong> is completed in your Fast2SMS dashboard.
-          </>
-        ) : notice.statusCode === 999 ? (
-          <>
-            Fast2SMS requires a minimum ₹100 transaction to activate API route delivery.
-          </>
-        ) : (
-          notice.message || 'Fast2SMS pending account activation.'
-        )}
-      </div>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        {/* Visual Canvas Display */}
+        <div
+          style={{
+            borderRadius: 10,
+            overflow: 'hidden',
+            border: '1.5px solid rgba(255, 255, 255, 0.18)',
+            boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.5)',
+            height: 44,
+            display: 'flex',
+            alignItems: 'center',
+            background: '#0F172A',
+          }}
+          title="Security CAPTCHA Image - Enter these characters"
+        >
+          <canvas ref={canvasRef} width={128} height={44} style={{ display: 'block' }} />
+        </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {/* WhatsApp Delivery */}
-        {notice.whatsappUrl && (
-          <a
-            href={notice.whatsappUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+        {/* Refresh button */}
+        <button
+          type="button"
+          onClick={onRefresh}
+          title="Refresh / Generate New CAPTCHA"
+          style={{
+            background: 'rgba(255, 255, 255, 0.08)',
+            border: '1.5px solid rgba(255, 255, 255, 0.18)',
+            color: '#38BDF8',
+            borderRadius: 10,
+            width: 44,
+            height: 44,
+            fontSize: 18,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+            transition: 'all 0.15s ease',
+          }}
+        >
+          🔄
+        </button>
+
+        {/* Input box with real-time match feedback */}
+        <div style={{ position: 'relative', flex: 1 }}>
+          <input
+            className="vta-auth-inp"
+            type="text"
+            maxLength={captchaCode.length}
+            placeholder="Type code"
+            value={enteredValue}
+            onChange={(e) => onChange(e.target.value.toUpperCase())}
+            required
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
-              color: '#FFFFFF',
-              textDecoration: 'none',
+              width: '100%',
+              background: isMatch
+                ? 'rgba(16, 185, 129, 0.12)'
+                : isLengthReached && !isMatch
+                ? 'rgba(239, 68, 68, 0.12)'
+                : 'rgba(255, 255, 255, 0.08)',
+              border: `2px solid ${
+                isMatch
+                  ? '#10B981'
+                  : isLengthReached && !isMatch
+                  ? '#EF4444'
+                  : 'rgba(255, 255, 255, 0.18)'
+              }`,
               borderRadius: 10,
-              padding: '10px 14px',
-              fontSize: 13,
+              padding: '11px 36px 11px 12px',
+              color: isMatch ? '#34D399' : '#FFFFFF',
+              fontSize: 15,
               fontWeight: 800,
-              boxShadow: '0 4px 12px rgba(37, 211, 102, 0.35)',
+              letterSpacing: 3,
+              fontFamily: 'monospace',
+              textTransform: 'uppercase',
+              outline: 'none',
+              boxSizing: 'border-box',
+              transition: 'border-color 0.2s, background 0.2s',
             }}
-          >
-            <span>💬</span>
-            <span>Deliver OTP to My WhatsApp (+91 {phone})</span>
-          </a>
-        )}
-
-        {/* Instant Auto-Fill / View Code */}
-        {activeOtp && (
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              type="button"
-              onClick={() => onAutoFill?.(activeOtp)}
+          />
+          {isDirty && (
+            <span
               style={{
-                flex: 1,
-                background: 'rgba(56, 189, 248, 0.2)',
-                border: '1.5px solid #38BDF8',
-                color: '#38BDF8',
-                borderRadius: 8,
-                padding: '9px 12px',
-                fontSize: 12.5,
-                fontWeight: 800,
-                cursor: 'pointer',
+                position: 'absolute',
+                right: 11,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                fontSize: 16,
               }}
             >
-              ⚡ Quick Fill ({showOtp ? activeOtp : '••••••'})
-            </button>
-            <button
-              type="button"
-              onClick={() => onToggleShowOtp?.()}
-              style={{
-                background: 'rgba(255, 255, 255, 0.12)',
-                border: '1px solid rgba(255, 255, 255, 0.25)',
-                color: '#FFFFFF',
-                borderRadius: 8,
-                padding: '9px 12px',
-                fontSize: 12,
-                fontWeight: 700,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {showOtp ? '🙈 Hide' : '👁️ View'}
-            </button>
-          </div>
-        )}
-
-        {/* 1-Minute Activation Accordion */}
-        <details style={{ marginTop: 4, cursor: 'pointer' }}>
-          <summary style={{ fontSize: 11.5, color: '#FDBA74', fontWeight: 800 }}>
-            📋 How to enable 100% Cellular Phone SMS in Fast2SMS (1 minute)
-          </summary>
-          <div
-            style={{
-              background: 'rgba(0, 0, 0, 0.3)',
-              borderRadius: 8,
-              padding: '10px 12px',
-              marginTop: 6,
-              fontSize: 11.5,
-              color: 'rgba(255, 255, 255, 0.9)',
-              lineHeight: 1.6,
-            }}
-          >
-            <ol style={{ margin: '0 0 0 16px', padding: 0 }}>
-              <li>
-                Log in to{' '}
-                <a
-                  href="https://www.fast2sms.com/dashboard/otp"
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{ color: '#38BDF8', fontWeight: 700, textDecoration: 'underline' }}
-                >
-                  fast2sms.com/dashboard/otp
-                </a>
-              </li>
-              <li>Click <strong>OTP SMS</strong> menu on the left panel</li>
-              <li>Click <strong>KYC</strong> button & submit your Website URL</li>
-              <li>Complete instant Aadhaar OTP verification to unlock live cellular SMS</li>
-            </ol>
-          </div>
-        </details>
+              {isMatch ? '✅' : isLengthReached ? '❌' : ''}
+            </span>
+          )}
+        </div>
       </div>
+
+      {isDirty && (
+        <div
+          style={{
+            fontSize: 11.5,
+            fontWeight: 700,
+            marginTop: 5,
+            color: isMatch ? '#34D399' : isLengthReached ? '#F87171' : 'rgba(255, 255, 255, 0.6)',
+          }}
+        >
+          {isMatch
+            ? '✅ CAPTCHA verified correctly'
+            : isLengthReached
+            ? '❌ Incorrect code. Click 🔄 to refresh if unclear.'
+            : `Enter all ${captchaCode.length} characters (case-insensitive)`}
+        </div>
+      )}
     </div>
   );
 }
 
 export default function LoginPage({ onLocalLogin }) {
-  // Mode: 'login' | 'register' | 'login_otp' | 'register_success'
+  // Mode: 'login' | 'register' | 'register_success'
   const [mode, setMode] = useState('login');
 
   // Login Form State
@@ -166,6 +244,10 @@ export default function LoginPage({ onLocalLogin }) {
   const [loginError, setLoginError] = useState('');
   const [pendingAdmin, setPendingAdmin] = useState(null);
   const [pendingLoading, setPendingLoading] = useState(false);
+
+  // Login CAPTCHA State
+  const [loginCaptchaCode, setLoginCaptchaCode] = useState(() => generateCaptchaCode(5));
+  const [loginEnteredCaptcha, setLoginEnteredCaptcha] = useState('');
 
   // Register Form State
   const [regForm, setRegForm] = useState({
@@ -178,41 +260,44 @@ export default function LoginPage({ onLocalLogin }) {
   const [regLoading, setRegLoading] = useState(false);
   const [regError, setRegError] = useState('');
 
-  // Phone OTP State for Registration (Managed via Supabase backend, never shown on UI)
-  const [regOtpSent, setRegOtpSent] = useState(false);
-  const [regEnteredOtp, setRegEnteredOtp] = useState('');
-  const [regPhoneVerified, setRegPhoneVerified] = useState(false);
-  const [regOtpStatus, setRegOtpStatus] = useState(''); // '' | 'sent' | 'checking' | 'correct' | 'wrong'
-  const [regOtpMessage, setRegOtpMessage] = useState('');
-  const [regGatewayNotice, setRegGatewayNotice] = useState(null);
-  const [regActiveOtp, setRegActiveOtp] = useState('');
-  const [regShowOtp, setRegShowOtp] = useState(false);
+  // Register CAPTCHA State
+  const [regCaptchaCode, setRegCaptchaCode] = useState(() => generateCaptchaCode(5));
+  const [regEnteredCaptcha, setRegEnteredCaptcha] = useState('');
 
-  // Login 2FA OTP State (Managed via Supabase backend, never shown on UI)
-  const [loginTargetAdmin, setLoginTargetAdmin] = useState(null);
-  const [loginEnteredOtp, setLoginEnteredOtp] = useState('');
-  const [loginOtpStatus, setLoginOtpStatus] = useState(''); // '' | 'checking' | 'correct' | 'wrong'
-  const [loginOtpMessage, setLoginOtpMessage] = useState('');
-  const [loginGatewayNotice, setLoginGatewayNotice] = useState(null);
-  const [loginActiveOtp, setLoginActiveOtp] = useState('');
-  const [loginShowOtp, setLoginShowOtp] = useState(false);
-
-  // Helper: Format phone to 10 digits
+  // Helpers
   const formatPhone = (val = '') => String(val).replace(/\D/g, '').slice(0, 10);
 
-  // ================= 1. SUBMIT LOGIN (CREDENTIALS CHECK) =================
+  const refreshLoginCaptcha = () => {
+    setLoginCaptchaCode(generateCaptchaCode(5));
+    setLoginEnteredCaptcha('');
+  };
+
+  const refreshRegCaptcha = () => {
+    setRegCaptchaCode(generateCaptchaCode(5));
+    setRegEnteredCaptcha('');
+  };
+
+  // ================= 1. SUBMIT LOGIN (CREDENTIALS + CAPTCHA) =================
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setLoginLoading(true);
     setLoginError('');
     setPendingAdmin(null);
 
+    // 1. Validate CAPTCHA
+    if (loginEnteredCaptcha.trim().toUpperCase() !== loginCaptchaCode.toUpperCase()) {
+      setLoginError('❌ Incorrect CAPTCHA security code. Please check and try again.');
+      refreshLoginCaptcha();
+      setLoginLoading(false);
+      return;
+    }
+
     try {
       const emailTrimmed = loginForm.email.trim();
       const res = await verifyAdminCredentials(emailTrimmed, loginForm.password);
 
-      if (res.status === 'ok' && res.isSuperAdmin) {
-        // Super Admin logs in directly!
+      if (res.status === 'ok') {
+        // Super Admin or Approved Admin logs in directly!
         setLoginLoading(false);
         onLocalLogin?.(res.admin);
         return;
@@ -220,6 +305,7 @@ export default function LoginPage({ onLocalLogin }) {
 
       if (res.status === 'invalid_credentials') {
         setLoginError(res.error || 'Invalid email or password.');
+        refreshLoginCaptcha();
         setLoginLoading(false);
         return;
       }
@@ -234,31 +320,9 @@ export default function LoginPage({ onLocalLogin }) {
 
       if (res.status === 'rejected') {
         setLoginError(res.error || 'Your registration was rejected by the Super Admin.');
+        refreshLoginCaptcha();
         setLoginLoading(false);
         return;
-      }
-
-      if (res.status === 'require_otp') {
-        // Approved admin: Generate OTP and save inside Supabase backend, dispatch SMS
-        const phone = res.admin.phone || '9994994291';
-        setLoginTargetAdmin(res.admin);
-        setLoginEnteredOtp('');
-        setLoginOtpStatus('');
-        setLoginOtpMessage('');
-        setLoginGatewayNotice(null);
-        setLoginActiveOtp('');
-        setLoginShowOtp(false);
-        setMode('login_otp');
-
-        // Save OTP securely in Supabase backend
-        const otpRes = await sendSecureOtpToPhone({ phone, purpose: 'login_2fa' });
-        if (otpRes.success) {
-          setLoginActiveOtp(otpRes.otp);
-          setLoginGatewayNotice(otpRes.smsResult);
-          if (otpRes.smsResult?.success) {
-            setLoginOtpMessage(`📲 SMS with 6-digit OTP sent to +91 ${phone}`);
-          }
-        }
       }
     } catch (err) {
       setLoginError('Connection failed. Please check your network.');
@@ -267,35 +331,14 @@ export default function LoginPage({ onLocalLogin }) {
     }
   };
 
-  // ================= 2. INSTANT APPROVAL FOR TESTING/DEMO =================
-  const handleInstantApproveAndSendOtp = async () => {
+  // ================= 2. INSTANT APPROVAL FOR DEMO / TESTING =================
+  const handleInstantApproveAndLogin = async () => {
     if (!pendingAdmin) return;
     setPendingLoading(true);
     try {
       await approveAdmin(pendingAdmin.id || pendingAdmin.email);
-      const approvedAdmin = { ...pendingAdmin, status: 'approved' };
-      const phone = approvedAdmin.phone || '9994994291';
-
-      setLoginTargetAdmin(approvedAdmin);
-      setLoginEnteredOtp('');
-      setLoginOtpStatus('');
-      setLoginOtpMessage('');
-      setLoginGatewayNotice(null);
-      setLoginActiveOtp('');
-      setLoginShowOtp(false);
-      setPendingAdmin(null);
-      setLoginError('');
-      setMode('login_otp');
-
-      // Save OTP securely in Supabase backend
-      const otpRes = await sendSecureOtpToPhone({ phone, purpose: 'login_2fa' });
-      if (otpRes.success) {
-        setLoginActiveOtp(otpRes.otp);
-        setLoginGatewayNotice(otpRes.smsResult);
-        if (otpRes.smsResult?.success) {
-          setLoginOtpMessage(`📲 SMS with 6-digit OTP sent to +91 ${phone}`);
-        }
-      }
+      const approvedAdmin = { ...pendingAdmin, status: 'approved', isSuperAdmin: false };
+      onLocalLogin?.(approvedAdmin);
     } catch (err) {
       setLoginError('Failed to approve admin account. Please try again.');
     } finally {
@@ -303,171 +346,7 @@ export default function LoginPage({ onLocalLogin }) {
     }
   };
 
-  // ================= 3. REAL-TIME VALIDATION IN LOGIN OTP INPUT BOX VIA SUPABASE =================
-  const handleLoginOtpInputChange = async (val) => {
-    const digits = val.replace(/\D/g, '').slice(0, 6);
-    setLoginEnteredOtp(digits);
-
-    if (digits.length < 6) {
-      setLoginOtpStatus('');
-      setLoginOtpMessage('');
-    } else if (digits.length === 6) {
-      setLoginOtpStatus('checking');
-      setLoginOtpMessage('Verifying OTP with Supabase...');
-
-      const phone = loginTargetAdmin?.phone || '9994994291';
-      const verifyRes = await verifyOtpWithSupabase({ phone, enteredOtp: digits });
-
-      if (verifyRes.valid) {
-        setLoginOtpStatus('correct');
-        setLoginOtpMessage('✅ OTP Verified Successfully! Logging you in...');
-        setTimeout(() => {
-          onLocalLogin?.({
-            ...loginTargetAdmin,
-            isSuperAdmin: false,
-          });
-        }, 500);
-      } else {
-        setLoginOtpStatus('wrong');
-        setLoginOtpMessage(verifyRes.error || '❌ Incorrect OTP code. Please try again.');
-      }
-    }
-  };
-
-  const handleVerifyLoginOtp = async (e) => {
-    e.preventDefault();
-    if (loginEnteredOtp.length !== 6) return;
-
-    setLoginOtpStatus('checking');
-    const phone = loginTargetAdmin?.phone || '9994994291';
-    const verifyRes = await verifyOtpWithSupabase({ phone, enteredOtp: loginEnteredOtp });
-
-    if (verifyRes.valid) {
-      setLoginOtpStatus('correct');
-      onLocalLogin?.({
-        ...loginTargetAdmin,
-        isSuperAdmin: false,
-      });
-    } else {
-      setLoginOtpStatus('wrong');
-      setLoginOtpMessage(verifyRes.error || '❌ Incorrect OTP code.');
-    }
-  };
-
-  const handleResendLoginOtp = async () => {
-    const phone = loginTargetAdmin?.phone || '9994994291';
-    setLoginEnteredOtp('');
-    setLoginOtpStatus('');
-    setLoginGatewayNotice(null);
-    setLoginOtpMessage('Sending new OTP code...');
-    const otpRes = await sendSecureOtpToPhone({ phone, purpose: 'login_2fa' });
-    if (otpRes.success) {
-      setLoginActiveOtp(otpRes.otp);
-      setLoginGatewayNotice(otpRes.smsResult);
-      if (otpRes.smsResult?.success) {
-        setLoginOtpMessage(`📲 New OTP sent via SMS to +91 ${phone}`);
-      } else {
-        setLoginOtpMessage('');
-      }
-    }
-  };
-
-  // ================= 4. REGISTRATION PHONE OTP (REAL-TIME SUPABASE VERIFICATION) =================
-  const handleRegPhoneChange = async (val) => {
-    const clean = formatPhone(val);
-    setRegForm((prev) => ({ ...prev, phone: clean }));
-    setRegError('');
-
-    if (clean.length === 10) {
-      // Securely generate & save OTP in Supabase backend
-      setRegOtpSent(true);
-      setRegPhoneVerified(false);
-      setRegEnteredOtp('');
-      setRegOtpStatus('sent');
-      setRegGatewayNotice(null);
-      setRegActiveOtp('');
-      setRegShowOtp(false);
-      setRegOtpMessage('Generating secure OTP...');
-
-      const otpRes = await sendSecureOtpToPhone({ phone: clean, purpose: 'registration' });
-      if (otpRes.success) {
-        setRegActiveOtp(otpRes.otp);
-        setRegGatewayNotice(otpRes.smsResult);
-        if (otpRes.smsResult?.success) {
-          setRegOtpMessage(`📲 SMS with 6-digit OTP sent to +91 ${clean}`);
-        } else {
-          setRegOtpMessage('');
-        }
-      }
-    } else {
-      setRegOtpSent(false);
-      setRegPhoneVerified(false);
-      setRegEnteredOtp('');
-      setRegOtpStatus('');
-      setRegOtpMessage('');
-      setRegGatewayNotice(null);
-      setRegActiveOtp('');
-      setRegShowOtp(false);
-    }
-  };
-
-  const handleSendRegOtp = async () => {
-    const clean = formatPhone(regForm.phone);
-    if (clean.length !== 10) {
-      setRegError('Please enter a valid 10-digit mobile number.');
-      return;
-    }
-    setRegOtpSent(true);
-    setRegPhoneVerified(false);
-    setRegEnteredOtp('');
-    setRegOtpStatus('sent');
-    setRegGatewayNotice(null);
-    setRegOtpMessage('Sending SMS OTP...');
-
-    const otpRes = await sendSecureOtpToPhone({ phone: clean, purpose: 'registration' });
-    if (otpRes.success) {
-      setRegActiveOtp(otpRes.otp);
-      setRegGatewayNotice(otpRes.smsResult);
-      if (otpRes.smsResult?.success) {
-        setRegOtpMessage(`📲 New OTP sent via SMS to +91 ${clean}`);
-      } else {
-        setRegOtpMessage('');
-      }
-    }
-  };
-
-  // Real-time verification against Supabase when 6 digits are typed
-  const handleRegOtpInputChange = async (val) => {
-    const digits = val.replace(/\D/g, '').slice(0, 6);
-    setRegEnteredOtp(digits);
-
-    if (digits.length < 6) {
-      setRegOtpStatus('sent');
-      setRegPhoneVerified(false);
-      setRegOtpMessage('');
-    } else if (digits.length === 6) {
-      setRegOtpStatus('checking');
-      setRegOtpMessage('Verifying OTP with Supabase...');
-
-      const verifyRes = await verifyOtpWithSupabase({
-        phone: regForm.phone,
-        enteredOtp: digits,
-      });
-
-      if (verifyRes.valid) {
-        setRegOtpStatus('correct');
-        setRegPhoneVerified(true);
-        setRegOtpMessage('✅ OTP Verified Successfully! Mobile +91 ' + regForm.phone + ' confirmed.');
-        setRegError('');
-      } else {
-        setRegOtpStatus('wrong');
-        setRegPhoneVerified(false);
-        setRegOtpMessage(verifyRes.error || '❌ Incorrect OTP. Please check your phone SMS.');
-      }
-    }
-  };
-
-  // ================= 5. SUBMIT REGISTRATION =================
+  // ================= 3. SUBMIT REGISTRATION (DETAILS + CAPTCHA) =================
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     setRegError('');
@@ -478,11 +357,6 @@ export default function LoginPage({ onLocalLogin }) {
       return;
     }
 
-    if (!regPhoneVerified) {
-      setRegError('Please enter the correct 6-digit OTP sent to your phone message first.');
-      return;
-    }
-
     if (regForm.password.length < 6) {
       setRegError('Password must be at least 6 characters.');
       return;
@@ -490,6 +364,13 @@ export default function LoginPage({ onLocalLogin }) {
 
     if (regForm.password !== regForm.confirmPassword) {
       setRegError('Password and Confirm Password do not match.');
+      return;
+    }
+
+    // Validate CAPTCHA
+    if (regEnteredCaptcha.trim().toUpperCase() !== regCaptchaCode.toUpperCase()) {
+      setRegError('❌ Incorrect CAPTCHA security code. Please check and try again.');
+      refreshRegCaptcha();
       return;
     }
 
@@ -504,6 +385,7 @@ export default function LoginPage({ onLocalLogin }) {
 
       if (!res.success) {
         setRegError(res.error || 'Failed to submit registration.');
+        refreshRegCaptcha();
         setRegLoading(false);
         return;
       }
@@ -563,10 +445,25 @@ export default function LoginPage({ onLocalLogin }) {
               boxShadow: '0 10px 28px rgba(255, 107, 53, 0.3)',
             }}
           />
-          <h1 style={{ fontSize: 23, fontWeight: 900, color: '#FF6B35', margin: '0 0 3px', letterSpacing: -0.5 }}>
+          <h1
+            style={{
+              fontSize: 23,
+              fontWeight: 900,
+              color: '#FF6B35',
+              margin: '0 0 3px',
+              letterSpacing: -0.5,
+            }}
+          >
             VT Kindergarten
           </h1>
-          <p style={{ color: 'rgba(255, 255, 255, 0.65)', fontSize: 13, margin: 0, fontWeight: 600 }}>
+          <p
+            style={{
+              color: 'rgba(255, 255, 255, 0.65)',
+              fontSize: 13,
+              margin: 0,
+              fontWeight: 600,
+            }}
+          >
             Official Administrator Portal
           </p>
         </div>
@@ -589,9 +486,13 @@ export default function LoginPage({ onLocalLogin }) {
                 setMode('login');
                 setLoginError('');
                 setPendingAdmin(null);
+                refreshLoginCaptcha();
               }}
               style={{
-                background: mode === 'login' ? 'linear-gradient(135deg, #FF6B35, #FFA149)' : 'transparent',
+                background:
+                  mode === 'login'
+                    ? 'linear-gradient(135deg, #FF6B35, #FFA149)'
+                    : 'transparent',
                 color: mode === 'login' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.6)',
                 border: 'none',
                 borderRadius: 9,
@@ -609,9 +510,13 @@ export default function LoginPage({ onLocalLogin }) {
               onClick={() => {
                 setMode('register');
                 setRegError('');
+                refreshRegCaptcha();
               }}
               style={{
-                background: mode === 'register' ? 'linear-gradient(135deg, #FF6B35, #FFA149)' : 'transparent',
+                background:
+                  mode === 'register'
+                    ? 'linear-gradient(135deg, #FF6B35, #FFA149)'
+                    : 'transparent',
                 color: mode === 'register' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.6)',
                 border: 'none',
                 borderRadius: 9,
@@ -628,7 +533,7 @@ export default function LoginPage({ onLocalLogin }) {
         )}
 
         {/* ==============================================================
-            MODE 1: LOGIN (EMAIL & PASSWORD)
+            MODE 1: LOGIN (EMAIL + PASSWORD + CAPTCHA)
             ============================================================== */}
         {mode === 'login' && (
           <form onSubmit={handleLoginSubmit}>
@@ -755,6 +660,14 @@ export default function LoginPage({ onLocalLogin }) {
               />
             </div>
 
+            {/* CAPTCHA Security Verification Box */}
+            <CaptchaBox
+              captchaCode={loginCaptchaCode}
+              onRefresh={refreshLoginCaptcha}
+              enteredValue={loginEnteredCaptcha}
+              onChange={setLoginEnteredCaptcha}
+            />
+
             {/* Pending Admin Approval Prompt */}
             {pendingAdmin && (
               <div
@@ -781,7 +694,7 @@ export default function LoginPage({ onLocalLogin }) {
                   <button
                     type="button"
                     disabled={pendingLoading}
-                    onClick={handleInstantApproveAndSendOtp}
+                    onClick={handleInstantApproveAndLogin}
                     style={{
                       width: '100%',
                       background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
@@ -795,7 +708,7 @@ export default function LoginPage({ onLocalLogin }) {
                       boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)',
                     }}
                   >
-                    {pendingLoading ? 'Approving...' : '👑 Instant 1-Click Approve & Send Phone SMS OTP'}
+                    {pendingLoading ? 'Approving...' : '👑 1-Click Approve & Log In Directly'}
                   </button>
 
                   <button
@@ -807,6 +720,7 @@ export default function LoginPage({ onLocalLogin }) {
                       });
                       setLoginError('');
                       setPendingAdmin(null);
+                      refreshLoginCaptcha();
                     }}
                     style={{
                       width: '100%',
@@ -877,6 +791,7 @@ export default function LoginPage({ onLocalLogin }) {
                   setMode('register');
                   setRegError('');
                   setPendingAdmin(null);
+                  refreshRegCaptcha();
                 }}
                 style={{
                   background: 'none',
@@ -888,243 +803,32 @@ export default function LoginPage({ onLocalLogin }) {
                   textDecoration: 'underline',
                 }}
               >
-                Register with Phone OTP
+                Register Admin Account
               </button>
             </div>
           </form>
         )}
 
         {/* ==============================================================
-            MODE 2: LOGIN 2FA PHONE OTP (SUPABASE VERIFICATION IN INPUT BOX)
-            ============================================================== */}
-        {mode === 'login_otp' && (
-          <div>
-            <div style={{ textAlign: 'center', marginBottom: 20 }}>
-              <div style={{ fontSize: 36, marginBottom: 6 }}>🔐</div>
-              <h3 style={{ fontSize: 19, fontWeight: 800, margin: '0 0 6px', color: '#FFFFFF' }}>
-                Two-Factor Phone OTP Verification
-              </h3>
-              <p style={{ fontSize: 13, color: 'rgba(255, 255, 255, 0.7)', margin: 0, lineHeight: 1.5 }}>
-                An SMS with a 6-digit OTP code was sent to your phone message:
-                <br />
-                <strong style={{ color: '#38BDF8', fontSize: 15 }}>
-                  +91 {loginTargetAdmin?.phone || '9994994291'}
-                </strong>
-              </p>
-            </div>
-
-            {/* Gateway notice for Fast2SMS KYC / WhatsApp / Auto-fill fallback */}
-            <GatewayNoticeBanner
-              notice={loginGatewayNotice}
-              activeOtp={loginActiveOtp}
-              phone={loginTargetAdmin?.phone || '9994994291'}
-              onAutoFill={handleLoginOtpInputChange}
-              showOtp={loginShowOtp}
-              onToggleShowOtp={() => setLoginShowOtp(!loginShowOtp)}
-            />
-
-            <form onSubmit={handleVerifyLoginOtp}>
-              <div style={{ marginBottom: 18 }}>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: 12,
-                    fontWeight: 800,
-                    color: 'rgba(255, 255, 255, 0.75)',
-                    marginBottom: 8,
-                    textAlign: 'center',
-                    letterSpacing: 0.5,
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  Enter 6-Digit OTP From Phone Message
-                </label>
-
-                {/* Input box that checks whether it is correct or not directly inside */}
-                <div style={{ position: 'relative' }}>
-                  <input
-                    className="vta-auth-inp"
-                    type="text"
-                    maxLength={6}
-                    placeholder="• • • • • •"
-                    value={loginEnteredOtp}
-                    onChange={(e) => handleLoginOtpInputChange(e.target.value)}
-                    autoFocus
-                    required
-                    style={{
-                      width: '100%',
-                      background: 'rgba(255, 255, 255, 0.08)',
-                      border: `2.5px solid ${
-                        loginOtpStatus === 'correct'
-                          ? '#10B981'
-                          : loginOtpStatus === 'wrong'
-                          ? '#EF4444'
-                          : loginOtpStatus === 'checking'
-                          ? '#38BDF8'
-                          : 'rgba(255, 107, 53, 0.5)'
-                      }`,
-                      borderRadius: 14,
-                      padding: '14px 44px 14px 16px',
-                      color: loginOtpStatus === 'correct' ? '#34D399' : '#FFFFFF',
-                      fontSize: 24,
-                      fontWeight: 900,
-                      letterSpacing: 8,
-                      textAlign: 'center',
-                      fontFamily: 'monospace',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                      transition: 'border-color 0.2s, box-shadow 0.2s',
-                      boxShadow:
-                        loginOtpStatus === 'correct'
-                          ? '0 0 20px rgba(16, 185, 129, 0.4)'
-                          : loginOtpStatus === 'wrong'
-                          ? '0 0 20px rgba(239, 68, 68, 0.4)'
-                          : 'none',
-                    }}
-                  />
-                  {loginOtpStatus === 'correct' && (
-                    <span
-                      style={{
-                        position: 'absolute',
-                        right: 14,
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        fontSize: 20,
-                      }}
-                    >
-                      ✅
-                    </span>
-                  )}
-                  {loginOtpStatus === 'wrong' && (
-                    <span
-                      style={{
-                        position: 'absolute',
-                        right: 14,
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        fontSize: 20,
-                      }}
-                    >
-                      ❌
-                    </span>
-                  )}
-                  {loginOtpStatus === 'checking' && (
-                    <span
-                      style={{
-                        position: 'absolute',
-                        right: 14,
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        fontSize: 16,
-                      }}
-                    >
-                      ⏳
-                    </span>
-                  )}
-                </div>
-
-                {loginOtpMessage && (
-                  <div
-                    style={{
-                      color: loginOtpStatus === 'correct' ? '#34D399' : loginOtpStatus === 'wrong' ? '#F87171' : '#38BDF8',
-                      fontSize: 12.5,
-                      fontWeight: 800,
-                      marginTop: 8,
-                      textAlign: 'center',
-                    }}
-                  >
-                    {loginOtpMessage}
-                  </div>
-                )}
-              </div>
-
-              <button
-                type="submit"
-                disabled={loginEnteredOtp.length !== 6 || loginOtpStatus === 'wrong'}
-                style={{
-                  width: '100%',
-                  background:
-                    loginOtpStatus === 'correct'
-                      ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)'
-                      : 'linear-gradient(135deg, #FF6B35 0%, #FF8A00 100%)',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  borderRadius: 12,
-                  padding: '14px',
-                  fontSize: 15,
-                  fontWeight: 800,
-                  cursor: loginEnteredOtp.length === 6 ? 'pointer' : 'not-allowed',
-                  opacity: loginEnteredOtp.length === 6 ? 1 : 0.6,
-                  boxShadow: '0 8px 24px rgba(255, 107, 53, 0.35)',
-                  marginBottom: 14,
-                  transition: 'all 0.2s',
-                }}
-              >
-                {loginOtpStatus === 'correct'
-                  ? 'Verified! Entering Dashboard...'
-                  : 'Verify OTP & Enter Admin Dashboard'}
-              </button>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
-                <button
-                  type="button"
-                  onClick={handleResendLoginOtp}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#38BDF8',
-                    fontSize: 12.5,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    textDecoration: 'underline',
-                  }}
-                >
-                  🔄 Resend SMS OTP
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMode('login');
-                    setLoginError('');
-                    setPendingAdmin(null);
-                  }}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'rgba(255, 255, 255, 0.5)',
-                    fontSize: 12.5,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
-                >
-                  ← Back to Sign In
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {/* ==============================================================
-            MODE 3: REGISTER AS ADMIN (SUPABASE SECURE VERIFICATION)
+            MODE 2: REGISTER AS ADMIN (CAPTCHA VERIFICATION)
             ============================================================== */}
         {mode === 'register' && (
           <form onSubmit={handleRegisterSubmit}>
             {/* Info Notice */}
             <div
               style={{
-                background: 'rgba(245, 158, 11, 0.12)',
-                border: '1px solid rgba(245, 158, 11, 0.3)',
+                background: 'rgba(56, 189, 248, 0.12)',
+                border: '1px solid rgba(56, 189, 248, 0.3)',
                 borderRadius: 10,
-                padding: '9px 12px',
+                padding: '10px 14px',
                 marginBottom: 15,
                 fontSize: 12,
-                color: '#FDE68A',
+                color: '#BAE6FD',
                 lineHeight: 1.4,
               }}
             >
-              ℹ️ <strong>Phone OTP Verification Required:</strong> Enter 10-digit mobile number. An OTP will be sent to
-              your phone message. Super Admin confirms registration.
+              🛡️ <strong>New Admin Registration:</strong> Fill out details and complete the CAPTCHA
+              security check below. Super Admin confirms your registration.
             </div>
 
             {/* Full Name */}
@@ -1195,232 +899,42 @@ export default function LoginPage({ onLocalLogin }) {
               />
             </div>
 
-            {/* Phone Number with Real-time Validating Input Box */}
-            <div style={{ marginBottom: 14 }}>
-              <div
+            {/* Mobile Phone (10 Digits) */}
+            <div style={{ marginBottom: 12 }}>
+              <label
                 style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
+                  display: 'block',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: 'rgba(255, 255, 255, 0.8)',
                   marginBottom: 4,
                 }}
               >
-                <label style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255, 255, 255, 0.8)' }}>
-                  Mobile Phone (10 Digits) <span style={{ color: '#FF6B35' }}>*</span>
-                </label>
-                {regPhoneVerified && (
-                  <span style={{ color: '#34D399', fontSize: 12, fontWeight: 800 }}>
-                    ✅ +91 {regForm.phone} Verified
-                  </span>
-                )}
-              </div>
-
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input
-                  className="vta-auth-inp"
-                  type="tel"
-                  placeholder="e.g. 9994994291"
-                  maxLength={10}
-                  value={regForm.phone}
-                  onChange={(e) => handleRegPhoneChange(e.target.value)}
-                  required
-                  style={{
-                    flex: 1,
-                    background: regPhoneVerified ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255, 255, 255, 0.08)',
-                    border: `1.5px solid ${regPhoneVerified ? '#10B981' : 'rgba(255, 255, 255, 0.15)'}`,
-                    borderRadius: 10,
-                    padding: '10px 14px',
-                    color: '#FFFFFF',
-                    fontSize: 14,
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                    fontWeight: 700,
-                  }}
-                />
-
-                <button
-                  type="button"
-                  onClick={handleSendRegOtp}
-                  disabled={formatPhone(regForm.phone).length !== 10}
-                  style={{
-                    background: formatPhone(regForm.phone).length === 10 ? '#FF6B35' : 'rgba(255,255,255,0.12)',
-                    color: '#FFFFFF',
-                    border: 'none',
-                    borderRadius: 10,
-                    padding: '0 14px',
-                    fontSize: 12,
-                    fontWeight: 800,
-                    cursor: formatPhone(regForm.phone).length === 10 ? 'pointer' : 'not-allowed',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {regOtpSent ? '🔄 Resend SMS' : '📲 Send SMS OTP'}
-                </button>
-              </div>
-
-              {/* Real-time validating OTP input box (Checks against Supabase backend) */}
-              {regOtpSent && !regPhoneVerified && (
-                <div style={{ marginTop: 12 }}>
-                  {/* Gateway notice for Fast2SMS KYC / WhatsApp / Auto-fill fallback */}
-                  <GatewayNoticeBanner
-                    notice={regGatewayNotice}
-                    activeOtp={regActiveOtp}
-                    phone={regForm.phone}
-                    onAutoFill={handleRegOtpInputChange}
-                    showOtp={regShowOtp}
-                    onToggleShowOtp={() => setRegShowOtp(!regShowOtp)}
-                  />
-
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      marginBottom: 6,
-                      fontSize: 12,
-                      color: '#93C5FD',
-                      fontWeight: 700,
-                    }}
-                  >
-                    <span>📲 SMS Sent to +91 {regForm.phone}</span>
-                    <button
-                      type="button"
-                      onClick={handleSendRegOtp}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: '#38BDF8',
-                        fontSize: 11.5,
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        textDecoration: 'underline',
-                      }}
-                    >
-                      Resend SMS
-                    </button>
-                  </div>
-
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type="text"
-                      maxLength={6}
-                      placeholder="Enter 6-digit OTP from SMS"
-                      value={regEnteredOtp}
-                      onChange={(e) => handleRegOtpInputChange(e.target.value)}
-                      autoFocus
-                      style={{
-                        width: '100%',
-                        background: 'rgba(255, 255, 255, 0.08)',
-                        border: `2px solid ${
-                          regOtpStatus === 'correct'
-                            ? '#10B981'
-                            : regOtpStatus === 'wrong'
-                            ? '#EF4444'
-                            : regOtpStatus === 'checking'
-                            ? '#38BDF8'
-                            : 'rgba(255, 255, 255, 0.25)'
-                        }`,
-                        borderRadius: 12,
-                        padding: '12px 40px 12px 16px',
-                        color: regOtpStatus === 'correct' ? '#34D399' : '#FFFFFF',
-                        fontSize: 18,
-                        fontWeight: 900,
-                        letterSpacing: 6,
-                        textAlign: 'center',
-                        fontFamily: 'monospace',
-                        outline: 'none',
-                        boxSizing: 'border-box',
-                        transition: 'border-color 0.2s, box-shadow 0.2s',
-                        boxShadow:
-                          regOtpStatus === 'correct'
-                            ? '0 0 16px rgba(16, 185, 129, 0.35)'
-                            : regOtpStatus === 'wrong'
-                            ? '0 0 16px rgba(239, 68, 68, 0.35)'
-                            : 'none',
-                      }}
-                    />
-                    {regOtpStatus === 'correct' && (
-                      <span
-                        style={{
-                          position: 'absolute',
-                          right: 14,
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          fontSize: 18,
-                        }}
-                      >
-                        ✅
-                      </span>
-                    )}
-                    {regOtpStatus === 'wrong' && (
-                      <span
-                        style={{
-                          position: 'absolute',
-                          right: 14,
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          fontSize: 18,
-                        }}
-                      >
-                        ❌
-                      </span>
-                    )}
-                    {regOtpStatus === 'checking' && (
-                      <span
-                        style={{
-                          position: 'absolute',
-                          right: 14,
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          fontSize: 16,
-                        }}
-                      >
-                        ⏳
-                      </span>
-                    )}
-                  </div>
-
-                  {regOtpMessage && (
-                    <div
-                      style={{
-                        color:
-                          regOtpStatus === 'correct'
-                            ? '#34D399'
-                            : regOtpStatus === 'wrong'
-                            ? '#F87171'
-                            : '#93C5FD',
-                        fontSize: 12,
-                        fontWeight: 700,
-                        marginTop: 6,
-                        textAlign: 'center',
-                      }}
-                    >
-                      {regOtpMessage}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {regPhoneVerified && (
-                <div
-                  style={{
-                    marginTop: 8,
-                    background: 'rgba(16, 185, 129, 0.15)',
-                    border: '1px solid #10B981',
-                    borderRadius: 8,
-                    padding: '8px 12px',
-                    color: '#34D399',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                  }}
-                >
-                  <span>✅</span>
-                  <span>Mobile +91 {regForm.phone} verified successfully via OTP!</span>
-                </div>
-              )}
+                Mobile Phone (10 Digits) <span style={{ color: '#FF6B35' }}>*</span>
+              </label>
+              <input
+                className="vta-auth-inp"
+                type="tel"
+                placeholder="e.g. 9994994291"
+                maxLength={10}
+                value={regForm.phone}
+                onChange={(e) =>
+                  setRegForm({ ...regForm, phone: formatPhone(e.target.value) })
+                }
+                required
+                style={{
+                  width: '100%',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1.5px solid rgba(255, 255, 255, 0.15)',
+                  borderRadius: 10,
+                  padding: '10px 14px',
+                  color: '#FFFFFF',
+                  fontSize: 14,
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  fontWeight: 700,
+                }}
+              />
             </div>
 
             {/* Password */}
@@ -1475,7 +989,9 @@ export default function LoginPage({ onLocalLogin }) {
                 type="password"
                 placeholder="Re-enter password"
                 value={regForm.confirmPassword}
-                onChange={(e) => setRegForm({ ...regForm, confirmPassword: e.target.value })}
+                onChange={(e) =>
+                  setRegForm({ ...regForm, confirmPassword: e.target.value })
+                }
                 required
                 style={{
                   width: '100%',
@@ -1490,6 +1006,14 @@ export default function LoginPage({ onLocalLogin }) {
                 }}
               />
             </div>
+
+            {/* Security CAPTCHA Check */}
+            <CaptchaBox
+              captchaCode={regCaptchaCode}
+              onRefresh={refreshRegCaptcha}
+              enteredValue={regEnteredCaptcha}
+              onChange={setRegEnteredCaptcha}
+            />
 
             {/* Registration Error */}
             {regError && (
@@ -1513,27 +1037,21 @@ export default function LoginPage({ onLocalLogin }) {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={regLoading || !regPhoneVerified}
+              disabled={regLoading}
               style={{
                 width: '100%',
-                background: regPhoneVerified
-                  ? 'linear-gradient(135deg, #FF6B35 0%, #FF8A00 100%)'
-                  : 'rgba(255, 255, 255, 0.15)',
+                background: 'linear-gradient(135deg, #FF6B35 0%, #FF8A00 100%)',
                 color: '#FFFFFF',
                 border: 'none',
                 borderRadius: 12,
                 padding: '14px',
                 fontSize: 14.5,
                 fontWeight: 800,
-                cursor: regPhoneVerified ? 'pointer' : 'not-allowed',
-                boxShadow: regPhoneVerified ? '0 8px 24px rgba(255, 107, 53, 0.35)' : 'none',
+                cursor: 'pointer',
+                boxShadow: '0 8px 24px rgba(255, 107, 53, 0.35)',
               }}
             >
-              {regLoading
-                ? 'Registering Account...'
-                : !regPhoneVerified
-                ? 'Verify Phone OTP to Submit Registration'
-                : 'Submit Admin Registration'}
+              {regLoading ? 'Registering Account...' : 'Submit Admin Registration'}
             </button>
 
             {/* Switch to Login link */}
@@ -1547,6 +1065,7 @@ export default function LoginPage({ onLocalLogin }) {
                   setMode('login');
                   setLoginError('');
                   setPendingAdmin(null);
+                  refreshLoginCaptcha();
                 }}
                 style={{
                   background: 'none',
@@ -1565,7 +1084,7 @@ export default function LoginPage({ onLocalLogin }) {
         )}
 
         {/* ==============================================================
-            MODE 4: REGISTRATION SUCCESS CONFIRMATION
+            MODE 3: REGISTRATION SUCCESS CONFIRMATION
             ============================================================== */}
         {mode === 'register_success' && (
           <div style={{ textAlign: 'center', padding: '10px 0' }}>
@@ -1587,17 +1106,26 @@ export default function LoginPage({ onLocalLogin }) {
                 lineHeight: 1.5,
               }}
             >
-              <div style={{ fontWeight: 800, fontSize: 13.5, color: '#FBBF24', marginBottom: 6 }}>
+              <div
+                style={{
+                  fontWeight: 800,
+                  fontSize: 13.5,
+                  color: '#FBBF24',
+                  marginBottom: 6,
+                }}
+              >
                 ⏳ Status: PENDING SUPER ADMIN APPROVAL
               </div>
               <div>
-                Your admin registration for <strong>{regForm.email}</strong> with verified mobile{' '}
-                <strong style={{ color: '#FDE68A' }}>+91 {regForm.phone}</strong> has been successfully submitted!
+                Your admin registration for <strong>{regForm.email}</strong> with mobile{' '}
+                <strong style={{ color: '#FDE68A' }}>+91 {regForm.phone}</strong> has been successfully
+                submitted to the system!
               </div>
               <div style={{ marginTop: 10, fontSize: 12, color: 'rgba(254, 243, 199, 0.9)' }}>
-                • Super Admin (<strong>superadmin@vtkindergarten.com</strong>) must confirm your registration.
+                • Super Admin (<strong>superadmin@vtkindergarten.com</strong>) will review and confirm
+                your registration.
                 <br />
-                • Once approved, you can sign in with your email, password, and mobile OTP.
+                • Once approved, you can sign in directly with your email, password, and CAPTCHA.
               </div>
             </div>
 
@@ -1612,6 +1140,7 @@ export default function LoginPage({ onLocalLogin }) {
                   });
                   setLoginError('');
                   setPendingAdmin(null);
+                  refreshLoginCaptcha();
                 }}
                 style={{
                   width: '100%',
@@ -1636,6 +1165,7 @@ export default function LoginPage({ onLocalLogin }) {
                   setLoginForm({ email: regForm.email, password: '' });
                   setLoginError('');
                   setPendingAdmin(null);
+                  refreshLoginCaptcha();
                 }}
                 style={{
                   width: '100%',

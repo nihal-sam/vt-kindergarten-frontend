@@ -342,7 +342,7 @@ export async function verifyAdminCredentials(email, password) {
     (password === 'admin123' || password === 'AdminPassword123!')
   ) {
     return {
-      status: 'require_otp',
+      status: 'ok',
       isSuperAdmin: false,
       admin: {
         email: cleanEmail,
@@ -383,9 +383,9 @@ export async function verifyAdminCredentials(email, password) {
     };
   }
 
-  // Status is approved -> Require Phone OTP
+  // Status is approved -> Direct login ok with credentials & CAPTCHA!
   return {
-    status: 'require_otp',
+    status: 'ok',
     isSuperAdmin: false,
     admin: found,
   };

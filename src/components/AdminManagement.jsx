@@ -67,7 +67,7 @@ export default function AdminManagement({ currentAdmin, onLogout }) {
         if (res.success) {
           showNotification(
             'success',
-            `✅ Admin "${admin.name}" (${admin.email}) has been APPROVED! They can now log in with Phone OTP verification.`
+            `✅ Admin "${admin.name}" (${admin.email}) has been APPROVED! They can now log in directly.`
           );
           await loadAdmins();
         } else {
@@ -731,7 +731,7 @@ export default function AdminManagement({ currentAdmin, onLogout }) {
 
             <p style={{ margin: '0 0 20px', fontSize: 13.5, color: '#475569', lineHeight: 1.5 }}>
               {confirmModal.type === 'approve'
-                ? 'Do you want to confirm and approve this administrator? Once approved, they will be permitted to sign in to the Admin Console using Phone OTP.'
+                ? 'Do you want to confirm and approve this administrator? Once approved, they will be permitted to sign in to the Admin Console.'
                 : confirmModal.type === 'reject'
                 ? 'Do you want to reject this admin registration? They will be blocked from accessing the Admin Console.'
                 : 'Are you sure you want to permanently delete this administrator record?'}
