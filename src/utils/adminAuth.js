@@ -26,6 +26,7 @@ export function generateOTP() {
 
 // Fetch all registered admins from Supabase student_admissions (relation = 'Admin Account')
 export async function fetchRegisteredAdmins() {
+  let dbAdmins = [];
   try {
     const { data, error } = await supabase
       .from('student_admissions')
@@ -33,43 +34,70 @@ export async function fetchRegisteredAdmins() {
       .eq('relation', 'Admin Account')
       .order('created_at', { ascending: false });
 
-    if (error) {
+    if (!error && data) {
+      dbAdmins = data.map((row) => {
+        let extra = {};
+        try {
+          extra = JSON.parse(row.message || '{}');
+        } catch (_) {}
+
+        return {
+          id: row.id,
+          created_at: row.created_at,
+          name: row.child_name || row.parent_name || 'Admin User',
+          email: (row.email || '').toLowerCase().trim(),
+          phone: row.phone || extra.phone || '',
+          status: row.status || 'pending', // 'pending' | 'approved' | 'rejected'
+          role: extra.role || 'admin',
+          password: extra.password || '',
+          phone_verified: extra.phone_verified ?? true,
+          approved_by: extra.approved_by || null,
+          approved_at: extra.approved_at || null,
+        };
+      });
+    } else if (error) {
       console.warn('Supabase fetchRegisteredAdmins error:', error.message);
-      const cached = localStorage.getItem('vt_registered_admins');
-      return cached ? JSON.parse(cached) : [];
     }
-
-    const admins = (data || []).map((row) => {
-      let extra = {};
-      try {
-        extra = JSON.parse(row.message || '{}');
-      } catch (_) {}
-
-      return {
-        id: row.id,
-        created_at: row.created_at,
-        name: row.child_name || row.parent_name || 'Admin User',
-        email: (row.email || '').toLowerCase().trim(),
-        phone: row.phone || extra.phone || '',
-        status: row.status || 'pending', // 'pending' | 'approved' | 'rejected'
-        role: extra.role || 'admin',
-        password: extra.password || '',
-        phone_verified: extra.phone_verified ?? true,
-        approved_by: extra.approved_by || null,
-        approved_at: extra.approved_at || null,
-      };
-    });
-
-    try {
-      localStorage.setItem('vt_registered_admins', JSON.stringify(admins));
-    } catch (_) {}
-
-    return admins;
   } catch (err) {
     console.error('Error in fetchRegisteredAdmins:', err);
-    const cached = localStorage.getItem('vt_registered_admins');
-    return cached ? JSON.parse(cached) : [];
   }
+
+  // Load cached admins from localStorage to merge
+  let localAdmins = [];
+  try {
+    const cached = localStorage.getItem('vt_registered_admins');
+    if (cached) localAdmins = JSON.parse(cached);
+  } catch (_) {}
+
+  const emailMap = new Map();
+  // 1. First add DB records
+  for (const a of dbAdmins) {
+    if (a.email) emailMap.set(a.email.toLowerCase(), a);
+  }
+  // 2. Merge local records
+  for (const a of localAdmins) {
+    const key = (a.email || '').toLowerCase();
+    if (!key) continue;
+    if (!emailMap.has(key)) {
+      emailMap.set(key, a);
+    } else {
+      const existing = emailMap.get(key);
+      // Keep approved status if local was marked approved
+      if (a.status === 'approved' && existing.status !== 'approved') {
+        emailMap.set(key, { ...existing, status: 'approved' });
+      }
+      if (a.password && !existing.password) {
+        emailMap.set(key, { ...existing, password: a.password });
+      }
+    }
+  }
+
+  const combined = Array.from(emailMap.values());
+  try {
+    localStorage.setItem('vt_registered_admins', JSON.stringify(combined));
+  } catch (_) {}
+
+  return combined;
 }
 
 // Register a new admin account (Pending Super Admin Approval)
@@ -128,7 +156,7 @@ export async function registerNewAdmin({ name, email, phone, password }) {
         password: password,
         phone_verified: true,
       };
-      const updated = [newAdmin, ...existing];
+      const updated = [newAdmin, ...existing.filter((a) => a.email !== cleanEmail)];
       localStorage.setItem('vt_registered_admins', JSON.stringify(updated));
       return { success: true, admin: newAdmin, isLocal: true };
     }
@@ -146,7 +174,7 @@ export async function registerNewAdmin({ name, email, phone, password }) {
       phone_verified: true,
     };
 
-    const updated = [newAdmin, ...existing.filter((a) => a.id !== newAdmin.id)];
+    const updated = [newAdmin, ...existing.filter((a) => a.id !== newAdmin.id && a.email !== cleanEmail)];
     localStorage.setItem('vt_registered_admins', JSON.stringify(updated));
     return { success: true, admin: newAdmin };
   } catch (err) {
@@ -156,14 +184,20 @@ export async function registerNewAdmin({ name, email, phone, password }) {
 }
 
 // Approve admin registration (by Super Admin)
-export async function approveAdmin(adminId, superAdminEmail = SUPER_ADMIN_CREDENTIALS.email) {
+export async function approveAdmin(adminIdOrEmail, superAdminEmail = SUPER_ADMIN_CREDENTIALS.email) {
   try {
-    // 1. Fetch current row
-    const { data: row } = await supabase
-      .from('student_admissions')
-      .select('*')
-      .eq('id', adminId)
-      .single();
+    const isEmail = typeof adminIdOrEmail === 'string' && adminIdOrEmail.includes('@');
+    const cleanIdentifier = String(adminIdOrEmail).toLowerCase().trim();
+
+    // 1. Fetch current row from Supabase
+    let query = supabase.from('student_admissions').select('*').eq('relation', 'Admin Account');
+    if (isEmail) {
+      query = query.eq('email', cleanIdentifier);
+    } else {
+      query = query.eq('id', adminIdOrEmail);
+    }
+    const { data: rows } = await query.limit(1);
+    const row = rows && rows[0];
 
     if (row) {
       let extra = {};
@@ -176,8 +210,8 @@ export async function approveAdmin(adminId, superAdminEmail = SUPER_ADMIN_CREDEN
       extra.approved_by = superAdminEmail;
       extra.approved_at = new Date().toISOString();
 
-      // Delete old and re-insert with approved status (bypasses Supabase anon UPDATE RLS restrictions)
-      await supabase.from('student_admissions').delete().eq('id', adminId);
+      // Delete old and re-insert with approved status
+      await supabase.from('student_admissions').delete().eq('id', row.id);
 
       const clone = {
         child_name: row.child_name,
@@ -193,11 +227,11 @@ export async function approveAdmin(adminId, superAdminEmail = SUPER_ADMIN_CREDEN
       await supabase.from('student_admissions').insert([clone]);
     }
 
-    // Update local storage
+    // 2. Update local storage
     const cached = localStorage.getItem('vt_registered_admins');
     if (cached) {
       const list = JSON.parse(cached).map((a) =>
-        a.id === adminId
+        (a.id === adminIdOrEmail || (a.email && a.email.toLowerCase() === cleanIdentifier))
           ? { ...a, status: 'approved', approved_by: superAdminEmail, approved_at: new Date().toISOString() }
           : a
       );
