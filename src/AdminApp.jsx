@@ -2,6 +2,9 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { supabase } from "./supabaseClient";
 import { parseEnquiryEligibility, CUTOFF_LABEL } from "./utils/ageEligibility";
 import BillGeneration from "./components/BillGeneration";
+import LoginPage from "./components/LoginPage";
+import AdminManagement from "./components/AdminManagement";
+import { fetchRegisteredAdmins } from "./utils/adminAuth";
 import "./admin.css";
 
 const LOGO_SRC = '/assets/vt-logo.png';
@@ -208,197 +211,6 @@ function useAuth() {
 
   return { session, admin: currentAdmin, loginLocal, logout, isAuth, loading };
 }
-
-/* ==========================================================================
-   ORIGINAL LOGIN PAGE DESIGN (Restored exact look & feel)
-   ========================================================================== */
-const s = {
-  loginWrap: {
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: 'linear-gradient(135deg,#1a1a2e,#16213e)',
-    fontFamily: "'Nunito',sans-serif",
-    padding: 20,
-    boxSizing: 'border-box',
-  },
-  loginCard: {
-    background: 'rgba(255,255,255,0.05)',
-    backdropFilter: 'blur(20px)',
-    WebkitBackdropFilter: 'blur(20px)',
-    border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: 24,
-    padding: '48px 40px',
-    width: 420,
-    maxWidth: '95vw',
-    boxSizing: 'border-box',
-    boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-  },
-  loginLogo: {
-    width: 112,
-    height: 112,
-    display: 'block',
-    margin: '0 auto 16px',
-    padding: 4,
-    borderRadius: '50%',
-    background: 'white',
-    objectFit: 'contain',
-    boxShadow: '0 12px 32px rgba(255,107,53,0.24)',
-    boxSizing: 'border-box',
-  },
-  fg: {
-    marginBottom: 20,
-  },
-  label: {
-    display: 'block',
-    marginBottom: 8,
-    fontWeight: 700,
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
-  },
-  inp: {
-    width: '100%',
-    background: 'rgba(255,255,255,0.08)',
-    border: '1.5px solid rgba(255,255,255,0.15)',
-    borderRadius: 12,
-    padding: '14px 18px',
-    color: 'white',
-    fontSize: 15,
-    fontFamily: "'Nunito',sans-serif",
-    outline: 'none',
-    boxSizing: 'border-box',
-    transition: 'border-color 0.2s, background 0.2s',
-  },
-  err: {
-    background: 'rgba(255,0,0,0.15)',
-    border: '1px solid rgba(255,0,0,0.3)',
-    borderRadius: 10,
-    padding: '12px 16px',
-    color: '#ff8888',
-    marginBottom: 16,
-    fontSize: 14,
-    fontWeight: 700,
-    textAlign: 'center',
-  },
-  loginBtn: {
-    width: '100%',
-    background: 'linear-gradient(135deg,#FF6B35,#FFD93D)',
-    border: 'none',
-    borderRadius: 12,
-    padding: 16,
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 800,
-    cursor: 'pointer',
-    fontFamily: "'Nunito',sans-serif",
-    boxShadow: '0 8px 24px rgba(255,107,53,0.28)',
-    transition: 'transform 0.2s, box-shadow 0.2s',
-  },
-};
-
-function LoginPage({ onLocalLogin }) {
-  const [form, setForm] = useState({ email: '', password: '' });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  const submit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    const emailTrimmed = (form.email || '').trim().toLowerCase();
-    const isMasterCredentials =
-      (emailTrimmed === 'admin@vtkindergarten.com' || emailTrimmed === 'admin2@vtkindergarten.com') &&
-      (form.password === 'admin123' || form.password === 'AdminPassword123!');
-
-    try {
-      // 1. Authenticate with Supabase Auth (establishes JWT token for Row Level Security)
-      const { data, error: loginErr } = await supabase.auth.signInWithPassword({
-        email: emailTrimmed,
-        password: form.password,
-      });
-
-      if (!loginErr && data?.session) {
-        // Authenticated with Supabase! useAuth onAuthStateChange handles session state
-        setLoading(false);
-        return;
-      }
-
-      // 2. If Supabase Auth fails but master credentials were used, allow local login
-      if (isMasterCredentials) {
-        onLocalLogin?.({
-          email: form.email,
-          name: emailTrimmed.startsWith('admin2') ? 'Admin 2' : 'Admin 1',
-          role: 'Administrator',
-        });
-        setLoading(false);
-        return;
-      }
-
-      setError(loginErr?.message || 'Invalid email or password.');
-    } catch {
-      if (isMasterCredentials) {
-        onLocalLogin?.({
-          email: form.email,
-          name: 'Admin',
-          role: 'Administrator',
-        });
-      } else {
-        setError('Connection failed. Please check your network connection.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-
-  return (
-    <div style={s.loginWrap}>
-      <style>{`
-        @media (max-width: 768px) {
-          .admin-login-card { padding: 32px 24px !important; width: 100% !important; border-radius: 16px !important; }
-        }
-      `}</style>
-      <div style={s.loginCard} className="admin-login-card">
-        <div style={{ textAlign: 'center', marginBottom: 36 }}>
-          <img style={s.loginLogo} src={LOGO_SRC} alt="VT Kindergarten Pre School logo" />
-          <h1 style={{ fontFamily: 'sans-serif', fontSize: 28, color: '#FF6B35', margin: '0 0 6px' }}>VT Kindergarten</h1>
-          <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, margin: 0 }}>Admin Portal</p>
-        </div>
-        <form onSubmit={submit}>
-          <div style={s.fg}>
-            <label style={s.label}>Email Address</label>
-            <input
-              style={s.inp}
-              type="email"
-              placeholder="Enter your email address"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              required
-            />
-          </div>
-          <div style={s.fg}>
-            <label style={s.label}>Password</label>
-            <input
-              style={s.inp}
-              type="password"
-              placeholder="Enter password"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              required
-            />
-          </div>
-          {error && <div style={s.err}>{error}</div>}
-          <button style={s.loginBtn} type="submit" disabled={loading}>
-            {loading ? 'Signing In...' : 'Sign In to Admin'}
-          </button>
-        </form>
-      </div>
-    </div>
-  );
-}
-
 
 /* ==========================================================================
    NEW ADMISSION FORM (Clean & Elegant Modern Card)
@@ -716,6 +528,9 @@ function TablePaginationTop({ currentPage, totalItems, pageSize, onPageChange, o
    DASHBOARD MAIN COMPONENT
    ========================================================================== */
 function Dashboard({ admin, logout }) {
+  const isSuperAdmin = admin?.isSuperAdmin || admin?.email === 'superadmin@vtkindergarten.com';
+  const [pendingAdminCount, setPendingAdminCount] = useState(0);
+
   const [tab, setTab] = useState('overview');
   const [admissions, setAdmissions] = useState([]);
   const [enquiries, setEnquiries] = useState([]);
@@ -731,6 +546,16 @@ function Dashboard({ admin, logout }) {
   const [viewItem, setViewItem] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+
+  // Poll / fetch pending admin registrations for Super Admin
+  useEffect(() => {
+    if (isSuperAdmin) {
+      fetchRegisteredAdmins().then((list) => {
+        const pending = (list || []).filter((a) => a.status === 'pending').length;
+        setPendingAdminCount(pending);
+      });
+    }
+  }, [isSuperAdmin, tab]);
 
   // Pagination states
   const [pageSizeAdm, setPageSizeAdm] = useState(10);
@@ -826,17 +651,19 @@ function Dashboard({ admin, logout }) {
 
       if (admErr) {
         // Fallback to admissions table if student_admissions table is not yet created
-        admList = (enqRaw || []).filter(d => d.parent_name && d.parent_name.trim() !== '' && d.relation !== 'Fee Receipt');
+        admList = (enqRaw || []).filter(d => d.parent_name && d.parent_name.trim() !== '' && d.relation !== 'Fee Receipt' && d.relation !== 'Admin Account');
       } else {
-        admList = (admData || []).filter(d => d.relation !== 'Fee Receipt');
+        admList = (admData || []).filter(d => d.relation !== 'Fee Receipt' && d.relation !== 'Admin Account');
       }
 
       // Filter enquiries from admissions table
       const isEnquiry = (d) =>
-        !d.parent_name ||
-        d.parent_name.trim() === '' ||
-        (d.message && (d.message.includes('Age Eligibility') || d.message.includes('Calculated Age'))) ||
-        (d.relation === 'Eligible' || d.relation === 'Not Eligible');
+        d.relation !== 'Fee Receipt' &&
+        d.relation !== 'Admin Account' &&
+        (!d.parent_name ||
+          d.parent_name.trim() === '' ||
+          (d.message && (d.message.includes('Age Eligibility') || d.message.includes('Calculated Age'))) ||
+          (d.relation === 'Eligible' || d.relation === 'Not Eligible'));
 
       const enqList = (enqRaw || []).filter(isEnquiry).map(d => ({
         ...d,
@@ -1170,6 +997,9 @@ function Dashboard({ admin, logout }) {
     { id: 'enquiries', label: 'Enquiries', icon: '✉️', count: enquiries.length },
     { id: 'visitors', label: 'Live Visitors', icon: '👥', count: visitsCount, live: true },
     { id: 'billing', label: 'Bill Generation', icon: '🧾', count: null },
+    ...(isSuperAdmin
+      ? [{ id: 'admin_management', label: 'Admin Approvals', icon: '🛡️', count: pendingAdminCount }]
+      : []),
   ];
 
   const statCards = [
@@ -1264,12 +1094,23 @@ function Dashboard({ admin, logout }) {
             </button>
 
             <div className="vta-user-chip">
-              <div className="vta-user-avatar">
-                {(admin?.email || 'A')[0].toUpperCase()}
+              <div
+                className="vta-user-avatar"
+                style={{
+                  background: isSuperAdmin ? 'linear-gradient(135deg, #7C3AED, #5B21B6)' : '#FF6B35',
+                  boxShadow: isSuperAdmin ? '0 0 12px rgba(124, 58, 237, 0.45)' : 'none',
+                }}
+              >
+                {isSuperAdmin ? '👑' : (admin?.name || admin?.email || 'A')[0].toUpperCase()}
               </div>
-              <span className="vta-user-name vta-hide-mobile">
-                {admin?.email?.split('@')[0] || 'Admin'}
-              </span>
+              <div className="vta-hide-mobile" style={{ display: 'flex', flexDirection: 'column', textAlign: 'left', marginRight: 6 }}>
+                <span className="vta-user-name" style={{ fontSize: 13, fontWeight: 800 }}>
+                  {admin?.name || admin?.email?.split('@')[0] || 'Admin'}
+                </span>
+                <span style={{ fontSize: 10.5, fontWeight: 700, color: isSuperAdmin ? '#A78BFA' : '#94A3B8' }}>
+                  {isSuperAdmin ? 'Master Super Admin' : 'Administrator'}
+                </span>
+              </div>
               <button type="button" className="vta-btn-logout" onClick={logout} title="Sign Out">
                 Logout
               </button>
@@ -1337,6 +1178,15 @@ function Dashboard({ admin, logout }) {
                 </span>
                 <h1 style={{ margin: '4px 0 6px' }}>Student Fees Receipt & Bill Generator</h1>
                 <p>Generate, print, download, and share official VT Kindergarten fee receipts matching school specifications.</p>
+              </>
+            )}
+            {tab === 'admin_management' && (
+              <>
+                <span className="vta-badge-pill vta-badge-purple" style={{ marginBottom: 6, fontSize: 11, fontWeight: 800 }}>
+                  🛡️ SUPER ADMIN CONTROL • Administrator Accounts & Approvals
+                </span>
+                <h1 style={{ margin: '4px 0 6px' }}>Admin Registrations & Phone Verification Desk</h1>
+                <p>Review, confirm, or revoke portal administrator registrations with phone number OTP verification.</p>
               </>
             )}
           </div>
@@ -2228,6 +2078,11 @@ function Dashboard({ admin, logout }) {
         {/* ================= TAB 5: BILL GENERATION ================= */}
         {tab === 'billing' && (
           <BillGeneration admissions={admissions} enquiries={enquiries} />
+        )}
+
+        {/* ================= TAB 6: ADMIN APPROVALS (SUPER ADMIN) ================= */}
+        {tab === 'admin_management' && isSuperAdmin && (
+          <AdminManagement currentAdmin={admin} />
         )}
       </main>
 
