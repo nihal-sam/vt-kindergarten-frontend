@@ -169,7 +169,6 @@ const isProgramMatch = (itemProgram = '', selectedFilter = '') => {
 };
 
 function useAuth() {
-  const [session, setSession] = useState(null);
   const [localAdmin, setLocalAdmin] = useState(() => {
     try {
       const saved = localStorage.getItem('vt_admin_session');
@@ -178,29 +177,23 @@ function useAuth() {
       return null;
     }
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
+  // Background Supabase authentication ONLY when an admin is actively logged in
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      if (!session) {
-        // Authenticate with Supabase Auth to acquire JWT token for RLS table access
-        try {
-          await supabase.auth.signInWithPassword({
-            email: 'admin@vtkindergarten.com',
-            password: 'admin123',
-          });
-        } catch {}
-      }
-      setLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+    if (localAdmin) {
+      supabase.auth.getSession().then(async ({ data: { session } }) => {
+        if (!session) {
+          try {
+            await supabase.auth.signInWithPassword({
+              email: 'admin@vtkindergarten.com',
+              password: 'admin123',
+            });
+          } catch {}
+        }
+      });
+    }
+  }, [localAdmin]);
 
   const loginLocal = async (user) => {
     localStorage.setItem('vt_admin_session', JSON.stringify(user));
@@ -221,10 +214,12 @@ function useAuth() {
     } catch {}
   };
 
-  const currentAdmin = session?.user || localAdmin;
-  const isAuth = !!session || !!localAdmin;
+  // User is ONLY authenticated if an admin is logged in locally!
+  // If localAdmin is null (after logout or on refresh after logout), isAuth is FALSE!
+  const isAuth = Boolean(localAdmin);
+  const currentAdmin = localAdmin;
 
-  return { session, admin: currentAdmin, loginLocal, logout, isAuth, loading };
+  return { session: null, admin: currentAdmin, loginLocal, logout, isAuth, loading };
 }
 
 /* ==========================================================================
