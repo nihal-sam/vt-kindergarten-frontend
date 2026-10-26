@@ -227,6 +227,62 @@
           border-radius: 30px;
           background: #FFF5EE;
           border: 1.5px solid rgba(255, 107, 53, 0.2);
+          transition: all 0.2s ease;
+        }
+
+        .vta-user-chip.vta-user-chip-super {
+          background: linear-gradient(135deg, #FAF5FF 0%, #F3E8FF 100%);
+          border-color: rgba(124, 58, 237, 0.25);
+          box-shadow: 0 2px 8px rgba(124, 58, 237, 0.08);
+        }
+
+        /* Prominent Dedicated Navbar Logout Button */
+        .vta-btn-logout-prominent {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          padding: 8px 16px;
+          border-radius: 12px;
+          border: 1.5px solid #FECACA;
+          background: #FEF2F2;
+          color: #DC2626;
+          font-family: var(--vta-font);
+          font-size: 13px;
+          font-weight: 800;
+          cursor: pointer;
+          white-space: nowrap;
+          transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 2px 8px rgba(220, 38, 38, 0.08);
+        }
+
+        .vta-btn-logout-prominent:hover {
+          background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+          color: #FFFFFF;
+          border-color: #DC2626;
+          transform: translateY(-1px);
+          box-shadow: 0 6px 18px rgba(220, 38, 38, 0.28);
+        }
+
+        .vta-btn-logout-prominent:active {
+          transform: translateY(0);
+        }
+
+        .vta-btn-logout-prominent.is-super-admin {
+          background: #FFF1F2;
+          border-color: #FDA4AF;
+          color: #BE123C;
+        }
+
+        .vta-btn-logout-prominent.is-super-admin:hover {
+          background: linear-gradient(135deg, #E11D48 0%, #BE123C 100%);
+          border-color: #BE123C;
+          color: #FFFFFF;
+          box-shadow: 0 6px 18px rgba(190, 18, 60, 0.32);
+        }
+
+        .vta-logout-icon {
+          font-size: 15px;
+          line-height: 1;
         }
 
         .vta-user-avatar {
@@ -1145,6 +1201,9 @@
 
         /* Mobile Responsive */
         @media (max-width: 900px) {
+          .vta-hide-mobile {
+            display: none !important;
+          }
           .vta-navbar-inner {
             padding: 12px 18px;
           }
@@ -1163,6 +1222,41 @@
             box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
             border-radius: 0 0 20px 20px;
             border-bottom: 1px solid var(--vta-border);
+          }
+          .vta-nav-sliding-pill {
+            display: none !important;
+          }
+          .vta-mobile-menu-footer {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid var(--vta-border);
+          }
+          .vta-mobile-user-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            background: #F8FAFC;
+            border-radius: 12px;
+          }
+          .vta-mobile-logout-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+            color: #FFFFFF;
+            font-size: 14px;
+            font-weight: 800;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
           }
           .vta-mobile-toggle {
             display: flex;

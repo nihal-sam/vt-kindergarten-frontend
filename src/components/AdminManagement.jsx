@@ -8,7 +8,7 @@ import {
   SUPER_ADMIN_CREDENTIALS,
 } from '../utils/adminAuth';
 
-export default function AdminManagement({ currentAdmin }) {
+export default function AdminManagement({ currentAdmin, onLogout }) {
   const [admins, setAdmins] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -232,6 +232,29 @@ export default function AdminManagement({ currentAdmin }) {
           >
             {loading ? '⏳ Refreshing...' : '🔄 Refresh List'}
           </button>
+          {onLogout && (
+            <button
+              type="button"
+              onClick={onLogout}
+              style={{
+                background: 'rgba(239, 68, 68, 0.2)',
+                color: '#FECACA',
+                border: '1.5px solid rgba(239, 68, 68, 0.4)',
+                padding: '10px 16px',
+                borderRadius: 10,
+                fontSize: 13,
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                transition: 'all 0.2s ease',
+              }}
+              title="Sign Out of Super Admin Console"
+            >
+              <span>🚪</span> Sign Out
+            </button>
+          )}
         </div>
       </div>
 

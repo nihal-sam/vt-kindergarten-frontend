@@ -1073,6 +1073,44 @@ function Dashboard({ admin, logout }) {
                 )}
               </button>
             ))}
+
+            {/* Mobile Drawer Logout & User Details */}
+            <div className="vta-mobile-menu-footer">
+              <div className="vta-mobile-user-profile">
+                <div
+                  className="vta-user-avatar"
+                  style={{
+                    background: isSuperAdmin ? 'linear-gradient(135deg, #7C3AED, #5B21B6)' : '#FF6B35',
+                    boxShadow: isSuperAdmin ? '0 0 10px rgba(124, 58, 237, 0.4)' : 'none',
+                    width: 32,
+                    height: 32,
+                    fontSize: 14,
+                  }}
+                >
+                  {isSuperAdmin ? '👑' : (admin?.name || admin?.email || 'A')[0].toUpperCase()}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: '#0F172A' }}>
+                    {admin?.name || admin?.email}
+                  </span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: isSuperAdmin ? '#7C3AED' : '#64748B' }}>
+                    {isSuperAdmin ? '👑 Master Super Admin' : 'Administrator'}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="vta-mobile-logout-btn"
+                onClick={() => {
+                  setMenuOpen(false);
+                  logout();
+                }}
+              >
+                <span>🚪</span>
+                <span>Logout ({isSuperAdmin ? 'Super Admin' : 'Admin'})</span>
+              </button>
+            </div>
           </nav>
 
           {/* Actions & Profile */}
@@ -1093,7 +1131,11 @@ function Dashboard({ admin, logout }) {
               <span className="vta-hide-mobile">{loading ? 'Refreshing...' : 'Refresh'}</span>
             </button>
 
-            <div className="vta-user-chip">
+            {/* User Profile Badge */}
+            <div
+              className={`vta-user-chip ${isSuperAdmin ? 'vta-user-chip-super' : ''}`}
+              title={`Logged in as ${admin?.name || admin?.email} (${isSuperAdmin ? 'Master Super Admin' : 'Administrator'})`}
+            >
               <div
                 className="vta-user-avatar"
                 style={{
@@ -1103,18 +1145,26 @@ function Dashboard({ admin, logout }) {
               >
                 {isSuperAdmin ? '👑' : (admin?.name || admin?.email || 'A')[0].toUpperCase()}
               </div>
-              <div className="vta-hide-mobile" style={{ display: 'flex', flexDirection: 'column', textAlign: 'left', marginRight: 6 }}>
-                <span className="vta-user-name" style={{ fontSize: 13, fontWeight: 800 }}>
+              <div className="vta-hide-mobile" style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
+                <span className="vta-user-name" style={{ fontSize: 13, fontWeight: 800, color: isSuperAdmin ? '#581C87' : 'inherit' }}>
                   {admin?.name || admin?.email?.split('@')[0] || 'Admin'}
                 </span>
-                <span style={{ fontSize: 10.5, fontWeight: 700, color: isSuperAdmin ? '#A78BFA' : '#94A3B8' }}>
+                <span style={{ fontSize: 10.5, fontWeight: 700, color: isSuperAdmin ? '#7C3AED' : '#94A3B8' }}>
                   {isSuperAdmin ? 'Master Super Admin' : 'Administrator'}
                 </span>
               </div>
-              <button type="button" className="vta-btn-logout" onClick={logout} title="Sign Out">
-                Logout
-              </button>
             </div>
+
+            {/* Prominent Dedicated Navbar Logout Button */}
+            <button
+              type="button"
+              className={`vta-btn-logout-prominent ${isSuperAdmin ? 'is-super-admin' : ''}`}
+              onClick={logout}
+              title={`Sign Out of ${isSuperAdmin ? 'Super Admin' : 'Admin'} Console`}
+            >
+              <span className="vta-logout-icon">🚪</span>
+              <span className="vta-logout-text">Logout</span>
+            </button>
 
             <button
               type="button"
@@ -2082,7 +2132,7 @@ function Dashboard({ admin, logout }) {
 
         {/* ================= TAB 6: ADMIN APPROVALS (SUPER ADMIN) ================= */}
         {tab === 'admin_management' && isSuperAdmin && (
-          <AdminManagement currentAdmin={admin} />
+          <AdminManagement currentAdmin={admin} onLogout={logout} />
         )}
       </main>
 
