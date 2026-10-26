@@ -170,8 +170,13 @@ const isProgramMatch = (itemProgram = '', selectedFilter = '') => {
 
 function useAuth() {
   const [localAdmin, setLocalAdmin] = useState(() => {
+    // Proactively clear any legacy long-lived localStorage admin sessions
     try {
-      const saved = localStorage.getItem('vt_admin_session');
+      localStorage.removeItem('vt_admin_session');
+    } catch {}
+
+    try {
+      const saved = sessionStorage.getItem('vt_admin_session');
       return saved ? JSON.parse(saved) : null;
     } catch {
       return null;
@@ -196,7 +201,10 @@ function useAuth() {
   }, [localAdmin]);
 
   const loginLocal = async (user) => {
-    localStorage.setItem('vt_admin_session', JSON.stringify(user));
+    sessionStorage.setItem('vt_admin_session', JSON.stringify(user));
+    try {
+      localStorage.removeItem('vt_admin_session');
+    } catch {}
     setLocalAdmin(user);
     try {
       await supabase.auth.signInWithPassword({
@@ -207,15 +215,18 @@ function useAuth() {
   };
 
   const logout = async () => {
-    localStorage.removeItem('vt_admin_session');
+    sessionStorage.removeItem('vt_admin_session');
+    try {
+      localStorage.removeItem('vt_admin_session');
+    } catch {}
     setLocalAdmin(null);
     try {
       await supabase.auth.signOut();
     } catch {}
   };
 
-  // User is ONLY authenticated if an admin is logged in locally!
-  // If localAdmin is null (after logout or on refresh after logout), isAuth is FALSE!
+  // User is ONLY authenticated if an admin is logged in during this active browser session!
+  // Closing the browser tab/page immediately destroys sessionStorage, automatically logging out both Super Admin and Admins.
   const isAuth = Boolean(localAdmin);
   const currentAdmin = localAdmin;
 
