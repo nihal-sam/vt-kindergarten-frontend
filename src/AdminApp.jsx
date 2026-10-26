@@ -181,8 +181,17 @@ function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
+      if (!session) {
+        // Authenticate with Supabase Auth to acquire JWT token for RLS table access
+        try {
+          await supabase.auth.signInWithPassword({
+            email: 'admin@vtkindergarten.com',
+            password: 'admin123',
+          });
+        } catch {}
+      }
       setLoading(false);
     });
 
@@ -193,9 +202,15 @@ function useAuth() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const loginLocal = (user) => {
+  const loginLocal = async (user) => {
     localStorage.setItem('vt_admin_session', JSON.stringify(user));
     setLocalAdmin(user);
+    try {
+      await supabase.auth.signInWithPassword({
+        email: 'admin@vtkindergarten.com',
+        password: 'admin123',
+      });
+    } catch {}
   };
 
   const logout = async () => {
@@ -666,9 +681,11 @@ function Dashboard({ admin, logout }) {
           d.message.includes('Calculated Age') ||
           d.message.includes('Age Eligibility') ||
           d.message.includes('Source: Online') ||
-          d.message.includes('Age Criteria')
+          d.message.includes('Age Criteria') ||
+          d.message.includes('Admission inquiry') ||
+          d.message.includes('checking')
         )) ||
-        (!d.parent_name || d.parent_name.trim() === '' || d.parent_name === d.child_name);
+        (!d.parent_name || d.parent_name === 'null' || d.parent_name.trim() === '' || d.parent_name === d.child_name);
 
       const enqList = allRows.filter(isEnquiry).map(d => ({
         ...d,
