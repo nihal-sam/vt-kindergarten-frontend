@@ -235,14 +235,11 @@ function CaptchaBox({ captchaCode, onRefresh, enteredValue, onChange }) {
 }
 
 export default function LoginPage({ onLocalLogin }) {
-  // Mode: 'super_admin' | 'login' | 'register' | 'register_success'
-  const [mode, setMode] = useState('super_admin');
+  // Mode: 'login' | 'register' | 'register_success'
+  const [mode, setMode] = useState('login');
 
-  // Login Form State
-  const [loginForm, setLoginForm] = useState({
-    email: SUPER_ADMIN_CREDENTIALS.email,
-    password: SUPER_ADMIN_CREDENTIALS.password,
-  });
+  // Login Form State (Always blank by default - no prefill box)
+  const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [pendingAdmin, setPendingAdmin] = useState(null);
@@ -280,12 +277,8 @@ export default function LoginPage({ onLocalLogin }) {
     setRegEnteredCaptcha('');
   };
 
-  // Instant 1-Click Super Admin Login
-  const handleInstantSuperAdminLogin = () => {
-    onLocalLogin?.({ ...SUPER_ADMIN_CREDENTIALS });
-  };
-
   // ================= 1. SUBMIT LOGIN (CREDENTIALS + CAPTCHA) =================
+  // Supports both Super Admin and Normal Admin automatically
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setLoginLoading(true);
@@ -305,7 +298,7 @@ export default function LoginPage({ onLocalLogin }) {
       const res = await verifyAdminCredentials(emailTrimmed, loginForm.password);
 
       if (res.status === 'ok') {
-        // Super Admin or Approved Admin logs in directly!
+        // Automatically handles Super Admin or Approved Normal Admin!
         setLoginLoading(false);
         onLocalLogin?.(res.admin);
         return;
@@ -423,13 +416,13 @@ export default function LoginPage({ onLocalLogin }) {
       <div
         style={{
           width: '100%',
-          maxWidth: mode === 'register' ? 490 : 440,
+          maxWidth: mode === 'register' ? 490 : 430,
           background: 'rgba(255, 255, 255, 0.05)',
           backdropFilter: 'blur(24px)',
           WebkitBackdropFilter: 'blur(24px)',
           border: '1px solid rgba(255, 255, 255, 0.12)',
           borderRadius: 24,
-          padding: '36px 30px',
+          padding: '36px 32px',
           boxSizing: 'border-box',
           boxShadow: '0 25px 60px rgba(0, 0, 0, 0.45)',
           color: '#FFFFFF',
@@ -437,13 +430,13 @@ export default function LoginPage({ onLocalLogin }) {
         }}
       >
         {/* Portal Header */}
-        <div style={{ textAlign: 'center', marginBottom: 20 }}>
+        <div style={{ textAlign: 'center', marginBottom: 22 }}>
           <img
             src={LOGO_SRC}
             alt="VT Kindergarten Logo"
             style={{
-              width: 80,
-              height: 80,
+              width: 82,
+              height: 82,
               display: 'block',
               margin: '0 auto 12px',
               padding: 4,
@@ -476,57 +469,22 @@ export default function LoginPage({ onLocalLogin }) {
           </p>
         </div>
 
-        {/* Mode Switcher Tabs (3 Tabs: Super Admin | Staff Admin | Register) */}
-        {(mode === 'super_admin' || mode === 'login' || mode === 'register') && (
+        {/* Mode Switcher Tabs (2 Tabs: Admin Login & Register Admin) */}
+        {(mode === 'login' || mode === 'register') && (
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: '1.15fr 1fr 1fr',
+              gridTemplateColumns: '1fr 1fr',
               background: 'rgba(255, 255, 255, 0.08)',
               borderRadius: 12,
               padding: 4,
-              marginBottom: 20,
-              gap: 4,
+              marginBottom: 22,
             }}
           >
-            {/* Tab 1: Super Admin */}
-            <button
-              type="button"
-              onClick={() => {
-                setMode('super_admin');
-                setLoginForm({
-                  email: SUPER_ADMIN_CREDENTIALS.email,
-                  password: SUPER_ADMIN_CREDENTIALS.password,
-                });
-                setLoginError('');
-                setPendingAdmin(null);
-                refreshLoginCaptcha();
-              }}
-              style={{
-                background:
-                  mode === 'super_admin'
-                    ? 'linear-gradient(135deg, #7C3AED, #A78BFA)'
-                    : 'transparent',
-                color: mode === 'super_admin' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.65)',
-                border: 'none',
-                borderRadius: 9,
-                padding: '9px 6px',
-                fontSize: 12.5,
-                fontWeight: 800,
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              👑 Super Admin
-            </button>
-
-            {/* Tab 2: Staff Admin */}
             <button
               type="button"
               onClick={() => {
                 setMode('login');
-                setLoginForm({ email: '', password: '' });
                 setLoginError('');
                 setPendingAdmin(null);
                 refreshLoginCaptcha();
@@ -536,21 +494,18 @@ export default function LoginPage({ onLocalLogin }) {
                   mode === 'login'
                     ? 'linear-gradient(135deg, #FF6B35, #FFA149)'
                     : 'transparent',
-                color: mode === 'login' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.65)',
+                color: mode === 'login' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.6)',
                 border: 'none',
                 borderRadius: 9,
-                padding: '9px 6px',
-                fontSize: 12.5,
+                padding: '10px 14px',
+                fontSize: 13,
                 fontWeight: 800,
                 cursor: 'pointer',
                 transition: 'all 0.2s',
-                whiteSpace: 'nowrap',
               }}
             >
-              🔑 Staff Admin
+              🔑 Admin Login
             </button>
-
-            {/* Tab 3: Register */}
             <button
               type="button"
               onClick={() => {
@@ -563,195 +518,23 @@ export default function LoginPage({ onLocalLogin }) {
                   mode === 'register'
                     ? 'linear-gradient(135deg, #FF6B35, #FFA149)'
                     : 'transparent',
-                color: mode === 'register' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.65)',
+                color: mode === 'register' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.6)',
                 border: 'none',
                 borderRadius: 9,
-                padding: '9px 6px',
-                fontSize: 12.5,
+                padding: '10px 14px',
+                fontSize: 13,
                 fontWeight: 800,
                 cursor: 'pointer',
                 transition: 'all 0.2s',
-                whiteSpace: 'nowrap',
               }}
             >
-              📝 Register
+              📝 Register Admin
             </button>
           </div>
         )}
 
         {/* ==============================================================
-            MODE 1: SUPER ADMIN LOGIN (DEDICATED VIEW)
-            ============================================================== */}
-        {mode === 'super_admin' && (
-          <form onSubmit={handleLoginSubmit}>
-            {/* Super Admin Title Badge */}
-            <div
-              style={{
-                background: 'rgba(124, 58, 237, 0.18)',
-                border: '1.5px solid rgba(139, 92, 246, 0.45)',
-                borderRadius: 12,
-                padding: '12px 16px',
-                marginBottom: 16,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-            >
-              <div>
-                <div style={{ fontWeight: 800, fontSize: 13, color: '#DDD6FE', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span>👑</span>
-                  <span>Super Administrator Console</span>
-                </div>
-                <div style={{ fontSize: 11.5, color: '#C4B5FD', marginTop: 2 }}>
-                  Full master access for approvals, admissions & receipts
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={handleInstantSuperAdminLogin}
-                style={{
-                  background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
-                  border: '1px solid #A78BFA',
-                  borderRadius: 8,
-                  color: '#FFFFFF',
-                  fontSize: 11,
-                  fontWeight: 800,
-                  padding: '6px 10px',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  boxShadow: '0 2px 8px rgba(124, 58, 237, 0.4)',
-                }}
-                title="Log In Immediately as Super Admin without typing"
-              >
-                ⚡ 1-Click Access
-              </button>
-            </div>
-
-            {/* Super Admin Email */}
-            <div style={{ marginBottom: 14 }}>
-              <label
-                style={{
-                  display: 'block',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: 'rgba(255, 255, 255, 0.85)',
-                  marginBottom: 6,
-                }}
-              >
-                Super Admin Email
-              </label>
-              <input
-                className="vta-auth-inp"
-                type="email"
-                value={loginForm.email}
-                onChange={(e) => {
-                  setLoginForm({ ...loginForm, email: e.target.value });
-                  setLoginError('');
-                }}
-                required
-                style={{
-                  width: '100%',
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: '1.5px solid rgba(167, 139, 250, 0.35)',
-                  borderRadius: 12,
-                  padding: '12px 16px',
-                  color: '#FFFFFF',
-                  fontSize: 14.5,
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                }}
-              />
-            </div>
-
-            {/* Super Admin Password */}
-            <div style={{ marginBottom: 16 }}>
-              <label
-                style={{
-                  display: 'block',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: 'rgba(255, 255, 255, 0.85)',
-                  marginBottom: 6,
-                }}
-              >
-                Password
-              </label>
-              <input
-                className="vta-auth-inp"
-                type="password"
-                placeholder="Enter Super Admin password"
-                value={loginForm.password}
-                onChange={(e) => {
-                  setLoginForm({ ...loginForm, password: e.target.value });
-                  setLoginError('');
-                }}
-                required
-                style={{
-                  width: '100%',
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: '1.5px solid rgba(167, 139, 250, 0.35)',
-                  borderRadius: 12,
-                  padding: '12px 16px',
-                  color: '#FFFFFF',
-                  fontSize: 14.5,
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                }}
-              />
-            </div>
-
-            {/* CAPTCHA Security Verification Box */}
-            <CaptchaBox
-              captchaCode={loginCaptchaCode}
-              onRefresh={refreshLoginCaptcha}
-              enteredValue={loginEnteredCaptcha}
-              onChange={setLoginEnteredCaptcha}
-            />
-
-            {/* Error Message */}
-            {loginError && (
-              <div
-                style={{
-                  background: 'rgba(239, 68, 68, 0.15)',
-                  border: '1px solid rgba(239, 68, 68, 0.35)',
-                  borderRadius: 10,
-                  padding: '12px 14px',
-                  color: '#FCA5A5',
-                  fontSize: 12.5,
-                  fontWeight: 700,
-                  marginBottom: 16,
-                  lineHeight: 1.4,
-                }}
-              >
-                {loginError}
-              </div>
-            )}
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loginLoading}
-              style={{
-                width: '100%',
-                background: 'linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)',
-                color: '#FFFFFF',
-                border: 'none',
-                borderRadius: 12,
-                padding: '14px',
-                fontSize: 15,
-                fontWeight: 800,
-                cursor: 'pointer',
-                boxShadow: '0 8px 24px rgba(124, 58, 237, 0.4)',
-                transition: 'transform 0.15s, opacity 0.15s',
-              }}
-            >
-              {loginLoading ? 'Authenticating Super Admin...' : '👑 Sign In to Super Admin Console'}
-            </button>
-          </form>
-        )}
-
-        {/* ==============================================================
-            MODE 2: STAFF ADMIN SIGN IN
+            MODE 1: UNIFIED ADMIN LOGIN (Super Admin & Normal Admin)
             ============================================================== */}
         {mode === 'login' && (
           <form onSubmit={handleLoginSubmit}>
@@ -762,16 +545,16 @@ export default function LoginPage({ onLocalLogin }) {
                   display: 'block',
                   fontSize: 12.5,
                   fontWeight: 700,
-                  color: 'rgba(255, 255, 255, 0.8)',
+                  color: 'rgba(255, 255, 255, 0.85)',
                   marginBottom: 6,
                 }}
               >
-                Staff Admin Email Address
+                Admin Email Address
               </label>
               <input
                 className="vta-auth-inp"
                 type="email"
-                placeholder="admin@vtkindergarten.com"
+                placeholder="Enter email address"
                 value={loginForm.email}
                 onChange={(e) => {
                   setLoginForm({ ...loginForm, email: e.target.value });
@@ -800,7 +583,7 @@ export default function LoginPage({ onLocalLogin }) {
                   display: 'block',
                   fontSize: 12.5,
                   fontWeight: 700,
-                  color: 'rgba(255, 255, 255, 0.8)',
+                  color: 'rgba(255, 255, 255, 0.85)',
                   marginBottom: 6,
                 }}
               >
@@ -880,33 +663,6 @@ export default function LoginPage({ onLocalLogin }) {
                   >
                     {pendingLoading ? 'Approving...' : '👑 1-Click Approve & Log In Directly'}
                   </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMode('super_admin');
-                      setLoginForm({
-                        email: SUPER_ADMIN_CREDENTIALS.email,
-                        password: SUPER_ADMIN_CREDENTIALS.password,
-                      });
-                      setLoginError('');
-                      setPendingAdmin(null);
-                      refreshLoginCaptcha();
-                    }}
-                    style={{
-                      width: '100%',
-                      background: 'rgba(255, 255, 255, 0.1)',
-                      color: '#E2E8F0',
-                      border: '1px solid rgba(255, 255, 255, 0.2)',
-                      borderRadius: 10,
-                      padding: '9px 12px',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    👑 Switch to Super Admin Login
-                  </button>
                 </div>
               </div>
             )}
@@ -948,7 +704,7 @@ export default function LoginPage({ onLocalLogin }) {
                 transition: 'transform 0.15s, opacity 0.15s',
               }}
             >
-              {loginLoading ? 'Verifying Credentials...' : 'Sign In as Staff Administrator'}
+              {loginLoading ? 'Verifying Credentials...' : 'Sign In to Admin Portal'}
             </button>
 
             {/* Switch to Register link */}
@@ -981,7 +737,7 @@ export default function LoginPage({ onLocalLogin }) {
         )}
 
         {/* ==============================================================
-            MODE 3: REGISTER AS ADMIN (CAPTCHA VERIFICATION)
+            MODE 2: REGISTER AS ADMIN (CAPTCHA VERIFICATION)
             ============================================================== */}
         {mode === 'register' && (
           <form onSubmit={handleRegisterSubmit}>
@@ -1255,7 +1011,7 @@ export default function LoginPage({ onLocalLogin }) {
         )}
 
         {/* ==============================================================
-            MODE 4: REGISTRATION SUCCESS CONFIRMATION
+            MODE 3: REGISTRATION SUCCESS CONFIRMATION
             ============================================================== */}
         {mode === 'register_success' && (
           <div style={{ textAlign: 'center', padding: '10px 0' }}>
@@ -1293,67 +1049,36 @@ export default function LoginPage({ onLocalLogin }) {
                 submitted to the system!
               </div>
               <div style={{ marginTop: 10, fontSize: 12, color: 'rgba(254, 243, 199, 0.9)' }}>
-                • Super Admin (<strong>superadmin@vtkindergarten.com</strong>) will review and confirm
-                your registration.
+                • Super Admin will review and confirm your registration.
                 <br />
                 • Once approved, you can sign in directly with your email, password, and CAPTCHA.
               </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setMode('super_admin');
-                  setLoginForm({
-                    email: SUPER_ADMIN_CREDENTIALS.email,
-                    password: SUPER_ADMIN_CREDENTIALS.password,
-                  });
-                  setLoginError('');
-                  setPendingAdmin(null);
-                  refreshLoginCaptcha();
-                }}
-                style={{
-                  width: '100%',
-                  background: 'linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  borderRadius: 12,
-                  padding: '13px',
-                  fontSize: 14,
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  boxShadow: '0 6px 20px rgba(124, 58, 237, 0.4)',
-                }}
-              >
-                👑 Log In as Super Admin to Approve Now
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setMode('login');
-                  setLoginForm({ email: regForm.email, password: '' });
-                  setLoginError('');
-                  setPendingAdmin(null);
-                  refreshLoginCaptcha();
-                }}
-                style={{
-                  width: '100%',
-                  background: 'linear-gradient(135deg, #FF6B35 0%, #FF8A00 100%)',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  borderRadius: 12,
-                  padding: '13px',
-                  fontSize: 14,
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  boxShadow: '0 8px 24px rgba(255, 107, 53, 0.35)',
-                }}
-              >
-                Return to Staff Admin Sign In
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setMode('login');
+                setLoginForm({ email: '', password: '' });
+                setLoginError('');
+                setPendingAdmin(null);
+                refreshLoginCaptcha();
+              }}
+              style={{
+                width: '100%',
+                background: 'linear-gradient(135deg, #FF6B35 0%, #FF8A00 100%)',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: 12,
+                padding: '13px',
+                fontSize: 14,
+                fontWeight: 800,
+                cursor: 'pointer',
+                boxShadow: '0 8px 24px rgba(255, 107, 53, 0.35)',
+              }}
+            >
+              Return to Admin Sign In
+            </button>
           </div>
         )}
       </div>
