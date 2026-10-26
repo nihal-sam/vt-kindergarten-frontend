@@ -1034,12 +1034,12 @@ function Dashboard({ admin, logout }) {
               <h2>VT Kindergarten</h2>
               <span>
                 <span className={isSuperAdmin ? 'vta-brand-super-dot' : 'vta-brand-live-dot'} />
-                {isSuperAdmin ? '👑 Super Admin Console' : 'Admin Portal'}
+                {isSuperAdmin ? 'Super Admin Console' : 'Admin Portal'}
               </span>
             </div>
           </a>
 
-          {/* Segmented Tab Navigation with Smoothly Gliding Box */}
+          {/* Segmented Tab Navigation Pill Box */}
           <nav className={`vta-nav-pills ${menuOpen ? 'open' : ''}`} ref={adminNavRef}>
             {/* The Hardware-Accelerated Sliding Indicator Box */}
             <div
@@ -1076,64 +1076,10 @@ function Dashboard({ admin, logout }) {
                 )}
               </button>
             ))}
-
-            {/* Mobile Drawer Logout & User Details */}
-            <div className="vta-mobile-menu-footer">
-              <div className="vta-mobile-user-profile">
-                <div
-                  className="vta-user-avatar"
-                  style={{
-                    background: isSuperAdmin ? 'linear-gradient(135deg, #7C3AED, #5B21B6)' : '#FF6B35',
-                    boxShadow: isSuperAdmin ? '0 0 10px rgba(124, 58, 237, 0.4)' : 'none',
-                    width: 32,
-                    height: 32,
-                    fontSize: 14,
-                  }}
-                >
-                  {isSuperAdmin ? '👑' : (admin?.name || admin?.email || 'A')[0].toUpperCase()}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
-                  <span style={{ fontSize: 13, fontWeight: 800, color: '#0F172A' }}>
-                    {admin?.name || admin?.email}
-                  </span>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: isSuperAdmin ? '#7C3AED' : '#64748B' }}>
-                    {isSuperAdmin ? '👑 Master Super Admin' : 'Administrator'}
-                  </span>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                className="vta-mobile-logout-btn"
-                onClick={() => {
-                  setMenuOpen(false);
-                  logout();
-                }}
-              >
-                <span>🚪</span>
-                <span>Logout ({isSuperAdmin ? 'Super Admin' : 'Admin'})</span>
-              </button>
-            </div>
           </nav>
 
-          {/* Actions & Profile */}
+          {/* Outside Right Side Corner: User Profile & Logout */}
           <div className="vta-navbar-actions">
-            <a href="/" target="_blank" rel="noopener noreferrer" className="vta-btn-ghost" title="Open live public website">
-              <span>🌐</span>
-              <span className="vta-hide-laptop">Live Website</span>
-            </a>
-
-            <button
-              type="button"
-              className="vta-btn-ghost"
-              onClick={fetchAll}
-              disabled={loading}
-              title={`Refresh page ${lastRefreshed ? `(Last updated: ${lastRefreshed})` : ''}`}
-            >
-              <span className={loading ? 'vta-spin' : ''}>🔄</span>
-              <span className="vta-hide-laptop">{loading ? 'Refreshing...' : 'Refresh'}</span>
-            </button>
-
             {/* User Profile Badge */}
             <div
               className={`vta-user-chip ${isSuperAdmin ? 'vta-user-chip-super' : ''}`}
@@ -1148,7 +1094,7 @@ function Dashboard({ admin, logout }) {
               >
                 {isSuperAdmin ? '👑' : (admin?.name || admin?.email || 'A')[0].toUpperCase()}
               </div>
-              <div className="vta-hide-laptop" style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
+              <div className="vta-user-info" style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
                 <span className="vta-user-name" style={{ fontSize: 13, fontWeight: 800, color: isSuperAdmin ? '#581C87' : 'inherit' }}>
                   {admin?.name || admin?.email?.split('@')[0] || 'Admin'}
                 </span>
@@ -1158,7 +1104,7 @@ function Dashboard({ admin, logout }) {
               </div>
             </div>
 
-            {/* Prominent Dedicated Navbar Logout Button */}
+            {/* Dedicated Outside Corner Logout Button */}
             <button
               type="button"
               className={`vta-btn-logout-prominent ${isSuperAdmin ? 'is-super-admin' : ''}`}

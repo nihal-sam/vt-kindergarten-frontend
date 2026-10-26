@@ -122,10 +122,10 @@
 
         /* Nav Pills with Warm Orange & White Theme */
         .vta-nav-pills {
-          display: flex;
+          display: inline-flex;
           align-items: center;
           background: #FFF2E8;
-          border: 1.5px solid rgba(255, 107, 53, 0.16);
+          border: 1.5px solid rgba(255, 107, 53, 0.2);
           padding: 4px;
           border-radius: 14px;
           list-style: none;
@@ -203,6 +203,8 @@
           display: flex;
           align-items: center;
           gap: 12px;
+          margin-left: auto;
+          flex-shrink: 0;
         }
 
         .vta-btn-ghost {
@@ -1249,38 +1251,6 @@
           }
           .vta-nav-sliding-pill {
             display: none !important;
-          }
-          .vta-mobile-menu-footer {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-top: 14px;
-            padding-top: 14px;
-            border-top: 1px solid var(--vta-border);
-          }
-          .vta-mobile-user-profile {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 10px;
-            background: #F8FAFC;
-            border-radius: 12px;
-          }
-          .vta-mobile-logout-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            width: 100%;
-            padding: 12px;
-            border-radius: 12px;
-            background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
-            color: #FFFFFF;
-            font-size: 14px;
-            font-weight: 800;
-            border: none;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
           }
           .vta-mobile-toggle {
             display: flex;
