@@ -9,6 +9,153 @@ import { sendSecureOtpToPhone, verifyOtpWithSupabase } from '../utils/supabaseOt
 
 const LOGO_SRC = '/assets/vt-logo.png';
 
+/**
+ * Reusable banner for Fast2SMS status, WhatsApp instant dispatch & KYC guide
+ */
+function GatewayNoticeBanner({ notice, activeOtp, phone, onAutoFill, showOtp, onToggleShowOtp }) {
+  if (!notice || notice.success) return null;
+
+  return (
+    <div
+      style={{
+        background: 'rgba(234, 88, 12, 0.16)',
+        border: '1.5px solid rgba(249, 115, 22, 0.55)',
+        borderRadius: 14,
+        padding: '14px 16px',
+        marginBottom: 16,
+        fontSize: 12.5,
+        color: '#FED7AA',
+        lineHeight: 1.5,
+        textAlign: 'left',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+        <span style={{ fontSize: 18 }}>⚠️</span>
+        <strong style={{ color: '#FB923C', fontSize: 13 }}>
+          Fast2SMS Gateway Status (Code {notice.statusCode || 996})
+        </strong>
+      </div>
+
+      <div style={{ marginBottom: 10, color: '#FFE8D6' }}>
+        {notice.statusCode === 996 ? (
+          <>
+            Fast2SMS blocks direct cellular SMS until <strong>Website Verification / Aadhaar KYC</strong> is completed in your Fast2SMS dashboard.
+          </>
+        ) : notice.statusCode === 999 ? (
+          <>
+            Fast2SMS requires a minimum ₹100 transaction to activate API route delivery.
+          </>
+        ) : (
+          notice.message || 'Fast2SMS pending account activation.'
+        )}
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {/* WhatsApp Delivery */}
+        {notice.whatsappUrl && (
+          <a
+            href={notice.whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
+              color: '#FFFFFF',
+              textDecoration: 'none',
+              borderRadius: 10,
+              padding: '10px 14px',
+              fontSize: 13,
+              fontWeight: 800,
+              boxShadow: '0 4px 12px rgba(37, 211, 102, 0.35)',
+            }}
+          >
+            <span>💬</span>
+            <span>Deliver OTP to My WhatsApp (+91 {phone})</span>
+          </a>
+        )}
+
+        {/* Instant Auto-Fill / View Code */}
+        {activeOtp && (
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              type="button"
+              onClick={() => onAutoFill?.(activeOtp)}
+              style={{
+                flex: 1,
+                background: 'rgba(56, 189, 248, 0.2)',
+                border: '1.5px solid #38BDF8',
+                color: '#38BDF8',
+                borderRadius: 8,
+                padding: '9px 12px',
+                fontSize: 12.5,
+                fontWeight: 800,
+                cursor: 'pointer',
+              }}
+            >
+              ⚡ Quick Fill ({showOtp ? activeOtp : '••••••'})
+            </button>
+            <button
+              type="button"
+              onClick={() => onToggleShowOtp?.()}
+              style={{
+                background: 'rgba(255, 255, 255, 0.12)',
+                border: '1px solid rgba(255, 255, 255, 0.25)',
+                color: '#FFFFFF',
+                borderRadius: 8,
+                padding: '9px 12px',
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {showOtp ? '🙈 Hide' : '👁️ View'}
+            </button>
+          </div>
+        )}
+
+        {/* 1-Minute Activation Accordion */}
+        <details style={{ marginTop: 4, cursor: 'pointer' }}>
+          <summary style={{ fontSize: 11.5, color: '#FDBA74', fontWeight: 800 }}>
+            📋 How to enable 100% Cellular Phone SMS in Fast2SMS (1 minute)
+          </summary>
+          <div
+            style={{
+              background: 'rgba(0, 0, 0, 0.3)',
+              borderRadius: 8,
+              padding: '10px 12px',
+              marginTop: 6,
+              fontSize: 11.5,
+              color: 'rgba(255, 255, 255, 0.9)',
+              lineHeight: 1.6,
+            }}
+          >
+            <ol style={{ margin: '0 0 0 16px', padding: 0 }}>
+              <li>
+                Log in to{' '}
+                <a
+                  href="https://www.fast2sms.com/dashboard/otp"
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ color: '#38BDF8', fontWeight: 700, textDecoration: 'underline' }}
+                >
+                  fast2sms.com/dashboard/otp
+                </a>
+              </li>
+              <li>Click <strong>OTP SMS</strong> menu on the left panel</li>
+              <li>Click <strong>KYC</strong> button & submit your Website URL</li>
+              <li>Complete instant Aadhaar OTP verification to unlock live cellular SMS</li>
+            </ol>
+          </div>
+        </details>
+      </div>
+    </div>
+  );
+}
+
 export default function LoginPage({ onLocalLogin }) {
   // Mode: 'login' | 'register' | 'login_otp' | 'register_success'
   const [mode, setMode] = useState('login');
@@ -37,12 +184,18 @@ export default function LoginPage({ onLocalLogin }) {
   const [regPhoneVerified, setRegPhoneVerified] = useState(false);
   const [regOtpStatus, setRegOtpStatus] = useState(''); // '' | 'sent' | 'checking' | 'correct' | 'wrong'
   const [regOtpMessage, setRegOtpMessage] = useState('');
+  const [regGatewayNotice, setRegGatewayNotice] = useState(null);
+  const [regActiveOtp, setRegActiveOtp] = useState('');
+  const [regShowOtp, setRegShowOtp] = useState(false);
 
   // Login 2FA OTP State (Managed via Supabase backend, never shown on UI)
   const [loginTargetAdmin, setLoginTargetAdmin] = useState(null);
   const [loginEnteredOtp, setLoginEnteredOtp] = useState('');
   const [loginOtpStatus, setLoginOtpStatus] = useState(''); // '' | 'checking' | 'correct' | 'wrong'
   const [loginOtpMessage, setLoginOtpMessage] = useState('');
+  const [loginGatewayNotice, setLoginGatewayNotice] = useState(null);
+  const [loginActiveOtp, setLoginActiveOtp] = useState('');
+  const [loginShowOtp, setLoginShowOtp] = useState(false);
 
   // Helper: Format phone to 10 digits
   const formatPhone = (val = '') => String(val).replace(/\D/g, '').slice(0, 10);
@@ -92,10 +245,20 @@ export default function LoginPage({ onLocalLogin }) {
         setLoginEnteredOtp('');
         setLoginOtpStatus('');
         setLoginOtpMessage('');
+        setLoginGatewayNotice(null);
+        setLoginActiveOtp('');
+        setLoginShowOtp(false);
         setMode('login_otp');
 
         // Save OTP securely in Supabase backend
-        await sendSecureOtpToPhone({ phone, purpose: 'login_2fa' });
+        const otpRes = await sendSecureOtpToPhone({ phone, purpose: 'login_2fa' });
+        if (otpRes.success) {
+          setLoginActiveOtp(otpRes.otp);
+          setLoginGatewayNotice(otpRes.smsResult);
+          if (otpRes.smsResult?.success) {
+            setLoginOtpMessage(`📲 SMS with 6-digit OTP sent to +91 ${phone}`);
+          }
+        }
       }
     } catch (err) {
       setLoginError('Connection failed. Please check your network.');
@@ -117,12 +280,22 @@ export default function LoginPage({ onLocalLogin }) {
       setLoginEnteredOtp('');
       setLoginOtpStatus('');
       setLoginOtpMessage('');
+      setLoginGatewayNotice(null);
+      setLoginActiveOtp('');
+      setLoginShowOtp(false);
       setPendingAdmin(null);
       setLoginError('');
       setMode('login_otp');
 
       // Save OTP securely in Supabase backend
-      await sendSecureOtpToPhone({ phone, purpose: 'login_2fa' });
+      const otpRes = await sendSecureOtpToPhone({ phone, purpose: 'login_2fa' });
+      if (otpRes.success) {
+        setLoginActiveOtp(otpRes.otp);
+        setLoginGatewayNotice(otpRes.smsResult);
+        if (otpRes.smsResult?.success) {
+          setLoginOtpMessage(`📲 SMS with 6-digit OTP sent to +91 ${phone}`);
+        }
+      }
     } catch (err) {
       setLoginError('Failed to approve admin account. Please try again.');
     } finally {
@@ -185,9 +358,18 @@ export default function LoginPage({ onLocalLogin }) {
     const phone = loginTargetAdmin?.phone || '9994994291';
     setLoginEnteredOtp('');
     setLoginOtpStatus('');
-    setLoginOtpMessage('Sending new OTP to phone message...');
-    await sendSecureOtpToPhone({ phone, purpose: 'login_2fa' });
-    setLoginOtpMessage('📲 New OTP code sent to your phone message.');
+    setLoginGatewayNotice(null);
+    setLoginOtpMessage('Sending new OTP code...');
+    const otpRes = await sendSecureOtpToPhone({ phone, purpose: 'login_2fa' });
+    if (otpRes.success) {
+      setLoginActiveOtp(otpRes.otp);
+      setLoginGatewayNotice(otpRes.smsResult);
+      if (otpRes.smsResult?.success) {
+        setLoginOtpMessage(`📲 New OTP sent via SMS to +91 ${phone}`);
+      } else {
+        setLoginOtpMessage('');
+      }
+    }
   };
 
   // ================= 4. REGISTRATION PHONE OTP (REAL-TIME SUPABASE VERIFICATION) =================
@@ -202,15 +384,30 @@ export default function LoginPage({ onLocalLogin }) {
       setRegPhoneVerified(false);
       setRegEnteredOtp('');
       setRegOtpStatus('sent');
-      setRegOtpMessage('📲 SMS with 6-digit OTP sent to your phone.');
+      setRegGatewayNotice(null);
+      setRegActiveOtp('');
+      setRegShowOtp(false);
+      setRegOtpMessage('Generating secure OTP...');
 
-      await sendSecureOtpToPhone({ phone: clean, purpose: 'registration' });
+      const otpRes = await sendSecureOtpToPhone({ phone: clean, purpose: 'registration' });
+      if (otpRes.success) {
+        setRegActiveOtp(otpRes.otp);
+        setRegGatewayNotice(otpRes.smsResult);
+        if (otpRes.smsResult?.success) {
+          setRegOtpMessage(`📲 SMS with 6-digit OTP sent to +91 ${clean}`);
+        } else {
+          setRegOtpMessage('');
+        }
+      }
     } else {
       setRegOtpSent(false);
       setRegPhoneVerified(false);
       setRegEnteredOtp('');
       setRegOtpStatus('');
       setRegOtpMessage('');
+      setRegGatewayNotice(null);
+      setRegActiveOtp('');
+      setRegShowOtp(false);
     }
   };
 
@@ -224,9 +421,19 @@ export default function LoginPage({ onLocalLogin }) {
     setRegPhoneVerified(false);
     setRegEnteredOtp('');
     setRegOtpStatus('sent');
-    setRegOtpMessage('📲 Sending new SMS OTP to your phone...');
-    await sendSecureOtpToPhone({ phone: clean, purpose: 'registration' });
-    setRegOtpMessage('📲 New OTP sent to your phone message.');
+    setRegGatewayNotice(null);
+    setRegOtpMessage('Sending SMS OTP...');
+
+    const otpRes = await sendSecureOtpToPhone({ phone: clean, purpose: 'registration' });
+    if (otpRes.success) {
+      setRegActiveOtp(otpRes.otp);
+      setRegGatewayNotice(otpRes.smsResult);
+      if (otpRes.smsResult?.success) {
+        setRegOtpMessage(`📲 New OTP sent via SMS to +91 ${clean}`);
+      } else {
+        setRegOtpMessage('');
+      }
+    }
   };
 
   // Real-time verification against Supabase when 6 digits are typed
@@ -706,6 +913,16 @@ export default function LoginPage({ onLocalLogin }) {
               </p>
             </div>
 
+            {/* Gateway notice for Fast2SMS KYC / WhatsApp / Auto-fill fallback */}
+            <GatewayNoticeBanner
+              notice={loginGatewayNotice}
+              activeOtp={loginActiveOtp}
+              phone={loginTargetAdmin?.phone || '9994994291'}
+              onAutoFill={handleLoginOtpInputChange}
+              showOtp={loginShowOtp}
+              onToggleShowOtp={() => setLoginShowOtp(!loginShowOtp)}
+            />
+
             <form onSubmit={handleVerifyLoginOtp}>
               <div style={{ marginBottom: 18 }}>
                 <label
@@ -1044,6 +1261,16 @@ export default function LoginPage({ onLocalLogin }) {
               {/* Real-time validating OTP input box (Checks against Supabase backend) */}
               {regOtpSent && !regPhoneVerified && (
                 <div style={{ marginTop: 12 }}>
+                  {/* Gateway notice for Fast2SMS KYC / WhatsApp / Auto-fill fallback */}
+                  <GatewayNoticeBanner
+                    notice={regGatewayNotice}
+                    activeOtp={regActiveOtp}
+                    phone={regForm.phone}
+                    onAutoFill={handleRegOtpInputChange}
+                    showOtp={regShowOtp}
+                    onToggleShowOtp={() => setRegShowOtp(!regShowOtp)}
+                  />
+
                   <div
                     style={{
                       display: 'flex',

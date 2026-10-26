@@ -66,11 +66,16 @@ export async function sendSecureOtpToPhone({ phone, purpose = 'auth' }) {
     } catch (_) {}
 
     // 4. Dispatch SMS message to the phone number
-    await dispatchPhoneSms({ phone: cleanPhone, otp });
+    const smsResult = await dispatchPhoneSms({ phone: cleanPhone, otp });
 
     return {
       success: true,
-      message: `An SMS with your 6-digit OTP has been sent to +91 ${cleanPhone}.`,
+      otp,
+      expiresAt,
+      smsResult,
+      message: smsResult.success
+        ? `✅ Carrier SMS with 6-digit OTP sent to +91 ${cleanPhone}.`
+        : smsResult.message,
     };
   } catch (err) {
     console.error('sendSecureOtpToPhone exception:', err);
