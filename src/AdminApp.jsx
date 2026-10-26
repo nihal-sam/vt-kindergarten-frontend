@@ -670,11 +670,11 @@ function Dashboard({ admin, logout }) {
         return;
       }
 
-      // Merge records (excluding Fee Receipts and Admin Accounts)
+      // Merge records (excluding Fee Receipts, Admin Accounts, and System Settings)
       const allRows = [
         ...(admData || []),
         ...(enqRaw || []).filter(r => !(admData || []).some(s => s.id === r.id))
-      ].filter(d => d.relation !== 'Fee Receipt' && d.relation !== 'Admin Account');
+      ].filter(d => d.relation !== 'Fee Receipt' && d.relation !== 'Admin Account' && d.relation !== 'System Setting');
 
       // Comprehensive Enquiry Filter:
       // Matches records created from Age Eligibility Calculator or parent enquiries
@@ -699,18 +699,33 @@ function Dashboard({ admin, logout }) {
       }));
 
       // Admissions are official student registration applications
-      const admList = allRows.filter(d => !isEnquiry(d));
+      const admList = allRows.filter(isEnquiry).length ? allRows.filter(d => !isEnquiry(d)) : allRows;
 
       setAdmissions(admList);
       setEnquiries(enqList);
 
-      // 3. Fetch Visitor Analytics from Supabase API
+      // 3. Fetch Visitor Analytics from Supabase API (respecting visitors_cleared_at setting)
       try {
-        const { data: vData, count, error: vError } = await supabase
+        let clearedAt = localStorage.getItem('vt_visitors_cleared_at');
+        const settingRow = (admData || []).find(d => d.relation === 'System Setting' && d.child_name === 'visitors_cleared_at');
+        if (settingRow && settingRow.message) {
+          try {
+            const parsed = JSON.parse(settingRow.message);
+            if (parsed.cleared_at) clearedAt = parsed.cleared_at;
+          } catch (_) {}
+        }
+
+        let visitQuery = supabase
           .from('visits')
           .select('*', { count: 'exact' })
           .order('created_at', { ascending: false })
           .limit(1000);
+
+        if (clearedAt) {
+          visitQuery = visitQuery.gt('created_at', clearedAt);
+        }
+
+        const { data: vData, count, error: vError } = await visitQuery;
 
         if (!vError) {
           setVisitsCount(count || 0);
@@ -794,6 +809,43 @@ function Dashboard({ admin, logout }) {
       await fetchAll();
     } catch (e) {
       alert('Error deleting record: ' + (e.message || ''));
+    }
+  };
+
+  const handleClearVisitorLogs = async () => {
+    if (!confirm('Are you sure you want to clear all existing visitor logs? This will reset the live visitor counter and table to 0.')) return;
+    setLoading(true);
+    try {
+      await ensureAuthenticatedSession();
+      const now = new Date().toISOString();
+
+      // Delete existing setting row
+      await supabase
+        .from('student_admissions')
+        .delete()
+        .eq('relation', 'System Setting')
+        .eq('child_name', 'visitors_cleared_at');
+
+      // Insert new setting row
+      await supabase
+        .from('student_admissions')
+        .insert([{
+          child_name: 'visitors_cleared_at',
+          parent_name: 'Admin',
+          program: 'Settings',
+          relation: 'System Setting',
+          phone: '7358293839',
+          message: JSON.stringify({ cleared_at: now }),
+        }]);
+
+      localStorage.setItem('vt_visitors_cleared_at', now);
+      await fetchAll();
+      alert('All visitor logs have been successfully cleared!');
+    } catch (err) {
+      console.error('Error clearing visitor logs:', err);
+      alert('Failed to clear visitor logs: ' + (err.message || ''));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -1272,15 +1324,38 @@ function Dashboard({ admin, logout }) {
             )}
 
             {tab === 'visitors' && (
-              <button
-                type="button"
-                className="vta-btn-excel"
-                onClick={() => exportExcel(fVisits, 'Website_Visitors')}
-                title="Download Website Visitor Analytics (.xlsx) spreadsheet"
-              >
-                <span>📥 Download Visitor Logs (.xlsx)</span>
-                <span className="vta-excel-count">{fVisits.length}</span>
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={handleClearVisitorLogs}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    background: '#FFF1F2',
+                    color: '#E11D48',
+                    border: '1.5px solid #FECDD3',
+                    borderRadius: 12,
+                    padding: '10px 16px',
+                    fontWeight: 800,
+                    fontSize: 13.5,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                  title="Wipe and reset all visitor logs to zero"
+                >
+                  <span>🗑️ Clear All Visitor Logs</span>
+                </button>
+                <button
+                  type="button"
+                  className="vta-btn-excel"
+                  onClick={() => exportExcel(fVisits, 'Website_Visitors')}
+                  title="Download Website Visitor Analytics (.xlsx) spreadsheet"
+                >
+                  <span>📥 Download Visitor Logs (.xlsx)</span>
+                  <span className="vta-excel-count">{fVisits.length}</span>
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -1993,7 +2068,28 @@ function Dashboard({ admin, logout }) {
                   <h3>🌐 Live Website Visitor Sessions</h3>
                   <span className="vta-badge-pill vta-badge-blue">{fVisits.length} Logs</span>
                 </div>
-                <div className="vta-sub-text" style={{ fontWeight: 700, color: '#1E40AF' }}>
+                <div className="vta-sub-text" style={{ fontWeight: 700, color: '#1E40AF', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <button
+                    type="button"
+                    onClick={handleClearVisitorLogs}
+                    style={{
+                      background: '#FFF1F2',
+                      color: '#E11D48',
+                      border: '1.5px solid #FECDD3',
+                      borderRadius: 8,
+                      padding: '5px 12px',
+                      fontSize: 12,
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4
+                    }}
+                    title="Clear and reset all visitor logs"
+                  >
+                    🗑️ Clear All Logs
+                  </button>
                   Real-time Visitor Tracking
                 </div>
               </div>
@@ -2103,7 +2199,7 @@ function Dashboard({ admin, logout }) {
                     {fVisits.length === 0 && (
                       <tr>
                         <td colSpan={7} style={{ textAlign: 'center', padding: 48, color: '#94A3B8' }}>
-                          No visitor logs captured yet. Ensure the visits table is configured in Supabase.
+                          No visitor logs captured yet. Visitor sessions will appear here in real time as parents browse the website.
                         </td>
                       </tr>
                     )}
