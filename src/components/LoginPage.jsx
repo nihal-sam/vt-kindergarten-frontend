@@ -3,10 +3,9 @@ import {
   SUPER_ADMIN_CREDENTIALS,
   verifyAdminCredentials,
   registerNewAdmin,
-  generateOTP,
   approveAdmin,
 } from '../utils/adminAuth';
-import { dispatchPhoneSms } from '../utils/smsService';
+import { sendSecureOtpToPhone, verifyOtpWithSupabase } from '../utils/supabaseOtpService';
 
 const LOGO_SRC = '/assets/vt-logo.png';
 
@@ -32,18 +31,18 @@ export default function LoginPage({ onLocalLogin }) {
   const [regLoading, setRegLoading] = useState(false);
   const [regError, setRegError] = useState('');
 
-  // Phone OTP State for Registration (Kept inside, never shown on UI)
+  // Phone OTP State for Registration (Managed via Supabase backend, never shown on UI)
   const [regOtpSent, setRegOtpSent] = useState(false);
-  const [regGeneratedOtp, setRegGeneratedOtp] = useState('');
   const [regEnteredOtp, setRegEnteredOtp] = useState('');
   const [regPhoneVerified, setRegPhoneVerified] = useState(false);
-  const [regOtpStatus, setRegOtpStatus] = useState(''); // '' | 'sent' | 'correct' | 'wrong'
+  const [regOtpStatus, setRegOtpStatus] = useState(''); // '' | 'sent' | 'checking' | 'correct' | 'wrong'
+  const [regOtpMessage, setRegOtpMessage] = useState('');
 
-  // Login 2FA OTP State (Kept inside, never shown on UI)
+  // Login 2FA OTP State (Managed via Supabase backend, never shown on UI)
   const [loginTargetAdmin, setLoginTargetAdmin] = useState(null);
-  const [loginGeneratedOtp, setLoginGeneratedOtp] = useState('');
   const [loginEnteredOtp, setLoginEnteredOtp] = useState('');
-  const [loginOtpStatus, setLoginOtpStatus] = useState(''); // '' | 'correct' | 'wrong'
+  const [loginOtpStatus, setLoginOtpStatus] = useState(''); // '' | 'checking' | 'correct' | 'wrong'
+  const [loginOtpMessage, setLoginOtpMessage] = useState('');
 
   // Helper: Format phone to 10 digits
   const formatPhone = (val = '') => String(val).replace(/\D/g, '').slice(0, 10);
@@ -87,17 +86,16 @@ export default function LoginPage({ onLocalLogin }) {
       }
 
       if (res.status === 'require_otp') {
-        // Admin credentials verified & approved! Generate OTP and save inside (don't show)
-        const otp = generateOTP();
+        // Approved admin: Generate OTP and save inside Supabase backend, dispatch SMS
         const phone = res.admin.phone || '9994994291';
         setLoginTargetAdmin(res.admin);
-        setLoginGeneratedOtp(otp); // Saved inside
         setLoginEnteredOtp('');
         setLoginOtpStatus('');
+        setLoginOtpMessage('');
         setMode('login_otp');
 
-        // Dispatch SMS to the phone number
-        dispatchPhoneSms({ phone, otp });
+        // Save OTP securely in Supabase backend
+        await sendSecureOtpToPhone({ phone, purpose: 'login_2fa' });
       }
     } catch (err) {
       setLoginError('Connection failed. Please check your network.');
@@ -113,19 +111,18 @@ export default function LoginPage({ onLocalLogin }) {
     try {
       await approveAdmin(pendingAdmin.id || pendingAdmin.email);
       const approvedAdmin = { ...pendingAdmin, status: 'approved' };
-      const otp = generateOTP();
       const phone = approvedAdmin.phone || '9994994291';
 
       setLoginTargetAdmin(approvedAdmin);
-      setLoginGeneratedOtp(otp); // Saved inside
       setLoginEnteredOtp('');
       setLoginOtpStatus('');
+      setLoginOtpMessage('');
       setPendingAdmin(null);
       setLoginError('');
       setMode('login_otp');
 
-      // Dispatch SMS
-      dispatchPhoneSms({ phone, otp });
+      // Save OTP securely in Supabase backend
+      await sendSecureOtpToPhone({ phone, purpose: 'login_2fa' });
     } catch (err) {
       setLoginError('Failed to approve admin account. Please try again.');
     } finally {
@@ -133,18 +130,24 @@ export default function LoginPage({ onLocalLogin }) {
     }
   };
 
-  // ================= 3. REAL-TIME VALIDATION IN LOGIN OTP INPUT BOX =================
-  const handleLoginOtpInputChange = (val) => {
+  // ================= 3. REAL-TIME VALIDATION IN LOGIN OTP INPUT BOX VIA SUPABASE =================
+  const handleLoginOtpInputChange = async (val) => {
     const digits = val.replace(/\D/g, '').slice(0, 6);
     setLoginEnteredOtp(digits);
 
     if (digits.length < 6) {
       setLoginOtpStatus('');
+      setLoginOtpMessage('');
     } else if (digits.length === 6) {
-      // Check directly in the input box whether it is correct or not!
-      if (digits === loginGeneratedOtp) {
+      setLoginOtpStatus('checking');
+      setLoginOtpMessage('Verifying OTP with Supabase...');
+
+      const phone = loginTargetAdmin?.phone || '9994994291';
+      const verifyRes = await verifyOtpWithSupabase({ phone, enteredOtp: digits });
+
+      if (verifyRes.valid) {
         setLoginOtpStatus('correct');
-        // Correct OTP! Automatically log in after a brief visual confirmation
+        setLoginOtpMessage('✅ OTP Verified Successfully! Logging you in...');
         setTimeout(() => {
           onLocalLogin?.({
             ...loginTargetAdmin,
@@ -153,89 +156,106 @@ export default function LoginPage({ onLocalLogin }) {
         }, 500);
       } else {
         setLoginOtpStatus('wrong');
+        setLoginOtpMessage(verifyRes.error || '❌ Incorrect OTP code. Please try again.');
       }
     }
   };
 
-  const handleVerifyLoginOtp = (e) => {
+  const handleVerifyLoginOtp = async (e) => {
     e.preventDefault();
-    if (loginEnteredOtp.trim() !== loginGeneratedOtp) {
+    if (loginEnteredOtp.length !== 6) return;
+
+    setLoginOtpStatus('checking');
+    const phone = loginTargetAdmin?.phone || '9994994291';
+    const verifyRes = await verifyOtpWithSupabase({ phone, enteredOtp: loginEnteredOtp });
+
+    if (verifyRes.valid) {
+      setLoginOtpStatus('correct');
+      onLocalLogin?.({
+        ...loginTargetAdmin,
+        isSuperAdmin: false,
+      });
+    } else {
       setLoginOtpStatus('wrong');
-      return;
+      setLoginOtpMessage(verifyRes.error || '❌ Incorrect OTP code.');
     }
-    onLocalLogin?.({
-      ...loginTargetAdmin,
-      isSuperAdmin: false,
-    });
   };
 
-  const handleResendLoginOtp = () => {
-    const newOtp = generateOTP();
+  const handleResendLoginOtp = async () => {
     const phone = loginTargetAdmin?.phone || '9994994291';
-    setLoginGeneratedOtp(newOtp);
     setLoginEnteredOtp('');
     setLoginOtpStatus('');
-    dispatchPhoneSms({ phone, otp: newOtp });
+    setLoginOtpMessage('Sending new OTP to phone message...');
+    await sendSecureOtpToPhone({ phone, purpose: 'login_2fa' });
+    setLoginOtpMessage('📲 New OTP code sent to your phone message.');
   };
 
-  // ================= 4. REGISTRATION PHONE OTP (REAL-TIME CHECK IN INPUT BOX) =================
-  const handleRegPhoneChange = (val) => {
+  // ================= 4. REGISTRATION PHONE OTP (REAL-TIME SUPABASE VERIFICATION) =================
+  const handleRegPhoneChange = async (val) => {
     const clean = formatPhone(val);
     setRegForm((prev) => ({ ...prev, phone: clean }));
     setRegError('');
 
     if (clean.length === 10) {
-      // Generate OTP and save inside (don't show)
-      const otp = generateOTP();
-      setRegGeneratedOtp(otp);
+      // Securely generate & save OTP in Supabase backend
       setRegOtpSent(true);
       setRegPhoneVerified(false);
       setRegEnteredOtp('');
       setRegOtpStatus('sent');
+      setRegOtpMessage('📲 SMS with 6-digit OTP sent to your phone.');
 
-      // Dispatch SMS to the phone number
-      dispatchPhoneSms({ phone: clean, otp });
+      await sendSecureOtpToPhone({ phone: clean, purpose: 'registration' });
     } else {
       setRegOtpSent(false);
       setRegPhoneVerified(false);
-      setRegGeneratedOtp('');
       setRegEnteredOtp('');
       setRegOtpStatus('');
+      setRegOtpMessage('');
     }
   };
 
-  const handleSendRegOtp = () => {
+  const handleSendRegOtp = async () => {
     const clean = formatPhone(regForm.phone);
     if (clean.length !== 10) {
       setRegError('Please enter a valid 10-digit mobile number.');
       return;
     }
-    const otp = generateOTP();
-    setRegGeneratedOtp(otp);
     setRegOtpSent(true);
     setRegPhoneVerified(false);
     setRegEnteredOtp('');
     setRegOtpStatus('sent');
-    dispatchPhoneSms({ phone: clean, otp });
+    setRegOtpMessage('📲 Sending new SMS OTP to your phone...');
+    await sendSecureOtpToPhone({ phone: clean, purpose: 'registration' });
+    setRegOtpMessage('📲 New OTP sent to your phone message.');
   };
 
-  // Check OTP directly in the input box as the user types
-  const handleRegOtpInputChange = (val) => {
+  // Real-time verification against Supabase when 6 digits are typed
+  const handleRegOtpInputChange = async (val) => {
     const digits = val.replace(/\D/g, '').slice(0, 6);
     setRegEnteredOtp(digits);
 
     if (digits.length < 6) {
       setRegOtpStatus('sent');
       setRegPhoneVerified(false);
+      setRegOtpMessage('');
     } else if (digits.length === 6) {
-      // Check directly in the input box whether it is correct or not!
-      if (digits === regGeneratedOtp) {
+      setRegOtpStatus('checking');
+      setRegOtpMessage('Verifying OTP with Supabase...');
+
+      const verifyRes = await verifyOtpWithSupabase({
+        phone: regForm.phone,
+        enteredOtp: digits,
+      });
+
+      if (verifyRes.valid) {
         setRegOtpStatus('correct');
         setRegPhoneVerified(true);
+        setRegOtpMessage('✅ OTP Verified Successfully! Mobile +91 ' + regForm.phone + ' confirmed.');
         setRegError('');
       } else {
         setRegOtpStatus('wrong');
         setRegPhoneVerified(false);
+        setRegOtpMessage(verifyRes.error || '❌ Incorrect OTP. Please check your phone SMS.');
       }
     }
   };
@@ -252,12 +272,8 @@ export default function LoginPage({ onLocalLogin }) {
     }
 
     if (!regPhoneVerified) {
-      if (regEnteredOtp.length === 6 && regEnteredOtp === regGeneratedOtp) {
-        setRegPhoneVerified(true);
-      } else {
-        setRegError('Please enter the correct 6-digit OTP sent to your phone message.');
-        return;
-      }
+      setRegError('Please enter the correct 6-digit OTP sent to your phone message first.');
+      return;
     }
 
     if (regForm.password.length < 6) {
@@ -637,6 +653,7 @@ export default function LoginPage({ onLocalLogin }) {
                 fontWeight: 800,
                 cursor: 'pointer',
                 boxShadow: '0 8px 24px rgba(255, 107, 53, 0.35)',
+                transition: 'transform 0.15s, opacity 0.15s',
               }}
             >
               {loginLoading ? 'Verifying Credentials...' : 'Sign In to Admin Portal'}
@@ -671,7 +688,7 @@ export default function LoginPage({ onLocalLogin }) {
         )}
 
         {/* ==============================================================
-            MODE 2: LOGIN 2FA PHONE OTP CHALLENGE (NO VISIBLE OTP, VALIDATES IN BOX)
+            MODE 2: LOGIN 2FA PHONE OTP (SUPABASE VERIFICATION IN INPUT BOX)
             ============================================================== */}
         {mode === 'login_otp' && (
           <div>
@@ -725,6 +742,8 @@ export default function LoginPage({ onLocalLogin }) {
                           ? '#10B981'
                           : loginOtpStatus === 'wrong'
                           ? '#EF4444'
+                          : loginOtpStatus === 'checking'
+                          ? '#38BDF8'
                           : 'rgba(255, 107, 53, 0.5)'
                       }`,
                       borderRadius: 14,
@@ -772,32 +791,32 @@ export default function LoginPage({ onLocalLogin }) {
                       ❌
                     </span>
                   )}
+                  {loginOtpStatus === 'checking' && (
+                    <span
+                      style={{
+                        position: 'absolute',
+                        right: 14,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        fontSize: 16,
+                      }}
+                    >
+                      ⏳
+                    </span>
+                  )}
                 </div>
 
-                {loginOtpStatus === 'correct' && (
+                {loginOtpMessage && (
                   <div
                     style={{
-                      color: '#34D399',
+                      color: loginOtpStatus === 'correct' ? '#34D399' : loginOtpStatus === 'wrong' ? '#F87171' : '#38BDF8',
                       fontSize: 12.5,
                       fontWeight: 800,
                       marginTop: 8,
                       textAlign: 'center',
                     }}
                   >
-                    ✅ OTP Verified Successfully! Logging you in...
-                  </div>
-                )}
-                {loginOtpStatus === 'wrong' && (
-                  <div
-                    style={{
-                      color: '#F87171',
-                      fontSize: 12.5,
-                      fontWeight: 700,
-                      marginTop: 8,
-                      textAlign: 'center',
-                    }}
-                  >
-                    ❌ Incorrect OTP. Please check your phone message and enter the correct code.
+                    {loginOtpMessage}
                   </div>
                 )}
               </div>
@@ -870,7 +889,7 @@ export default function LoginPage({ onLocalLogin }) {
         )}
 
         {/* ==============================================================
-            MODE 3: REGISTER AS ADMIN (NO VISIBLE OTP, REAL-TIME INPUT VALIDATION)
+            MODE 3: REGISTER AS ADMIN (SUPABASE SECURE VERIFICATION)
             ============================================================== */}
         {mode === 'register' && (
           <form onSubmit={handleRegisterSubmit}>
@@ -1022,7 +1041,7 @@ export default function LoginPage({ onLocalLogin }) {
                 </button>
               </div>
 
-              {/* Real-time validating OTP input box (Checks whether it is correct or not inside) */}
+              {/* Real-time validating OTP input box (Checks against Supabase backend) */}
               {regOtpSent && !regPhoneVerified && (
                 <div style={{ marginTop: 12 }}>
                   <div
@@ -1070,6 +1089,8 @@ export default function LoginPage({ onLocalLogin }) {
                             ? '#10B981'
                             : regOtpStatus === 'wrong'
                             ? '#EF4444'
+                            : regOtpStatus === 'checking'
+                            ? '#38BDF8'
                             : 'rgba(255, 255, 255, 0.25)'
                         }`,
                         borderRadius: 12,
@@ -1117,44 +1138,37 @@ export default function LoginPage({ onLocalLogin }) {
                         ❌
                       </span>
                     )}
+                    {regOtpStatus === 'checking' && (
+                      <span
+                        style={{
+                          position: 'absolute',
+                          right: 14,
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          fontSize: 16,
+                        }}
+                      >
+                        ⏳
+                      </span>
+                    )}
                   </div>
 
-                  {regOtpStatus === 'correct' && (
+                  {regOtpMessage && (
                     <div
                       style={{
-                        color: '#34D399',
-                        fontSize: 12,
-                        fontWeight: 800,
-                        marginTop: 6,
-                        textAlign: 'center',
-                      }}
-                    >
-                      ✅ OTP Verified Successfully! Mobile +91 {regForm.phone} confirmed.
-                    </div>
-                  )}
-                  {regOtpStatus === 'wrong' && (
-                    <div
-                      style={{
-                        color: '#F87171',
+                        color:
+                          regOtpStatus === 'correct'
+                            ? '#34D399'
+                            : regOtpStatus === 'wrong'
+                            ? '#F87171'
+                            : '#93C5FD',
                         fontSize: 12,
                         fontWeight: 700,
                         marginTop: 6,
                         textAlign: 'center',
                       }}
                     >
-                      ❌ Incorrect OTP. Please check your phone message and enter the correct code.
-                    </div>
-                  )}
-                  {regOtpStatus === 'sent' && (
-                    <div
-                      style={{
-                        color: 'rgba(255, 255, 255, 0.6)',
-                        fontSize: 11.5,
-                        marginTop: 4,
-                        textAlign: 'center',
-                      }}
-                    >
-                      Enter the 6-digit code received on your phone message.
+                      {regOtpMessage}
                     </div>
                   )}
                 </div>

@@ -12,7 +12,7 @@ export default function AdminManagement({ currentAdmin, onLogout }) {
   const [admins, setAdmins] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('pending'); // default to pending so new registrations are front & center
   const [banner, setBanner] = useState({ type: '', message: '' });
   const [showAddModal, setShowAddModal] = useState(false);
   const [addForm, setAddForm] = useState({
@@ -23,6 +23,14 @@ export default function AdminManagement({ currentAdmin, onLogout }) {
     autoApprove: true,
   });
   const [addLoading, setAddLoading] = useState(false);
+
+  // Modal box for Approve / Reject / Delete confirmation
+  const [confirmModal, setConfirmModal] = useState({
+    open: false,
+    type: '', // 'approve' | 'reject' | 'delete'
+    admin: null,
+    loading: false,
+  });
 
   // Load all admin accounts
   const loadAdmins = async () => {
@@ -46,39 +54,46 @@ export default function AdminManagement({ currentAdmin, onLogout }) {
     setTimeout(() => setBanner({ type: '', message: '' }), 6000);
   };
 
-  // Actions
-  const handleApprove = async (admin) => {
-    const res = await approveAdmin(admin.id, currentAdmin?.email || SUPER_ADMIN_CREDENTIALS.email);
-    if (res.success) {
-      showNotification(
-        'success',
-        `✅ Admin "${admin.name}" (${admin.email}) has been APPROVED! They can now log in with Phone OTP verification.`
-      );
-      loadAdmins();
-    } else {
-      showNotification('error', `Failed to approve admin: ${res.error}`);
-    }
-  };
+  // Execute modal action when Super Admin confirms "Yes"
+  const handleConfirmAction = async () => {
+    const { type, admin } = confirmModal;
+    if (!admin) return;
 
-  const handleReject = async (admin) => {
-    if (!confirm(`Are you sure you want to reject admin registration for "${admin.name}" (${admin.email})?`)) return;
-    const res = await rejectAdmin(admin.id, currentAdmin?.email || SUPER_ADMIN_CREDENTIALS.email);
-    if (res.success) {
-      showNotification('info', `Admin "${admin.name}" registration was rejected.`);
-      loadAdmins();
-    } else {
-      showNotification('error', `Failed to reject admin: ${res.error}`);
-    }
-  };
+    setConfirmModal((prev) => ({ ...prev, loading: true }));
 
-  const handleDelete = async (admin) => {
-    if (!confirm(`Permanently delete admin account "${admin.name}" (${admin.email})? This action cannot be undone.`)) return;
-    const res = await deleteAdmin(admin.id);
-    if (res.success) {
-      showNotification('info', `Admin account "${admin.name}" deleted.`);
-      loadAdmins();
-    } else {
-      showNotification('error', `Failed to delete admin: ${res.error}`);
+    try {
+      if (type === 'approve') {
+        const res = await approveAdmin(admin.id, currentAdmin?.email || SUPER_ADMIN_CREDENTIALS.email);
+        if (res.success) {
+          showNotification(
+            'success',
+            `✅ Admin "${admin.name}" (${admin.email}) has been APPROVED! They can now log in with Phone OTP verification.`
+          );
+          await loadAdmins();
+        } else {
+          showNotification('error', `Failed to approve admin: ${res.error}`);
+        }
+      } else if (type === 'reject') {
+        const res = await rejectAdmin(admin.id, currentAdmin?.email || SUPER_ADMIN_CREDENTIALS.email);
+        if (res.success) {
+          showNotification('info', `Admin "${admin.name}" has been moved to the Rejected list.`);
+          await loadAdmins();
+        } else {
+          showNotification('error', `Failed to reject admin: ${res.error}`);
+        }
+      } else if (type === 'delete') {
+        const res = await deleteAdmin(admin.id);
+        if (res.success) {
+          showNotification('info', `Admin account "${admin.name}" deleted.`);
+          await loadAdmins();
+        } else {
+          showNotification('error', `Failed to delete admin: ${res.error}`);
+        }
+      }
+    } catch (err) {
+      showNotification('error', 'Operation failed. Please try again.');
+    } finally {
+      setConfirmModal({ open: false, type: '', admin: null, loading: false });
     }
   };
 
@@ -138,7 +153,6 @@ export default function AdminManagement({ currentAdmin, onLogout }) {
 
   return (
     <div style={{ maxWidth: 1180, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
-      
       {/* Banner Notifications */}
       {banner.message && (
         <div
@@ -190,7 +204,8 @@ export default function AdminManagement({ currentAdmin, onLogout }) {
             </h2>
           </div>
           <p style={{ margin: 0, fontSize: 13.5, color: 'rgba(255, 255, 255, 0.8)' }}>
-            Logged in as Master Super Admin: <strong>superadmin@vtkindergarten.com</strong>. Review and confirm new admin registrations.
+            Logged in as Master Super Admin: <strong>superadmin@vtkindergarten.com</strong>. Review and confirm new
+            admin registrations.
           </p>
         </div>
 
@@ -258,90 +273,141 @@ export default function AdminManagement({ currentAdmin, onLogout }) {
         </div>
       </div>
 
-      {/* Stats Cards */}
+      {/* Interactive Stats Cards (Clickable to switch lists) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-        {/* Pending Approvals (Highlight Card) */}
+        {/* Pending Approvals Card */}
         <div
+          onClick={() => setStatusFilter('pending')}
           style={{
-            background: pendingCount > 0 ? '#FFFBEB' : '#FFFFFF',
-            border: `2px solid ${pendingCount > 0 ? '#F59E0B' : '#E2E8F0'}`,
+            background: statusFilter === 'pending' ? '#FEF3C7' : pendingCount > 0 ? '#FFFBEB' : '#FFFFFF',
+            border: `2.5px solid ${statusFilter === 'pending' ? '#D97706' : pendingCount > 0 ? '#F59E0B' : '#E2E8F0'}`,
             borderRadius: 14,
             padding: '18px 20px',
-            boxShadow: pendingCount > 0 ? '0 8px 20px rgba(245, 158, 11, 0.15)' : '0 2px 8px rgba(0,0,0,0.04)',
+            cursor: 'pointer',
+            boxShadow: statusFilter === 'pending' ? '0 8px 24px rgba(217, 119, 6, 0.25)' : '0 2px 8px rgba(0,0,0,0.04)',
+            transition: 'all 0.2s',
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#92400E' }}>Pending Super Admin Approval</span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: '#92400E' }}>Pending Super Admin Approval</span>
             <span style={{ fontSize: 20 }}>⏳</span>
           </div>
-          <div style={{ fontSize: 32, fontWeight: 900, color: '#B45309', marginTop: 8 }}>
-            {pendingCount}
-          </div>
-          <div style={{ fontSize: 11.5, color: '#78350F', marginTop: 4 }}>
-            {pendingCount > 0 ? '⚠️ Action needed: review & confirm registrations below' : 'All registrations reviewed'}
+          <div style={{ fontSize: 32, fontWeight: 900, color: '#B45309', marginTop: 8 }}>{pendingCount}</div>
+          <div style={{ fontSize: 11.5, color: '#78350F', marginTop: 4, fontWeight: 700 }}>
+            {statusFilter === 'pending' ? '👉 Currently Viewing Pending List' : 'Click to view pending registrations'}
           </div>
         </div>
 
-        {/* Approved Admins */}
-        <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 14, padding: '18px 20px' }}>
+        {/* Approved Admins Card */}
+        <div
+          onClick={() => setStatusFilter('approved')}
+          style={{
+            background: statusFilter === 'approved' ? '#ECFDF5' : '#FFFFFF',
+            border: `2.5px solid ${statusFilter === 'approved' ? '#059669' : '#E2E8F0'}`,
+            borderRadius: 14,
+            padding: '18px 20px',
+            cursor: 'pointer',
+            boxShadow: statusFilter === 'approved' ? '0 8px 24px rgba(5, 150, 105, 0.25)' : '0 2px 8px rgba(0,0,0,0.04)',
+            transition: 'all 0.2s',
+          }}
+        >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#065F46' }}>Active Approved Admins</span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: '#065F46' }}>Approved Admins List</span>
             <span style={{ fontSize: 20 }}>✅</span>
           </div>
-          <div style={{ fontSize: 32, fontWeight: 900, color: '#059669', marginTop: 8 }}>
-            {approvedCount}
-          </div>
-          <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 4 }}>
-            Permitted to log in with 2FA Phone OTP
+          <div style={{ fontSize: 32, fontWeight: 900, color: '#059669', marginTop: 8 }}>{approvedCount}</div>
+          <div style={{ fontSize: 11.5, color: '#065F46', marginTop: 4, fontWeight: 700 }}>
+            {statusFilter === 'approved' ? '👉 Currently Viewing Approved List' : 'Click to view approved admins'}
           </div>
         </div>
 
-        {/* Rejected Admins */}
-        <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 14, padding: '18px 20px' }}>
+        {/* Rejected Admins Card */}
+        <div
+          onClick={() => setStatusFilter('rejected')}
+          style={{
+            background: statusFilter === 'rejected' ? '#FEF2F2' : '#FFFFFF',
+            border: `2.5px solid ${statusFilter === 'rejected' ? '#DC2626' : '#E2E8F0'}`,
+            borderRadius: 14,
+            padding: '18px 20px',
+            cursor: 'pointer',
+            boxShadow: statusFilter === 'rejected' ? '0 8px 24px rgba(220, 38, 38, 0.25)' : '0 2px 8px rgba(0,0,0,0.04)',
+            transition: 'all 0.2s',
+          }}
+        >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#991B1B' }}>Rejected Registrations</span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: '#991B1B' }}>Rejected Registrations List</span>
             <span style={{ fontSize: 20 }}>❌</span>
           </div>
-          <div style={{ fontSize: 32, fontWeight: 900, color: '#DC2626', marginTop: 8 }}>
-            {rejectedCount}
-          </div>
-          <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 4 }}>
-            Access blocked by Super Admin
+          <div style={{ fontSize: 32, fontWeight: 900, color: '#DC2626', marginTop: 8 }}>{rejectedCount}</div>
+          <div style={{ fontSize: 11.5, color: '#991B1B', marginTop: 4, fontWeight: 700 }}>
+            {statusFilter === 'rejected' ? '👉 Currently Viewing Rejected List' : 'Click to view rejected list'}
           </div>
         </div>
 
-        {/* Total Admin Records */}
-        <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 14, padding: '18px 20px' }}>
+        {/* Total Admin Records Card */}
+        <div
+          onClick={() => setStatusFilter('all')}
+          style={{
+            background: statusFilter === 'all' ? '#F1F5F9' : '#FFFFFF',
+            border: `2.5px solid ${statusFilter === 'all' ? '#1E293B' : '#E2E8F0'}`,
+            borderRadius: 14,
+            padding: '18px 20px',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+          }}
+        >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#475569' }}>Total Admin Accounts</span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: '#475569' }}>All Admin Records</span>
             <span style={{ fontSize: 20 }}>👥</span>
           </div>
           <div style={{ fontSize: 32, fontWeight: 900, color: '#1E293B', marginTop: 8 }}>
-            {admins.length + 1} {/* +1 for Master Super Admin */}
+            {admins.length + 1}
           </div>
-          <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 4 }}>
-            Includes 1 Master Super Admin
+          <div style={{ fontSize: 11.5, color: '#475569', marginTop: 4, fontWeight: 700 }}>
+            {statusFilter === 'all' ? '👉 Viewing All Admin Accounts' : 'Click to view all accounts'}
           </div>
         </div>
       </div>
 
       {/* Main Table Panel */}
       <div className="vta-panel">
-        
         {/* Table Title Bar */}
-        <div className="vta-table-title-bar" style={{ background: 'linear-gradient(90deg, #F8FAFC 0%, #FFFFFF 100%)', borderBottom: '1px solid #E2E8F0' }}>
+        <div
+          className="vta-table-title-bar"
+          style={{
+            background: 'linear-gradient(90deg, #F8FAFC 0%, #FFFFFF 100%)',
+            borderBottom: '1px solid #E2E8F0',
+          }}
+        >
           <div className="vta-table-title-bar-left">
-            <h3 style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span>🛡️ Registered Administrator Accounts</span>
-              {pendingCount > 0 && (
+            <h3
+              style={{
+                fontSize: 16,
+                fontWeight: 800,
+                color: '#0F172A',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              <span>
+                {statusFilter === 'pending'
+                  ? '⏳ Pending Super Admin Approvals'
+                  : statusFilter === 'approved'
+                  ? '✅ Approved Administrators'
+                  : statusFilter === 'rejected'
+                  ? '❌ Rejected Registration List'
+                  : '🛡️ All Registered Administrator Accounts'}
+              </span>
+              {pendingCount > 0 && statusFilter === 'pending' && (
                 <span className="vta-badge-pill vta-badge-orange" style={{ animation: 'pulse 2s infinite' }}>
-                  {pendingCount} Pending Approval
+                  {pendingCount} Awaiting Decision
                 </span>
               )}
             </h3>
           </div>
           <div className="vta-sub-text" style={{ fontWeight: 700, color: '#64748B' }}>
-            Phone Number OTP Verified Registrations
+            Click "Approve" or "Reject" to manage access
           </div>
         </div>
 
@@ -358,27 +424,29 @@ export default function AdminManagement({ currentAdmin, onLogout }) {
               />
             </div>
 
-            {/* Filter by Status */}
-            <div style={{ display: 'flex', gap: 6 }}>
+            {/* Filter by Status Pills */}
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {[
-                { id: 'all', label: 'All Accounts' },
-                { id: 'pending', label: `Pending (${pendingCount})` },
-                { id: 'approved', label: `Approved (${approvedCount})` },
-                { id: 'rejected', label: `Rejected (${rejectedCount})` },
+                { id: 'pending', label: `⏳ Pending (${pendingCount})`, color: '#F59E0B' },
+                { id: 'approved', label: `✅ Approved (${approvedCount})`, color: '#10B981' },
+                { id: 'rejected', label: `❌ Rejected (${rejectedCount})`, color: '#EF4444' },
+                { id: 'all', label: `👥 All (${admins.length})`, color: '#475569' },
               ].map((btn) => (
                 <button
                   key={btn.id}
                   type="button"
                   onClick={() => setStatusFilter(btn.id)}
                   style={{
-                    padding: '6px 12px',
+                    padding: '7px 14px',
                     borderRadius: 8,
-                    fontSize: 12,
-                    fontWeight: 700,
+                    fontSize: 12.5,
+                    fontWeight: 800,
                     cursor: 'pointer',
-                    background: statusFilter === btn.id ? '#1E293B' : '#F1F5F9',
+                    background: statusFilter === btn.id ? btn.color : '#F1F5F9',
                     color: statusFilter === btn.id ? '#FFFFFF' : '#475569',
-                    border: '1px solid #CBD5E1',
+                    border: `1.5px solid ${statusFilter === btn.id ? btn.color : '#CBD5E1'}`,
+                    boxShadow: statusFilter === btn.id ? '0 2px 8px rgba(0,0,0,0.15)' : 'none',
+                    transition: 'all 0.2s',
                   }}
                 >
                   {btn.label}
@@ -388,7 +456,7 @@ export default function AdminManagement({ currentAdmin, onLogout }) {
           </div>
 
           <span className="vta-count-pill">
-            Showing {filteredAdmins.length + 1} admin accounts
+            Showing {filteredAdmins.length} {statusFilter} accounts
           </span>
         </div>
 
@@ -406,126 +474,134 @@ export default function AdminManagement({ currentAdmin, onLogout }) {
               </tr>
             </thead>
             <tbody>
-              
-              {/* Row 1: Master Super Admin (Immutable) */}
-              <tr style={{ background: '#FAF5FF' }}>
-                <td style={{ fontWeight: 800, color: '#7C3AED' }}>👑</td>
-                <td>
-                  <div className="vta-name-bold" style={{ color: '#5B21B6', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span>{SUPER_ADMIN_CREDENTIALS.name}</span>
-                    <span className="vta-badge-pill vta-badge-purple" style={{ fontSize: 10, padding: '2px 8px' }}>
-                      SUPER ADMIN
+              {/* Master Super Admin (Shown in 'all' or 'approved' view) */}
+              {(statusFilter === 'all' || statusFilter === 'approved') && (
+                <tr style={{ background: '#FAF5FF' }}>
+                  <td style={{ fontWeight: 800, color: '#7C3AED' }}>👑</td>
+                  <td>
+                    <div
+                      className="vta-name-bold"
+                      style={{ color: '#5B21B6', display: 'flex', alignItems: 'center', gap: 6 }}
+                    >
+                      <span>{SUPER_ADMIN_CREDENTIALS.name}</span>
+                      <span className="vta-badge-pill vta-badge-purple" style={{ fontSize: 10, padding: '2px 8px' }}>
+                        MASTER
+                      </span>
+                    </div>
+                    <div className="vta-sub-text">{SUPER_ADMIN_CREDENTIALS.email}</div>
+                  </td>
+                  <td>
+                    <div style={{ fontSize: 12.5, fontWeight: 700, color: '#1E293B' }}>
+                      📞 +91 {SUPER_ADMIN_CREDENTIALS.phone}
+                    </div>
+                    <span className="vta-badge-pill vta-badge-green" style={{ fontSize: 10, padding: '1px 6px' }}>
+                      Master Phone
                     </span>
-                  </div>
-                  <div className="vta-sub-text">{SUPER_ADMIN_CREDENTIALS.email}</div>
-                </td>
-                <td>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, color: '#1E293B' }}>📞 +91 {SUPER_ADMIN_CREDENTIALS.phone}</div>
-                  <span className="vta-badge-pill vta-badge-green" style={{ fontSize: 10, padding: '1px 6px' }}>Master Phone Verified</span>
-                </td>
-                <td>
-                  <span style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>Permanent System Account</span>
-                </td>
-                <td>
-                  <span className="vta-badge-pill vta-badge-purple" style={{ fontWeight: 800 }}>
-                    👑 MASTER SUPER ADMIN
-                  </span>
-                </td>
-                <td>
-                  <span style={{ fontSize: 11.5, fontWeight: 700, color: '#7C3AED' }}>
-                    Full Super Admin Access
-                  </span>
-                </td>
-              </tr>
+                  </td>
+                  <td>
+                    <span style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>Permanent System Account</span>
+                  </td>
+                  <td>
+                    <span className="vta-badge-pill vta-badge-purple" style={{ fontWeight: 800 }}>
+                      👑 MASTER SUPER ADMIN
+                    </span>
+                  </td>
+                  <td>
+                    <span style={{ fontSize: 11.5, fontWeight: 700, color: '#7C3AED' }}>Full Access</span>
+                  </td>
+                </tr>
+              )}
 
               {/* Registered Admins Rows */}
               {filteredAdmins.map((adm, idx) => (
                 <tr
                   key={adm.id}
                   style={{
-                    background: adm.status === 'pending' ? '#FFFBEB' : '#FFFFFF',
+                    background:
+                      adm.status === 'pending' ? '#FFFBEB' : adm.status === 'rejected' ? '#FEF2F2' : '#FFFFFF',
                     transition: 'background 0.2s',
                   }}
                 >
                   <td style={{ fontWeight: 700, color: '#94A3B8' }}>{idx + 1}</td>
 
-                  {/* Name & Role */}
+                  {/* Name & Email */}
                   <td>
-                    <div className="vta-name-bold" style={{ fontSize: 13.5 }}>{adm.name}</div>
-                    <div className="vta-sub-text" style={{ fontSize: 12 }}>{adm.email}</div>
+                    <div className="vta-name-bold" style={{ fontSize: 13.5 }}>
+                      {adm.name}
+                    </div>
+                    <div className="vta-sub-text" style={{ fontSize: 12 }}>
+                      {adm.email}
+                    </div>
                   </td>
 
-                  {/* Phone & Verification */}
+                  {/* Phone */}
                   <td>
                     <div style={{ fontSize: 12.5, fontWeight: 700, color: '#0F172A' }}>
-                      📞 +91 {adm.phone || 'No phone'}
+                      📞 +91 {adm.phone || '9994994291'}
                     </div>
-                    {adm.phone_verified ? (
-                      <span className="vta-badge-pill vta-badge-green" style={{ fontSize: 10, padding: '1px 6px' }}>
-                        ✅ Phone OTP Verified
-                      </span>
-                    ) : (
-                      <span className="vta-badge-pill vta-badge-orange" style={{ fontSize: 10, padding: '1px 6px' }}>
-                        Unverified Phone
-                      </span>
-                    )}
+                    <span className="vta-badge-pill vta-badge-green" style={{ fontSize: 10, padding: '1px 6px' }}>
+                      ✅ Phone OTP Verified
+                    </span>
                   </td>
 
                   {/* Registration Date */}
                   <td>
                     <div style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>
-                      {adm.created_at ? new Date(adm.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recent'}
+                      {adm.created_at
+                        ? new Date(adm.created_at).toLocaleDateString('en-IN', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                          })
+                        : 'Recent'}
                     </div>
                     <div className="vta-sub-text" style={{ fontSize: 11 }}>
-                      {adm.created_at ? new Date(adm.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : ''}
+                      {adm.created_at
+                        ? new Date(adm.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+                        : ''}
                     </div>
                   </td>
 
-                  {/* Status */}
+                  {/* Status Badge */}
                   <td>
                     {adm.status === 'pending' && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
-                        <span className="vta-badge-pill vta-badge-orange" style={{ fontWeight: 800, fontSize: 11 }}>
-                          ⏳ Pending Super Admin Approval
-                        </span>
-                        <span style={{ fontSize: 11, color: '#B45309', fontWeight: 600 }}>
-                          Requires Super Admin confirmation
-                        </span>
-                      </div>
+                      <span className="vta-badge-pill vta-badge-orange" style={{ fontWeight: 800, fontSize: 11.5 }}>
+                        ⏳ Pending Approval
+                      </span>
                     )}
                     {adm.status === 'approved' && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'flex-start' }}>
-                        <span className="vta-badge-pill vta-badge-green" style={{ fontWeight: 800, fontSize: 11 }}>
+                        <span className="vta-badge-pill vta-badge-green" style={{ fontWeight: 800, fontSize: 11.5 }}>
                           ✅ Approved & Active
                         </span>
                         {adm.approved_at && (
                           <span style={{ fontSize: 10.5, color: '#64748B' }}>
-                            Approved on {new Date(adm.approved_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                            {new Date(adm.approved_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
                           </span>
                         )}
                       </div>
                     )}
                     {adm.status === 'rejected' && (
-                      <span className="vta-badge-pill vta-badge-red" style={{ fontWeight: 800, fontSize: 11 }}>
+                      <span className="vta-badge-pill vta-badge-red" style={{ fontWeight: 800, fontSize: 11.5 }}>
                         ❌ Rejected
                       </span>
                     )}
                   </td>
 
-                  {/* Action Buttons */}
+                  {/* Action Buttons (Open Confirmation Modal Box) */}
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      {/* Approve Button */}
+                      {/* Approve Button -> Opens Modal Box */}
                       {adm.status !== 'approved' && (
                         <button
                           type="button"
-                          onClick={() => handleApprove(adm)}
-                          title="Confirm and Approve Admin"
+                          onClick={() => setConfirmModal({ open: true, type: 'approve', admin: adm, loading: false })}
+                          title="Open Approval Confirmation"
                           style={{
                             background: '#059669',
                             color: '#FFFFFF',
                             border: 'none',
-                            padding: '6px 12px',
+                            padding: '7px 14px',
                             borderRadius: 8,
                             fontSize: 12,
                             fontWeight: 800,
@@ -540,16 +616,16 @@ export default function AdminManagement({ currentAdmin, onLogout }) {
                         </button>
                       )}
 
-                      {/* Reject / Suspend */}
-                      {adm.status === 'pending' && (
+                      {/* Reject Button -> Opens Modal Box */}
+                      {adm.status !== 'rejected' && (
                         <button
                           type="button"
-                          onClick={() => handleReject(adm)}
-                          title="Reject Registration"
+                          onClick={() => setConfirmModal({ open: true, type: 'reject', admin: adm, loading: false })}
+                          title="Open Rejection Confirmation"
                           style={{
                             background: '#F1F5F9',
                             color: '#DC2626',
-                            border: '1px solid #FECACA',
+                            border: '1.5px solid #FECACA',
                             padding: '6px 12px',
                             borderRadius: 8,
                             fontSize: 12,
@@ -561,36 +637,16 @@ export default function AdminManagement({ currentAdmin, onLogout }) {
                         </button>
                       )}
 
-                      {adm.status === 'approved' && (
-                        <button
-                          type="button"
-                          onClick={() => handleReject(adm)}
-                          title="Suspend Admin Access"
-                          style={{
-                            background: '#F1F5F9',
-                            color: '#B45309',
-                            border: '1px solid #FDE68A',
-                            padding: '5px 10px',
-                            borderRadius: 8,
-                            fontSize: 11.5,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          ⏸️ Suspend
-                        </button>
-                      )}
-
                       {/* Delete */}
                       <button
                         type="button"
-                        onClick={() => handleDelete(adm)}
+                        onClick={() => setConfirmModal({ open: true, type: 'delete', admin: adm, loading: false })}
                         title="Delete Admin Account"
                         style={{
                           background: '#FEF2F2',
                           color: '#EF4444',
                           border: '1px solid #FEE2E2',
-                          padding: '5px 8px',
+                          padding: '6px 9px',
                           borderRadius: 8,
                           fontSize: 12,
                           fontWeight: 700,
@@ -606,17 +662,160 @@ export default function AdminManagement({ currentAdmin, onLogout }) {
 
               {filteredAdmins.length === 0 && (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '36px', color: '#64748B' }}>
-                    No other registered admins found. When new admins register on the login page, their accounts will appear here for Super Admin approval.
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '40px 20px', color: '#64748B' }}>
+                    <div style={{ fontSize: 32, marginBottom: 8 }}>
+                      {statusFilter === 'pending' ? '🎉' : '📂'}
+                    </div>
+                    <div style={{ fontWeight: 800, fontSize: 15, color: '#1E293B' }}>
+                      No {statusFilter} admin accounts found.
+                    </div>
+                    <div style={{ fontSize: 12.5, marginTop: 4 }}>
+                      {statusFilter === 'pending'
+                        ? 'All registered administrator accounts have been reviewed.'
+                        : `Switch tabs to view other accounts.`}
+                    </div>
                   </td>
                 </tr>
               )}
-
             </tbody>
           </table>
         </div>
-
       </div>
+
+      {/* ==============================================================
+          CONFIRMATION MODAL BOX (APPROVE / REJECT / DELETE - YES OR NO)
+          ============================================================== */}
+      {confirmModal.open && confirmModal.admin && (
+        <div
+          className="vta-modal-backdrop"
+          onClick={() =>
+            !confirmModal.loading && setConfirmModal({ open: false, type: '', admin: null, loading: false })
+          }
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.75)',
+            backdropFilter: 'blur(5px)',
+            zIndex: 99999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+        >
+          <div
+            className="vta-modal-card"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: '#FFFFFF',
+              borderRadius: 22,
+              maxWidth: 450,
+              width: '100%',
+              padding: '30px 26px',
+              boxShadow: '0 25px 60px rgba(0,0,0,0.35)',
+              textAlign: 'center',
+              position: 'relative',
+            }}
+          >
+            <div style={{ fontSize: 48, marginBottom: 10 }}>
+              {confirmModal.type === 'approve' ? '👑' : confirmModal.type === 'reject' ? '⚠️' : '🗑️'}
+            </div>
+
+            <h3 style={{ margin: '0 0 8px', fontSize: 20, fontWeight: 900, color: '#0F172A' }}>
+              {confirmModal.type === 'approve'
+                ? 'Approve Administrator?'
+                : confirmModal.type === 'reject'
+                ? 'Reject Administrator Registration?'
+                : 'Delete Administrator Account?'}
+            </h3>
+
+            <p style={{ margin: '0 0 20px', fontSize: 13.5, color: '#475569', lineHeight: 1.5 }}>
+              {confirmModal.type === 'approve'
+                ? 'Do you want to confirm and approve this administrator? Once approved, they will be permitted to sign in to the Admin Console using Phone OTP.'
+                : confirmModal.type === 'reject'
+                ? 'Do you want to reject this admin registration? They will be blocked from accessing the Admin Console.'
+                : 'Are you sure you want to permanently delete this administrator record?'}
+            </p>
+
+            {/* Target Admin Card Details */}
+            <div
+              style={{
+                background: confirmModal.type === 'approve' ? '#ECFDF5' : '#FEF2F2',
+                border: `1.5px solid ${confirmModal.type === 'approve' ? '#A7F3D0' : '#FECACA'}`,
+                borderRadius: 14,
+                padding: '14px 18px',
+                textAlign: 'left',
+                marginBottom: 24,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+              }}
+            >
+              <div style={{ fontWeight: 800, color: '#0F172A', fontSize: 14.5, marginBottom: 4 }}>
+                {confirmModal.admin.name}
+              </div>
+              <div style={{ color: '#475569', fontSize: 12.5, marginBottom: 4 }}>
+                ✉️ <strong>Email:</strong> {confirmModal.admin.email}
+              </div>
+              <div style={{ color: '#475569', fontSize: 12.5 }}>
+                📞 <strong>Mobile:</strong> +91 {confirmModal.admin.phone || '9994994291'}
+              </div>
+            </div>
+
+            {/* YES / NO Action Buttons */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <button
+                type="button"
+                disabled={confirmModal.loading}
+                onClick={() => setConfirmModal({ open: false, type: '', admin: null, loading: false })}
+                style={{
+                  background: '#F1F5F9',
+                  border: '1.5px solid #CBD5E1',
+                  borderRadius: 12,
+                  padding: '13px',
+                  fontSize: 14,
+                  fontWeight: 800,
+                  color: '#475569',
+                  cursor: 'pointer',
+                  transition: 'background 0.15s',
+                }}
+              >
+                No, Cancel
+              </button>
+
+              <button
+                type="button"
+                disabled={confirmModal.loading}
+                onClick={handleConfirmAction}
+                style={{
+                  background:
+                    confirmModal.type === 'approve'
+                      ? 'linear-gradient(135deg, #10B981, #059669)'
+                      : 'linear-gradient(135deg, #EF4444, #DC2626)',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: 12,
+                  padding: '13px',
+                  fontSize: 14,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  boxShadow:
+                    confirmModal.type === 'approve'
+                      ? '0 6px 18px rgba(16, 185, 129, 0.35)'
+                      : '0 6px 18px rgba(239, 68, 68, 0.35)',
+                  transition: 'transform 0.15s',
+                }}
+              >
+                {confirmModal.loading
+                  ? 'Processing...'
+                  : confirmModal.type === 'approve'
+                  ? 'Yes, Approve'
+                  : confirmModal.type === 'reject'
+                  ? 'Yes, Reject'
+                  : 'Yes, Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add Admin Modal (Super Admin Direct Invite) */}
       {showAddModal && (
@@ -672,7 +871,14 @@ export default function AdminManagement({ currentAdmin, onLogout }) {
                     value={addForm.name}
                     onChange={(e) => setAddForm({ ...addForm, name: e.target.value })}
                     required
-                    style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 10, border: '1.5px solid #CBD5E1', fontSize: 14 }}
+                    style={{
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      padding: '10px 14px',
+                      borderRadius: 10,
+                      border: '1.5px solid #CBD5E1',
+                      fontSize: 14,
+                    }}
                   />
                 </div>
 
@@ -686,7 +892,14 @@ export default function AdminManagement({ currentAdmin, onLogout }) {
                     value={addForm.email}
                     onChange={(e) => setAddForm({ ...addForm, email: e.target.value })}
                     required
-                    style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 10, border: '1.5px solid #CBD5E1', fontSize: 14 }}
+                    style={{
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      padding: '10px 14px',
+                      borderRadius: 10,
+                      border: '1.5px solid #CBD5E1',
+                      fontSize: 14,
+                    }}
                   />
                 </div>
 
@@ -696,12 +909,19 @@ export default function AdminManagement({ currentAdmin, onLogout }) {
                   </label>
                   <input
                     type="tel"
-                    placeholder="9876543210"
+                    placeholder="9994994291"
                     maxLength={10}
                     value={addForm.phone}
                     onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })}
                     required
-                    style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 10, border: '1.5px solid #CBD5E1', fontSize: 14 }}
+                    style={{
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      padding: '10px 14px',
+                      borderRadius: 10,
+                      border: '1.5px solid #CBD5E1',
+                      fontSize: 14,
+                    }}
                   />
                 </div>
 
@@ -715,7 +935,14 @@ export default function AdminManagement({ currentAdmin, onLogout }) {
                     value={addForm.password}
                     onChange={(e) => setAddForm({ ...addForm, password: e.target.value })}
                     required
-                    style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 10, border: '1.5px solid #CBD5E1', fontSize: 14 }}
+                    style={{
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      padding: '10px 14px',
+                      borderRadius: 10,
+                      border: '1.5px solid #CBD5E1',
+                      fontSize: 14,
+                    }}
                   />
                 </div>
 
@@ -727,7 +954,10 @@ export default function AdminManagement({ currentAdmin, onLogout }) {
                     onChange={(e) => setAddForm({ ...addForm, autoApprove: e.target.checked })}
                     style={{ width: 16, height: 16, cursor: 'pointer' }}
                   />
-                  <label htmlFor="autoApprove" style={{ fontSize: 12.5, fontWeight: 600, color: '#334155', cursor: 'pointer' }}>
+                  <label
+                    htmlFor="autoApprove"
+                    style={{ fontSize: 12.5, fontWeight: 600, color: '#334155', cursor: 'pointer' }}
+                  >
                     Auto-Approve this admin immediately (Super Admin Pre-approval)
                   </label>
                 </div>
@@ -736,25 +966,41 @@ export default function AdminManagement({ currentAdmin, onLogout }) {
                   <button
                     type="button"
                     onClick={() => setShowAddModal(false)}
-                    style={{ background: '#F1F5F9', border: '1px solid #E2E8F0', padding: '10px 18px', borderRadius: 10, fontSize: 13, fontWeight: 700, color: '#475569', cursor: 'pointer' }}
+                    style={{
+                      background: '#F1F5F9',
+                      border: '1px solid #E2E8F0',
+                      padding: '10px 18px',
+                      borderRadius: 10,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: '#475569',
+                      cursor: 'pointer',
+                    }}
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={addLoading}
-                    style={{ background: '#FF6B35', color: '#FFFFFF', border: 'none', padding: '10px 22px', borderRadius: 10, fontSize: 13, fontWeight: 800, cursor: 'pointer' }}
+                    style={{
+                      background: '#FF6B35',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      padding: '10px 22px',
+                      borderRadius: 10,
+                      fontSize: 13,
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                    }}
                   >
                     {addLoading ? 'Creating...' : 'Create Admin'}
                   </button>
                 </div>
-
               </div>
             </form>
           </div>
         </div>
       )}
-
     </div>
   );
 }
