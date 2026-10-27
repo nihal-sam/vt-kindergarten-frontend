@@ -6,6 +6,14 @@ import BillGeneration from "./components/BillGeneration";
 import LoginPage from "./components/LoginPage";
 import AdminManagement from "./components/AdminManagement";
 import { fetchRegisteredAdmins, ensureAuthenticatedSession } from "./utils/adminAuth";
+import {
+  getOrCreateSessionId,
+  acquireSessionLock,
+  refreshHeartbeat,
+  releaseSessionLock,
+  releaseSessionLockBeacon,
+  HEARTBEAT_INTERVAL_MS,
+} from "./utils/sessionLock";
 import "./admin.css";
 
 const LOGO_SRC = '/assets/vt-logo.png';
@@ -213,10 +221,24 @@ function useAuth() {
         password: 'admin123',
       });
     } catch {}
+    try {
+      const sid = getOrCreateSessionId();
+      const isSuper = Boolean(user?.isSuperAdmin || user?.email === 'superadmin@vtkindergarten.com');
+      await acquireSessionLock(user?.email, isSuper, sid);
+    } catch {}
   };
 
   const logout = async () => {
+    if (localAdmin) {
+      try {
+        const sid = getOrCreateSessionId();
+        const isSuper = Boolean(localAdmin?.isSuperAdmin || localAdmin?.email === 'superadmin@vtkindergarten.com');
+        await releaseSessionLock(localAdmin.email, isSuper, sid);
+        releaseSessionLockBeacon(localAdmin.email, isSuper);
+      } catch {}
+    }
     sessionStorage.removeItem('vt_admin_session');
+    sessionStorage.removeItem('vt_session_id');
     try {
       localStorage.removeItem('vt_admin_session');
     } catch {}
@@ -580,6 +602,46 @@ function Dashboard({ admin, logout }) {
     }
   }, [isSuperAdmin, tab]);
 
+  // Heartbeat presence & auto-release lock on page close
+  useEffect(() => {
+    if (!admin) return;
+
+    const sid = getOrCreateSessionId();
+    const isSuper = Boolean(admin?.isSuperAdmin || admin?.email === 'superadmin@vtkindergarten.com');
+    const email = admin?.email || '';
+
+    // Initial heartbeat refresh
+    refreshHeartbeat(email, isSuper, sid);
+
+    // Send heartbeat every 8 seconds
+    const interval = setInterval(() => {
+      refreshHeartbeat(email, isSuper, sid);
+    }, HEARTBEAT_INTERVAL_MS);
+
+    // When the browser tab or window is closed (pagehide & beforeunload)
+    const handleClose = () => {
+      releaseSessionLockBeacon(email, isSuper);
+    };
+
+    window.addEventListener('pagehide', handleClose);
+    window.addEventListener('beforeunload', handleClose);
+
+    // When window becomes visible again, refresh heartbeat immediately
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        refreshHeartbeat(email, isSuper, sid);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('pagehide', handleClose);
+      window.removeEventListener('beforeunload', handleClose);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [admin]);
+
   // Pagination states
   const [pageSizeAdm, setPageSizeAdm] = useState(10);
   const [pageAdm, setPageAdm] = useState(1);
@@ -671,11 +733,11 @@ function Dashboard({ admin, logout }) {
         return;
       }
 
-      // Merge records (excluding Fee Receipts, Admin Accounts, and System Settings)
+      // Merge records (excluding Fee Receipts, Admin Accounts, System Settings, and Active Sessions)
       const allRows = [
         ...(admData || []),
         ...(enqRaw || []).filter(r => !(admData || []).some(s => s.id === r.id))
-      ].filter(d => d.relation !== 'Fee Receipt' && d.relation !== 'Admin Account' && d.relation !== 'System Setting');
+      ].filter(d => d.relation !== 'Fee Receipt' && d.relation !== 'Admin Account' && d.relation !== 'System Setting' && d.relation !== 'Active Session');
 
       // Comprehensive Enquiry Filter:
       // Matches records created from Age Eligibility Calculator or parent enquiries

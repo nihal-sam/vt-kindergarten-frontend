@@ -5,6 +5,7 @@ import {
   registerNewAdmin,
   approveAdmin,
 } from '../utils/adminAuth';
+import { getOrCreateSessionId, acquireSessionLock } from '../utils/sessionLock';
 
 const LOGO_SRC = '/assets/vt-logo.png';
 
@@ -295,12 +296,21 @@ export default function LoginPage({ onLocalLogin }) {
 
     try {
       const emailTrimmed = loginForm.email.trim();
-      const res = await verifyAdminCredentials(emailTrimmed, loginForm.password);
+      const currentSessionId = getOrCreateSessionId();
+      const res = await verifyAdminCredentials(emailTrimmed, loginForm.password, currentSessionId);
 
       if (res.status === 'ok') {
         // Automatically handles Super Admin or Approved Normal Admin!
+        await acquireSessionLock(emailTrimmed, res.isSuperAdmin, currentSessionId);
         setLoginLoading(false);
         onLocalLogin?.(res.admin);
+        return;
+      }
+
+      if (res.status === 'already_logged_in') {
+        setLoginError(res.error || 'This account is already logged in on another device or window.');
+        refreshLoginCaptcha();
+        setLoginLoading(false);
         return;
       }
 

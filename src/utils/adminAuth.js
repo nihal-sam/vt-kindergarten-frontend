@@ -1,4 +1,5 @@
-import { supabase } from '../supabaseClient';
+import { supabase } from '../supabaseClient.js';
+import { checkSessionActive } from './sessionLock.js';
 
 export const SUPER_ADMIN_CREDENTIALS = {
   email: 'superadmin@vtkindergarten.com',
@@ -358,8 +359,8 @@ export async function deleteAdmin(adminId, adminEmail = '') {
   }
 }
 
-// Validate credentials for Login
-export async function verifyAdminCredentials(email, password) {
+// Validate credentials for Login and ensure single active session policy
+export async function verifyAdminCredentials(email, password, currentSessionId = '') {
   const cleanEmail = email.toLowerCase().trim();
 
   // 1. Check Super Admin
@@ -367,6 +368,16 @@ export async function verifyAdminCredentials(email, password) {
     cleanEmail === SUPER_ADMIN_CREDENTIALS.email &&
     password === SUPER_ADMIN_CREDENTIALS.password
   ) {
+    // Check if another Super Admin session is already active
+    const lockCheck = await checkSessionActive(cleanEmail, true, currentSessionId);
+    if (lockCheck.isLocked) {
+      return {
+        status: 'already_logged_in',
+        isSuperAdmin: true,
+        error: '⚠️ Already Logged In: Super Admin is currently logged in on another device or window. Only one active Super Admin session is allowed at a time. If the previous window was closed, please wait a few seconds and try again.',
+      };
+    }
+
     return {
       status: 'ok',
       isSuperAdmin: true,
@@ -379,6 +390,15 @@ export async function verifyAdminCredentials(email, password) {
     (cleanEmail === 'admin@vtkindergarten.com' || cleanEmail === 'admin2@vtkindergarten.com') &&
     (password === 'admin123' || password === 'AdminPassword123!')
   ) {
+    const lockCheck = await checkSessionActive(cleanEmail, false, currentSessionId);
+    if (lockCheck.isLocked) {
+      return {
+        status: 'already_logged_in',
+        isSuperAdmin: false,
+        error: '⚠️ Already Logged In: This admin account is currently active on another device or window. Only one active session is allowed at a time. If the previous window was closed, please wait a few seconds and try again.',
+      };
+    }
+
     return {
       status: 'ok',
       isSuperAdmin: false,
@@ -421,7 +441,17 @@ export async function verifyAdminCredentials(email, password) {
     };
   }
 
-  // Status is approved -> Direct login ok with credentials & CAPTCHA!
+  // Check if this admin account is already active on another device/window
+  const lockCheck = await checkSessionActive(cleanEmail, false, currentSessionId);
+  if (lockCheck.isLocked) {
+    return {
+      status: 'already_logged_in',
+      isSuperAdmin: false,
+      error: '⚠️ Already Logged In: This admin account is currently active on another device or window. Only one active session is allowed at a time. If the previous window was closed, please wait a few seconds and try again.',
+    };
+  }
+
+  // Status is approved and not concurrently locked -> Direct login ok!
   return {
     status: 'ok',
     isSuperAdmin: false,
