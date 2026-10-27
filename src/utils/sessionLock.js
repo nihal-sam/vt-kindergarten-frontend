@@ -1,9 +1,9 @@
 import { supabase, supabaseUrl, supabaseAnonKey } from '../supabaseClient.js';
 import { ensureAuthenticatedSession } from './adminAuth.js';
 
-// Heartbeat interval and timeout thresholds (in ms)
-export const HEARTBEAT_INTERVAL_MS = 8000;  // Send heartbeat every 8 seconds
-export const SESSION_TIMEOUT_MS = 25000;    // Session considered expired after 25s without heartbeat
+// Ultra-responsive heartbeat interval and timeout thresholds (in ms)
+export const HEARTBEAT_INTERVAL_MS = 3000;  // Send presence heartbeat every 3 seconds
+export const SESSION_TIMEOUT_MS = 8000;     // Lock expires after 8s of no heartbeats (tab closed)
 
 /**
  * Generate a unique session ID for the current browser tab
@@ -46,8 +46,20 @@ export function getLockKey(email = '', isSuperAdmin = false) {
  */
 export async function checkSessionActive(email, isSuperAdmin, currentSessionId = '') {
   try {
-    await ensureAuthenticatedSession();
     const lockKey = getLockKey(email, isSuperAdmin);
+
+    // 1. Instant check: If tab was closed on this computer/browser within the last 15 seconds,
+    // consider it unlocked immediately!
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        const closedAt = Number(window.localStorage.getItem('vt_lock_released_' + lockKey) || 0);
+        if (closedAt > 0 && Date.now() - closedAt < 15000) {
+          return { isLocked: false, wasJustClosedLocally: true };
+        }
+      } catch (_) {}
+    }
+
+    await ensureAuthenticatedSession();
 
     const { data: rows, error } = await supabase
       .from('student_admissions')
@@ -71,7 +83,7 @@ export async function checkSessionActive(email, isSuperAdmin, currentSessionId =
       return { isLocked: false, isSelf: true };
     }
 
-    // Check if heartbeat is recent
+    // Check if heartbeat is recent (within 8 seconds)
     const now = Date.now();
     const lastHbTime = meta.last_heartbeat ? new Date(meta.last_heartbeat).getTime() : 0;
     const elapsed = now - lastHbTime;
@@ -108,6 +120,13 @@ export async function acquireSessionLock(email, isSuperAdmin, sessionId) {
     const lockKey = getLockKey(email, isSuperAdmin);
     const cleanEmail = (email || '').toLowerCase().trim();
     const nowIso = new Date().toISOString();
+
+    // Clear local release mark when acquiring a new lock
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        window.localStorage.removeItem('vt_lock_released_' + lockKey);
+      } catch (_) {}
+    }
 
     // 1. Delete any existing lock record for this key
     await supabase
@@ -146,27 +165,49 @@ export async function acquireSessionLock(email, isSuperAdmin, sessionId) {
 }
 
 /**
- * Refresh heartbeat timestamp while user has dashboard open
+ * Refresh heartbeat timestamp while user has dashboard open.
+ * Returns { isStillOwner: boolean }. If another tab took over, isStillOwner is false.
  */
 export async function refreshHeartbeat(email, isSuperAdmin, sessionId) {
   try {
     const lockKey = getLockKey(email, isSuperAdmin);
     const nowIso = new Date().toISOString();
 
-    const payload = {
-      session_id: sessionId,
-      last_heartbeat: nowIso,
-      is_active: true,
-    };
-
-    await supabase
+    const { data: rows } = await supabase
       .from('student_admissions')
-      .update({ message: JSON.stringify(payload) })
+      .select('id, message')
       .eq('relation', 'Active Session')
-      .eq('child_name', lockKey);
+      .eq('child_name', lockKey)
+      .limit(1);
+
+    if (rows && rows.length > 0) {
+      let meta = {};
+      try { meta = JSON.parse(rows[0].message || '{}'); } catch (_) {}
+
+      // If another session took over the lock, notify caller
+      if (meta.session_id && meta.session_id !== sessionId) {
+        return { isStillOwner: false };
+      }
+
+      await supabase
+        .from('student_admissions')
+        .update({
+          message: JSON.stringify({
+            session_id: sessionId,
+            last_heartbeat: nowIso,
+            is_active: true,
+          }),
+        })
+        .eq('id', rows[0].id);
+
+      return { isStillOwner: true };
+    } else {
+      // Row was deleted, re-insert to preserve active status
+      await acquireSessionLock(email, isSuperAdmin, sessionId);
+      return { isStillOwner: true };
+    }
   } catch (err) {
-    // Heartbeat errors should fail silently to not interrupt UI
-    console.warn('refreshHeartbeat note:', err?.message || err);
+    return { isStillOwner: true };
   }
 }
 
@@ -175,8 +216,15 @@ export async function refreshHeartbeat(email, isSuperAdmin, sessionId) {
  */
 export async function releaseSessionLock(email, isSuperAdmin, sessionId) {
   try {
-    await ensureAuthenticatedSession();
     const lockKey = getLockKey(email, isSuperAdmin);
+
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        window.localStorage.setItem('vt_lock_released_' + lockKey, String(Date.now()));
+      } catch (_) {}
+    }
+
+    await ensureAuthenticatedSession();
 
     await supabase
       .from('student_admissions')
@@ -184,7 +232,7 @@ export async function releaseSessionLock(email, isSuperAdmin, sessionId) {
       .eq('relation', 'Active Session')
       .eq('child_name', lockKey);
 
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && window.sessionStorage) {
       try {
         window.sessionStorage.removeItem('vt_session_id');
       } catch (_) {}
@@ -198,28 +246,40 @@ export async function releaseSessionLock(email, isSuperAdmin, sessionId) {
 
 /**
  * Beacon release invoked on pagehide / beforeunload when browser tab is closed
- * Uses keepalive fetch guaranteed to finish even during tab close
+ * Sets local timestamp immediately and sends keepalive fetch
  */
 export function releaseSessionLockBeacon(email, isSuperAdmin) {
   try {
     const lockKey = getLockKey(email, isSuperAdmin);
-    let token = '';
 
+    // 1. Mark local release timestamp in localStorage (instant across all tabs on this machine)
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        window.localStorage.setItem('vt_lock_released_' + lockKey, String(Date.now()));
+      } catch (_) {}
+    }
+
+    // 2. Extract access token from sessionStorage
+    let token = '';
     if (typeof window !== 'undefined' && window.sessionStorage) {
       try {
-        for (let i = 0; i < window.sessionStorage.length; i++) {
-          const key = window.sessionStorage.key(i);
-          if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
-            const parsed = JSON.parse(window.sessionStorage.getItem(key));
-            if (parsed?.access_token) {
-              token = parsed.access_token;
-              break;
+        token = window.sessionStorage.getItem('vt_supabase_token') || '';
+        if (!token) {
+          for (let i = 0; i < window.sessionStorage.length; i++) {
+            const key = window.sessionStorage.key(i);
+            if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+              const parsed = JSON.parse(window.sessionStorage.getItem(key));
+              if (parsed?.access_token) {
+                token = parsed.access_token;
+                break;
+              }
             }
           }
         }
       } catch (_) {}
     }
 
+    // 3. Dispatch keepalive fetch to delete the row in Supabase
     const url = `${supabaseUrl}/rest/v1/student_admissions?relation=eq.Active%20Session&child_name=eq.${encodeURIComponent(lockKey)}`;
     const headers = {
       apikey: supabaseAnonKey,

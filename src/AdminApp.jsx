@@ -199,11 +199,16 @@ function useAuth() {
       supabase.auth.getSession().then(async ({ data: { session } }) => {
         if (!session) {
           try {
-            await supabase.auth.signInWithPassword({
+            const { data } = await supabase.auth.signInWithPassword({
               email: 'admin@vtkindergarten.com',
               password: 'admin123',
             });
+            if (data?.session?.access_token) {
+              sessionStorage.setItem('vt_supabase_token', data.session.access_token);
+            }
           } catch {}
+        } else if (session?.access_token) {
+          sessionStorage.setItem('vt_supabase_token', session.access_token);
         }
       });
     }
@@ -216,10 +221,13 @@ function useAuth() {
     } catch {}
     setLocalAdmin(user);
     try {
-      await supabase.auth.signInWithPassword({
+      const { data } = await supabase.auth.signInWithPassword({
         email: 'admin@vtkindergarten.com',
         password: 'admin123',
       });
+      if (data?.session?.access_token) {
+        sessionStorage.setItem('vt_supabase_token', data.session.access_token);
+      }
     } catch {}
     try {
       const sid = getOrCreateSessionId();
@@ -613,9 +621,14 @@ function Dashboard({ admin, logout }) {
     // Initial heartbeat refresh
     refreshHeartbeat(email, isSuper, sid);
 
-    // Send heartbeat every 8 seconds
-    const interval = setInterval(() => {
-      refreshHeartbeat(email, isSuper, sid);
+    // Send heartbeat every 3 seconds and detect if another session took over
+    const interval = setInterval(async () => {
+      const res = await refreshHeartbeat(email, isSuper, sid);
+      if (res && res.isStillOwner === false) {
+        clearInterval(interval);
+        alert('⚠️ Session Ended: This account was logged into from another window or device. You have been signed out.');
+        logout();
+      }
     }, HEARTBEAT_INTERVAL_MS);
 
     // When the browser tab or window is closed (pagehide & beforeunload)
