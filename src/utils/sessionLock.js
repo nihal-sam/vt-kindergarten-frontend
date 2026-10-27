@@ -1,9 +1,9 @@
 import { supabase, supabaseUrl, supabaseAnonKey } from '../supabaseClient.js';
 import { ensureAuthenticatedSession } from './adminAuth.js';
 
-// Ultra-responsive heartbeat interval and timeout thresholds (in ms)
-export const HEARTBEAT_INTERVAL_MS = 3000;  // Send presence heartbeat every 3 seconds
-export const SESSION_TIMEOUT_MS = 8000;     // Lock expires after 8s of no heartbeats (tab closed)
+// Heartbeat and session timeout constants
+export const HEARTBEAT_INTERVAL_MS = 4000;  // Send presence heartbeat every 4 seconds
+export const SESSION_TIMEOUT_MS = 35000;    // Lock expires after 35s without heartbeat
 
 /**
  * Generate a unique session ID for the current browser tab
@@ -41,24 +41,13 @@ export function getLockKey(email = '', isSuperAdmin = false) {
 }
 
 /**
- * Check if another user/browser is actively logged in with this role/account
- * Returns: { isLocked: boolean, reason?: string, lastHeartbeat?: string }
+ * Check if another user/browser is actively logged in with this role/account.
+ * Pure database check against Supabase - single source of truth.
+ * Returns: { isLocked: boolean, session_id?: string, lastHeartbeat?: string }
  */
-export async function checkSessionActive(email, isSuperAdmin, currentSessionId = '') {
+export async function checkSessionActive(email, isSuperAdmin) {
   try {
     const lockKey = getLockKey(email, isSuperAdmin);
-
-    // 1. Instant check: If tab was closed on this computer/browser within the last 15 seconds,
-    // consider it unlocked immediately!
-    if (typeof window !== 'undefined' && window.localStorage) {
-      try {
-        const closedAt = Number(window.localStorage.getItem('vt_lock_released_' + lockKey) || 0);
-        if (closedAt > 0 && Date.now() - closedAt < 15000) {
-          return { isLocked: false, wasJustClosedLocally: true };
-        }
-      } catch (_) {}
-    }
-
     await ensureAuthenticatedSession();
 
     const { data: rows, error } = await supabase
@@ -78,12 +67,7 @@ export async function checkSessionActive(email, isSuperAdmin, currentSessionId =
       meta = JSON.parse(row.message || '{}');
     } catch (_) {}
 
-    // If current tab is the same session, it's not locked against itself
-    if (currentSessionId && meta.session_id === currentSessionId) {
-      return { isLocked: false, isSelf: true };
-    }
-
-    // Check if heartbeat is recent (within 8 seconds)
+    // Check if heartbeat is recent (within 35 seconds)
     const now = Date.now();
     const lastHbTime = meta.last_heartbeat ? new Date(meta.last_heartbeat).getTime() : 0;
     const elapsed = now - lastHbTime;
@@ -120,13 +104,6 @@ export async function acquireSessionLock(email, isSuperAdmin, sessionId) {
     const lockKey = getLockKey(email, isSuperAdmin);
     const cleanEmail = (email || '').toLowerCase().trim();
     const nowIso = new Date().toISOString();
-
-    // Clear local release mark when acquiring a new lock
-    if (typeof window !== 'undefined' && window.localStorage) {
-      try {
-        window.localStorage.removeItem('vt_lock_released_' + lockKey);
-      } catch (_) {}
-    }
 
     // 1. Delete any existing lock record for this key
     await supabase
@@ -173,6 +150,8 @@ export async function refreshHeartbeat(email, isSuperAdmin, sessionId) {
     const lockKey = getLockKey(email, isSuperAdmin);
     const nowIso = new Date().toISOString();
 
+    await ensureAuthenticatedSession();
+
     const { data: rows } = await supabase
       .from('student_admissions')
       .select('id, message')
@@ -217,13 +196,6 @@ export async function refreshHeartbeat(email, isSuperAdmin, sessionId) {
 export async function releaseSessionLock(email, isSuperAdmin, sessionId) {
   try {
     const lockKey = getLockKey(email, isSuperAdmin);
-
-    if (typeof window !== 'undefined' && window.localStorage) {
-      try {
-        window.localStorage.setItem('vt_lock_released_' + lockKey, String(Date.now()));
-      } catch (_) {}
-    }
-
     await ensureAuthenticatedSession();
 
     await supabase
@@ -246,21 +218,12 @@ export async function releaseSessionLock(email, isSuperAdmin, sessionId) {
 
 /**
  * Beacon release invoked on pagehide / beforeunload when browser tab is closed
- * Sets local timestamp immediately and sends keepalive fetch
  */
 export function releaseSessionLockBeacon(email, isSuperAdmin) {
   try {
     const lockKey = getLockKey(email, isSuperAdmin);
-
-    // 1. Mark local release timestamp in localStorage (instant across all tabs on this machine)
-    if (typeof window !== 'undefined' && window.localStorage) {
-      try {
-        window.localStorage.setItem('vt_lock_released_' + lockKey, String(Date.now()));
-      } catch (_) {}
-    }
-
-    // 2. Extract access token from sessionStorage
     let token = '';
+
     if (typeof window !== 'undefined' && window.sessionStorage) {
       try {
         token = window.sessionStorage.getItem('vt_supabase_token') || '';
@@ -279,7 +242,6 @@ export function releaseSessionLockBeacon(email, isSuperAdmin) {
       } catch (_) {}
     }
 
-    // 3. Dispatch keepalive fetch to delete the row in Supabase
     const url = `${supabaseUrl}/rest/v1/student_admissions?relation=eq.Active%20Session&child_name=eq.${encodeURIComponent(lockKey)}`;
     const headers = {
       apikey: supabaseAnonKey,
@@ -298,5 +260,57 @@ export function releaseSessionLockBeacon(email, isSuperAdmin) {
     }
   } catch (err) {
     console.warn('releaseSessionLockBeacon note:', err);
+  }
+}
+
+/**
+ * Starts a reliable, non-throttled heartbeat timer using an inline Web Worker.
+ * Web Workers run in an independent background thread and are not throttled
+ * by Chrome / Edge when the browser tab is minimized or inactive.
+ */
+export function startHeartbeatTimer(callback, intervalMs = 4000) {
+  if (typeof window === 'undefined') return () => {};
+
+  let worker = null;
+  let intervalId = null;
+
+  try {
+    const workerBlob = new Blob([`
+      let timer = null;
+      self.onmessage = function(e) {
+        if (e.data === 'start') {
+          if (timer) clearInterval(timer);
+          timer = setInterval(function() {
+            self.postMessage('tick');
+          }, ${Math.max(2000, intervalMs)});
+        } else if (e.data === 'stop') {
+          if (timer) clearInterval(timer);
+          timer = null;
+        }
+      };
+    `], { type: 'application/javascript' });
+
+    const workerUrl = URL.createObjectURL(workerBlob);
+    worker = new Worker(workerUrl);
+    worker.onmessage = function() {
+      callback();
+    };
+    worker.postMessage('start');
+
+    return () => {
+      try {
+        if (worker) {
+          worker.postMessage('stop');
+          worker.terminate();
+          URL.revokeObjectURL(workerUrl);
+        }
+      } catch (_) {}
+    };
+  } catch (err) {
+    // Fallback to standard setInterval if Worker creation fails
+    intervalId = setInterval(callback, intervalMs);
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
   }
 }

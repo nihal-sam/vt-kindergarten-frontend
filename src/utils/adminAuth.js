@@ -360,7 +360,7 @@ export async function deleteAdmin(adminId, adminEmail = '') {
 }
 
 // Validate credentials for Login and ensure single active session policy
-export async function verifyAdminCredentials(email, password, currentSessionId = '') {
+export async function verifyAdminCredentials(email, password) {
   const cleanEmail = email.toLowerCase().trim();
 
   // 1. Check Super Admin
@@ -369,7 +369,7 @@ export async function verifyAdminCredentials(email, password, currentSessionId =
     password === SUPER_ADMIN_CREDENTIALS.password
   ) {
     // Check if another Super Admin session is already active
-    const lockCheck = await checkSessionActive(cleanEmail, true, currentSessionId);
+    const lockCheck = await checkSessionActive(cleanEmail, true);
     if (lockCheck.isLocked) {
       return {
         status: 'already_logged_in',
@@ -390,7 +390,7 @@ export async function verifyAdminCredentials(email, password, currentSessionId =
     (cleanEmail === 'admin@vtkindergarten.com' || cleanEmail === 'admin2@vtkindergarten.com') &&
     (password === 'admin123' || password === 'AdminPassword123!')
   ) {
-    const lockCheck = await checkSessionActive(cleanEmail, false, currentSessionId);
+    const lockCheck = await checkSessionActive(cleanEmail, false);
     if (lockCheck.isLocked) {
       return {
         status: 'already_logged_in',
@@ -442,7 +442,7 @@ export async function verifyAdminCredentials(email, password, currentSessionId =
   }
 
   // Check if this admin account is already active on another device/window
-  const lockCheck = await checkSessionActive(cleanEmail, false, currentSessionId);
+  const lockCheck = await checkSessionActive(cleanEmail, false);
   if (lockCheck.isLocked) {
     return {
       status: 'already_logged_in',

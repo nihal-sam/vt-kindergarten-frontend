@@ -12,6 +12,7 @@ import {
   refreshHeartbeat,
   releaseSessionLock,
   releaseSessionLockBeacon,
+  startHeartbeatTimer,
   HEARTBEAT_INTERVAL_MS,
 } from "./utils/sessionLock";
 import "./admin.css";
@@ -621,11 +622,11 @@ function Dashboard({ admin, logout }) {
     // Initial heartbeat refresh
     refreshHeartbeat(email, isSuper, sid);
 
-    // Send heartbeat every 3 seconds and detect if another session took over
-    const interval = setInterval(async () => {
+    // Reliable unthrottled Web Worker timer sends heartbeat every 4s (even in background tabs)
+    const stopTimer = startHeartbeatTimer(async () => {
       const res = await refreshHeartbeat(email, isSuper, sid);
       if (res && res.isStillOwner === false) {
-        clearInterval(interval);
+        stopTimer();
         alert('⚠️ Session Ended: This account was logged into from another window or device. You have been signed out.');
         logout();
       }
@@ -648,7 +649,7 @@ function Dashboard({ admin, logout }) {
     document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
-      clearInterval(interval);
+      stopTimer();
       window.removeEventListener('pagehide', handleClose);
       window.removeEventListener('beforeunload', handleClose);
       document.removeEventListener('visibilitychange', handleVisibility);

@@ -6,7 +6,7 @@ import {
   approveAdmin,
   fetchRegisteredAdmins,
 } from '../utils/adminAuth';
-import { getOrCreateSessionId, acquireSessionLock } from '../utils/sessionLock';
+import { generateSessionId, acquireSessionLock } from '../utils/sessionLock';
 
 const LOGO_SRC = '/assets/vt-logo.png';
 
@@ -299,8 +299,13 @@ export default function LoginPage({ onLocalLogin }) {
 
     try {
       const emailTrimmed = loginForm.email.trim();
-      const currentSessionId = getOrCreateSessionId();
-      const res = await verifyAdminCredentials(emailTrimmed, loginForm.password, currentSessionId);
+      // Generate a fresh session ID on every login attempt (never reuse cloned IDs)
+      const currentSessionId = generateSessionId();
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        window.sessionStorage.setItem('vt_session_id', currentSessionId);
+      }
+
+      const res = await verifyAdminCredentials(emailTrimmed, loginForm.password);
 
       if (res.status === 'ok') {
         // Automatically handles Super Admin or Approved Normal Admin!
@@ -312,7 +317,7 @@ export default function LoginPage({ onLocalLogin }) {
 
       if (res.status === 'already_logged_in') {
         setIsAlreadyLoggedIn(true);
-        setLoginError(res.error || 'This account is already logged in on another device or window.');
+        setLoginError(res.error || 'This account is currently active on another device or window.');
         refreshLoginCaptcha();
         setLoginLoading(false);
         return;
@@ -341,40 +346,6 @@ export default function LoginPage({ onLocalLogin }) {
       }
     } catch (err) {
       setLoginError('Connection failed. Please check your network.');
-    } finally {
-      setLoginLoading(false);
-    }
-  };
-
-  // Reclaim / Force Takeover Session
-  const handleForceTakeover = async () => {
-    setLoginLoading(true);
-    setLoginError('');
-    try {
-      const emailTrimmed = loginForm.email.trim();
-      const currentSessionId = getOrCreateSessionId();
-      const isSuper = emailTrimmed.toLowerCase() === SUPER_ADMIN_CREDENTIALS.email.toLowerCase();
-
-      // Force acquire lock directly
-      await acquireSessionLock(emailTrimmed, isSuper, currentSessionId);
-
-      let adminObj = null;
-      if (isSuper) {
-        adminObj = { ...SUPER_ADMIN_CREDENTIALS };
-      } else {
-        const admins = await fetchRegisteredAdmins();
-        adminObj = admins.find(a => (a.email || '').toLowerCase() === emailTrimmed.toLowerCase());
-      }
-
-      if (adminObj) {
-        setIsAlreadyLoggedIn(false);
-        setLoginLoading(false);
-        onLocalLogin?.(adminObj);
-      } else {
-        setLoginError('Could not find account to take over.');
-      }
-    } catch (err) {
-      setLoginError('Failed to take over session: ' + err.message);
     } finally {
       setLoginLoading(false);
     }
@@ -715,64 +686,31 @@ export default function LoginPage({ onLocalLogin }) {
               </div>
             )}
 
-            {/* Already Logged In / Takeover Prompt */}
+            {/* Blocked: Session Already Active Alert Card */}
             {isAlreadyLoggedIn ? (
               <div
                 style={{
-                  background: 'rgba(239, 68, 68, 0.16)',
-                  border: '1.5px solid rgba(239, 68, 68, 0.45)',
-                  borderRadius: 12,
-                  padding: '14px 16px',
-                  marginBottom: 16,
-                  color: '#FECDD3',
+                  background: 'rgba(239, 68, 68, 0.18)',
+                  border: '1.5px solid #EF4444',
+                  borderRadius: 14,
+                  padding: '16px',
+                  marginBottom: 18,
+                  boxShadow: '0 8px 24px rgba(239, 68, 68, 0.25)',
                 }}
               >
-                <div style={{ fontWeight: 800, color: '#FFFFFF', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6, fontSize: 13.5 }}>
-                  <span>⚠️</span> Active Session Already in Progress
-                </div>
-                <div style={{ lineHeight: 1.45, marginBottom: 12, fontSize: 12.5, color: '#FCA5A5' }}>
-                  {loginError}
-                </div>
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                  <button
-                    type="button"
-                    onClick={handleForceTakeover}
-                    disabled={loginLoading}
-                    style={{
-                      background: 'linear-gradient(135deg, #EF4444, #B91C1C)',
-                      color: '#FFFFFF',
-                      border: 'none',
-                      borderRadius: 8,
-                      padding: '8px 14px',
-                      fontSize: 12,
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      boxShadow: '0 2px 8px rgba(220, 38, 38, 0.35)',
-                    }}
-                    title="Click here to take over and log in immediately"
-                  >
-                    ⚡ Continue & Force Login Here
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsAlreadyLoggedIn(false);
-                      setLoginError('');
-                      refreshLoginCaptcha();
-                    }}
-                    style={{
-                      background: 'rgba(255, 255, 255, 0.12)',
-                      color: '#FFFFFF',
-                      border: '1px solid rgba(255, 255, 255, 0.25)',
-                      borderRadius: 8,
-                      padding: '8px 12px',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    🔄 Check Again
-                  </button>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <span style={{ fontSize: 24, lineHeight: 1 }}>🚫</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 800, color: '#FCA5A5', fontSize: 13, marginBottom: 5, letterSpacing: 0.2 }}>
+                      ACCESS BLOCKED — ACTIVE SESSION EXISTS
+                    </div>
+                    <div style={{ lineHeight: 1.5, fontSize: 13, color: '#FFFFFF', fontWeight: 600 }}>
+                      {loginError}
+                    </div>
+                    <div style={{ marginTop: 8, fontSize: 12, color: 'rgba(255, 255, 255, 0.75)', lineHeight: 1.4 }}>
+                      🔒 Security Policy: Only one active session is allowed at a time. To log in from this window, please close the tab or sign out from the other active device first.
+                    </div>
+                  </div>
                 </div>
               </div>
             ) : loginError ? (
