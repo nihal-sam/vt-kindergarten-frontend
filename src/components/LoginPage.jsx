@@ -557,6 +557,56 @@ export default function LoginPage({ onLocalLogin }) {
             ============================================================== */}
         {mode === 'login' && (
           <form onSubmit={handleLoginSubmit}>
+            {/* Top Alert: Blocked Active Session or Error Banner */}
+            {isAlreadyLoggedIn ? (
+              <div
+                style={{
+                  background: 'rgba(239, 68, 68, 0.2)',
+                  border: '2px solid #EF4444',
+                  borderRadius: 14,
+                  padding: '16px',
+                  marginBottom: 18,
+                  boxShadow: '0 8px 24px rgba(239, 68, 68, 0.28)',
+                  animation: 'fadeIn 0.25s ease-in-out',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <span style={{ fontSize: 24, lineHeight: 1 }}>🚫</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 800, color: '#FCA5A5', fontSize: 13, marginBottom: 5, letterSpacing: 0.2 }}>
+                      ACCESS BLOCKED — ACTIVE SESSION EXISTS
+                    </div>
+                    <div style={{ lineHeight: 1.5, fontSize: 13, color: '#FFFFFF', fontWeight: 600 }}>
+                      {loginError}
+                    </div>
+                    <div style={{ marginTop: 8, fontSize: 12, color: 'rgba(255, 255, 255, 0.75)', lineHeight: 1.4 }}>
+                      🔒 Security Policy: Only one active session is allowed at a time. To log in from this window, please close the tab or sign out from the other active device first.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : loginError ? (
+              <div
+                style={{
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  border: '1px solid rgba(239, 68, 68, 0.35)',
+                  borderRadius: 10,
+                  padding: '12px 14px',
+                  color: '#FCA5A5',
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  marginBottom: 16,
+                  lineHeight: 1.4,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                <span>⚠️</span>
+                <span>{loginError}</span>
+              </div>
+            ) : null}
+
             {/* Email Address */}
             <div style={{ marginBottom: 15 }}>
               <label
@@ -685,51 +735,6 @@ export default function LoginPage({ onLocalLogin }) {
                 </div>
               </div>
             )}
-
-            {/* Blocked: Session Already Active Alert Card */}
-            {isAlreadyLoggedIn ? (
-              <div
-                style={{
-                  background: 'rgba(239, 68, 68, 0.18)',
-                  border: '1.5px solid #EF4444',
-                  borderRadius: 14,
-                  padding: '16px',
-                  marginBottom: 18,
-                  boxShadow: '0 8px 24px rgba(239, 68, 68, 0.25)',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                  <span style={{ fontSize: 24, lineHeight: 1 }}>🚫</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 800, color: '#FCA5A5', fontSize: 13, marginBottom: 5, letterSpacing: 0.2 }}>
-                      ACCESS BLOCKED — ACTIVE SESSION EXISTS
-                    </div>
-                    <div style={{ lineHeight: 1.5, fontSize: 13, color: '#FFFFFF', fontWeight: 600 }}>
-                      {loginError}
-                    </div>
-                    <div style={{ marginTop: 8, fontSize: 12, color: 'rgba(255, 255, 255, 0.75)', lineHeight: 1.4 }}>
-                      🔒 Security Policy: Only one active session is allowed at a time. To log in from this window, please close the tab or sign out from the other active device first.
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : loginError ? (
-              <div
-                style={{
-                  background: 'rgba(239, 68, 68, 0.15)',
-                  border: '1px solid rgba(239, 68, 68, 0.35)',
-                  borderRadius: 10,
-                  padding: '12px 14px',
-                  color: '#FCA5A5',
-                  fontSize: 12.5,
-                  fontWeight: 700,
-                  marginBottom: 16,
-                  lineHeight: 1.4,
-                }}
-              >
-                {loginError}
-              </div>
-            ) : null}
 
             {/* Submit Button */}
             <button
