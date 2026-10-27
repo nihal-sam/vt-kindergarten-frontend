@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "./supabaseClient";
 import { parseEnquiryEligibility, CUTOFF_LABEL } from "./utils/ageEligibility";
 import BillGeneration from "./components/BillGeneration";
@@ -2835,6 +2836,36 @@ function Dashboard({ admin, logout }) {
    ========================================================================== */
 export default function AdminApp() {
   const { session, admin, loginLocal, logout, isAuth, loading } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const isSuperAdmin = Boolean(admin?.isSuperAdmin || admin?.email === 'superadmin@vtkindergarten.com');
+
+  // Automatically synchronize URL pathname with the logged-in admin role:
+  // Super Admin -> /superadmin
+  // Normal Admin -> /admin
+  useEffect(() => {
+    if (isAuth && admin) {
+      if (isSuperAdmin && location.pathname !== '/superadmin') {
+        navigate('/superadmin', { replace: true });
+      } else if (!isSuperAdmin && location.pathname === '/superadmin') {
+        navigate('/admin', { replace: true });
+      }
+    }
+  }, [isAuth, isSuperAdmin, location.pathname, navigate, admin]);
+
+  // Dynamic Browser Tab Title
+  useEffect(() => {
+    if (isAuth && admin) {
+      document.title = isSuperAdmin
+        ? 'VT Kindergarten - Super Admin Console'
+        : 'VT Kindergarten - Admin Portal';
+    } else {
+      document.title = location.pathname.includes('superadmin')
+        ? 'VT Kindergarten - Super Admin Login'
+        : 'VT Kindergarten - Admin Login';
+    }
+  }, [isAuth, isSuperAdmin, admin, location.pathname]);
 
   useEffect(() => {
     if (!window.XLSX) {
@@ -2843,6 +2874,25 @@ export default function AdminApp() {
       document.head.appendChild(sc);
     }
   }, []);
+
+  const handleLogin = async (user) => {
+    await loginLocal(user);
+    const isSuper = Boolean(user?.isSuperAdmin || user?.email === 'superadmin@vtkindergarten.com');
+    if (isSuper) {
+      navigate('/superadmin', { replace: true });
+    } else {
+      navigate('/admin', { replace: true });
+    }
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    if (location.pathname === '/superadmin') {
+      navigate('/superadmin', { replace: true });
+    } else {
+      navigate('/admin', { replace: true });
+    }
+  };
 
   if (loading) {
     return (
@@ -2864,6 +2914,6 @@ export default function AdminApp() {
     );
   }
 
-  if (!isAuth) return <LoginPage onLocalLogin={loginLocal} />;
-  return <Dashboard admin={admin} logout={logout} />;
+  if (!isAuth) return <LoginPage onLocalLogin={handleLogin} />;
+  return <Dashboard admin={admin} logout={handleLogout} />;
 }
