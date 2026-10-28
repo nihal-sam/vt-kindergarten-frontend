@@ -441,11 +441,43 @@ export default function BillGeneration({ admissions = [], enquiries = [] }) {
     return `${curYear}_${curMonthNum}_VT${code || 'GEN'}_${seq}`;
   };
 
-  // Fetch all receipts from Supabase API on load
+  // Fetch all receipts from Supabase API on load (supports dedicated fee_receipts table with fallback)
   const fetchReceipts = async () => {
     setLoadingList(true);
     try {
-      // 1. Try fetching from student_admissions where relation = 'Fee Receipt'
+      // 1. Try dedicated fee_receipts table first
+      const { data: dedicatedData, error: dedicatedErr } = await supabase
+        .from('fee_receipts')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!dedicatedErr && dedicatedData) {
+        const parsed = dedicatedData.map(item => ({
+          id: item.id,
+          created_at: item.created_at,
+          studentName: item.student_name || '-',
+          className: item.class_name || 'Play Group',
+          receiptNo: item.receipt_no || `VT-${item.id}`,
+          description: item.description || 'Tuition fees',
+          period: item.period || '-',
+          amount: String(item.amount ?? '0.00'),
+          total: String(item.total ?? item.amount ?? '0.00'),
+          amountInWords: item.amount_in_words || '',
+          paymentDate: item.payment_date || item.created_at?.split('T')[0] || todayISO,
+          paymentMethod: item.payment_method || 'ONLINE (UPI)',
+          formattedDate: item.formatted_date || '',
+          parentPhone: item.parent_phone || '',
+        }));
+
+        setReceiptsList(parsed);
+        try {
+          localStorage.setItem('vt_saved_receipts', JSON.stringify(parsed));
+        } catch (_) {}
+        setLoadingList(false);
+        return;
+      }
+
+      // 2. Fallback to legacy student_admissions where relation = 'Fee Receipt'
       const { data, error } = await supabase
         .from('student_admissions')
         .select('*')
@@ -453,7 +485,6 @@ export default function BillGeneration({ admissions = [], enquiries = [] }) {
         .order('created_at', { ascending: false });
 
       if (error) {
-        // Fallback to local storage
         const saved = localStorage.getItem('vt_saved_receipts');
         if (saved) setReceiptsList(JSON.parse(saved));
       } else if (data) {
@@ -481,7 +512,6 @@ export default function BillGeneration({ admissions = [], enquiries = [] }) {
         });
 
         setReceiptsList(parsed);
-        // Cache to localStorage
         try {
           localStorage.setItem('vt_saved_receipts', JSON.stringify(parsed));
         } catch (_) {}
@@ -558,11 +588,42 @@ export default function BillGeneration({ admissions = [], enquiries = [] }) {
     formattedDate,
   };
 
-  // Save receipt into Supabase API
+  // Save receipt into dedicated fee_receipts API (with student_admissions fallback)
   const saveReceiptToAPI = async (receiptData) => {
     setSaving(true);
     setErrorBanner('');
     try {
+      await ensureAuthenticatedSession();
+      const numericAmt = parseFloat(String(receiptData.formattedAmount || receiptData.amount || '0').replace(/[^0-9.]/g, '')) || 0;
+
+      // 1. Try dedicated fee_receipts API table first
+      const { data: dedicatedData, error: dedicatedErr } = await supabase
+        .from('fee_receipts')
+        .insert([{
+          receipt_no: receiptData.receiptNo,
+          student_name: receiptData.studentName,
+          class_name: receiptData.effectiveClass,
+          description: receiptData.description || 'Tuition fees',
+          period: receiptData.period || '-',
+          amount: numericAmt,
+          total: numericAmt,
+          amount_in_words: receiptData.amountInWords || '',
+          payment_date: receiptData.paymentDate || todayISO,
+          payment_method: receiptData.paymentMethod || 'ONLINE (UPI)',
+          formatted_date: receiptData.formattedDate || '',
+          parent_phone: receiptData.parentPhone?.trim() || '7358293839',
+          status: 'paid',
+        }])
+        .select();
+
+      if (!dedicatedErr && dedicatedData && dedicatedData[0]) {
+        setSuccessBanner(`✅ Receipt #${receiptData.receiptNo} for ${receiptData.studentName} successfully stored in Dedicated Receipts API!`);
+        setTimeout(() => setSuccessBanner(''), 5000);
+        await fetchReceipts();
+        return dedicatedData[0];
+      }
+
+      // 2. Fallback to legacy student_admissions table
       const payload = {
         type: 'fee_receipt',
         receipt_no: receiptData.receiptNo,
@@ -579,7 +640,6 @@ export default function BillGeneration({ admissions = [], enquiries = [] }) {
         class_name: receiptData.effectiveClass,
       };
 
-      await ensureAuthenticatedSession();
       const { data, error } = await supabase
         .from('student_admissions')
         .insert([{
@@ -722,14 +782,28 @@ _Thank you for your payment!_`;
     window.open(url, '_blank');
   };
 
-  // Delete Receipt from API
+  // Delete Receipt from API (supports dedicated fee_receipts with legacy fallback)
   const handleDeleteReceipt = async (id, receiptNo) => {
     if (!confirm(`Are you sure you want to delete Receipt #${receiptNo}?`)) return;
     try {
       await ensureAuthenticatedSession();
-      if (id && !String(id).startsWith('local_')) {
-        await supabase.from('student_admissions').delete().eq('id', id);
-      }
+      // 1. Delete from dedicated fee_receipts table
+      try {
+        if (id && !String(id).startsWith('local_')) {
+          await supabase.from('fee_receipts').delete().eq('id', id);
+        }
+        if (receiptNo) {
+          await supabase.from('fee_receipts').delete().eq('receipt_no', receiptNo);
+        }
+      } catch (_) {}
+
+      // 2. Also delete from legacy student_admissions table
+      try {
+        if (id && !String(id).startsWith('local_')) {
+          await supabase.from('student_admissions').delete().eq('id', id);
+        }
+      } catch (_) {}
+
       const next = receiptsList.filter(r => r.id !== id && r.receiptNo !== receiptNo);
       setReceiptsList(next);
       localStorage.setItem('vt_saved_receipts', JSON.stringify(next));
