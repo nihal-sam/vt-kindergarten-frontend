@@ -25,39 +25,64 @@ export function generateOTP() {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
-// Fetch all registered admins from Supabase student_admissions (relation = 'Admin Account')
+// Fetch all registered admins from dedicated admin_accounts table (with student_admissions fallback)
 export async function fetchRegisteredAdmins() {
   let dbAdmins = [];
   try {
-    const { data, error } = await supabase
-      .from('student_admissions')
+    // 1. Try dedicated admin_accounts API table first
+    const { data: dedicatedData, error: dedicatedErr } = await supabase
+      .from('admin_accounts')
       .select('*')
-      .eq('relation', 'Admin Account')
       .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      dbAdmins = data.map((row) => {
-        let extra = {};
-        try {
-          extra = JSON.parse(row.message || '{}');
-        } catch (_) {}
+    if (!dedicatedErr && dedicatedData) {
+      dbAdmins = dedicatedData.map((row) => ({
+        id: row.id,
+        created_at: row.created_at,
+        name: row.name || 'Admin User',
+        email: (row.email || '').toLowerCase().trim(),
+        phone: row.phone || '',
+        status: row.status || 'pending', // 'pending' | 'approved' | 'rejected'
+        role: row.role || 'admin',
+        password: row.password || '',
+        phone_verified: row.phone_verified ?? true,
+        approved_by: row.approved_by || null,
+        approved_at: row.approved_at || null,
+        rejected_by: row.rejected_by || null,
+        rejected_at: row.rejected_at || null,
+      }));
+    } else {
+      // 2. Fallback to legacy student_admissions table if dedicated table not yet created
+      const { data, error } = await supabase
+        .from('student_admissions')
+        .select('*')
+        .eq('relation', 'Admin Account')
+        .order('created_at', { ascending: false });
 
-        return {
-          id: row.id,
-          created_at: row.created_at,
-          name: row.child_name || row.parent_name || 'Admin User',
-          email: (row.email || '').toLowerCase().trim(),
-          phone: row.phone || extra.phone || '',
-          status: row.status || 'pending', // 'pending' | 'approved' | 'rejected'
-          role: extra.role || 'admin',
-          password: extra.password || '',
-          phone_verified: extra.phone_verified ?? true,
-          approved_by: extra.approved_by || null,
-          approved_at: extra.approved_at || null,
-        };
-      });
-    } else if (error) {
-      console.warn('Supabase fetchRegisteredAdmins error:', error.message);
+      if (!error && data) {
+        dbAdmins = data.map((row) => {
+          let extra = {};
+          try {
+            extra = JSON.parse(row.message || '{}');
+          } catch (_) {}
+
+          return {
+            id: row.id,
+            created_at: row.created_at,
+            name: row.child_name || row.parent_name || 'Admin User',
+            email: (row.email || '').toLowerCase().trim(),
+            phone: row.phone || extra.phone || '',
+            status: row.status || 'pending',
+            role: extra.role || 'admin',
+            password: extra.password || '',
+            phone_verified: extra.phone_verified ?? true,
+            approved_by: extra.approved_by || null,
+            approved_at: extra.approved_at || null,
+            rejected_by: extra.rejected_by || null,
+            rejected_at: extra.rejected_at || null,
+          };
+        });
+      }
     }
   } catch (err) {
     console.error('Error in fetchRegisteredAdmins:', err);
@@ -117,16 +142,53 @@ export async function registerNewAdmin({ name, email, phone, password }) {
     return { success: false, error: 'An admin account with this email address already exists.' };
   }
 
-  const payload = {
-    role: 'admin',
-    password: password,
-    phone_verified: true,
-    registered_at: new Date().toISOString(),
-    approved_by: null,
-    approved_at: null,
-  };
-
   try {
+    await ensureAuthenticatedSession();
+
+    // 1. Try dedicated admin_accounts API table first
+    const { data: dedicatedData, error: dedicatedErr } = await supabase
+      .from('admin_accounts')
+      .insert([
+        {
+          name: name.trim(),
+          email: cleanEmail,
+          phone: cleanPhone || '7358293839',
+          password: password,
+          role: 'admin',
+          status: 'pending', // Must be approved by superadmin
+          phone_verified: true,
+        },
+      ])
+      .select();
+
+    if (!dedicatedErr && dedicatedData && dedicatedData[0]) {
+      const row = dedicatedData[0];
+      const newAdmin = {
+        id: row.id,
+        created_at: row.created_at || new Date().toISOString(),
+        name: row.name,
+        email: row.email,
+        phone: row.phone,
+        status: row.status,
+        role: row.role,
+        password: row.password,
+        phone_verified: true,
+      };
+      const updated = [newAdmin, ...existing.filter((a) => a.email !== cleanEmail)];
+      localStorage.setItem('vt_registered_admins', JSON.stringify(updated));
+      return { success: true, admin: newAdmin };
+    }
+
+    // 2. Fallback to legacy student_admissions table
+    const payload = {
+      role: 'admin',
+      password: password,
+      phone_verified: true,
+      registered_at: new Date().toISOString(),
+      approved_by: null,
+      approved_at: null,
+    };
+
     const { data, error } = await supabase
       .from('student_admissions')
       .insert([
@@ -136,7 +198,7 @@ export async function registerNewAdmin({ name, email, phone, password }) {
           email: cleanEmail,
           phone: cleanPhone || '7358293839',
           relation: 'Admin Account',
-          status: 'pending', // Must be approved by superadmin
+          status: 'pending',
           program: 'Administrator',
           message: JSON.stringify(payload),
         },
@@ -144,8 +206,7 @@ export async function registerNewAdmin({ name, email, phone, password }) {
       .select();
 
     if (error) {
-      console.error('Supabase admin registration error:', error.message);
-      // Fallback local save
+      console.warn('Fallback admin registration warning:', error.message);
       const newAdmin = {
         id: 'local_' + Date.now(),
         created_at: new Date().toISOString(),
@@ -205,51 +266,60 @@ export async function approveAdmin(adminIdOrEmail, superAdminEmail = SUPER_ADMIN
     await ensureAuthenticatedSession();
     const isEmail = typeof adminIdOrEmail === 'string' && adminIdOrEmail.includes('@');
     const cleanIdentifier = String(adminIdOrEmail).toLowerCase().trim();
+    const nowIso = new Date().toISOString();
 
-    // 1. Fetch current row from Supabase
-    let query = supabase.from('student_admissions').select('*').eq('relation', 'Admin Account');
-    if (isEmail) {
-      query = query.eq('email', cleanIdentifier);
-    } else {
-      query = query.eq('id', adminIdOrEmail);
-    }
-    const { data: rows } = await query.limit(1);
-    const row = rows && rows[0];
-
-    if (row) {
-      let extra = {};
-      if (row.message) {
-        try {
-          extra = JSON.parse(row.message);
-        } catch (_) {}
-      }
-
-      extra.approved_by = superAdminEmail;
-      extra.approved_at = new Date().toISOString();
-
-      // Delete old and re-insert with approved status
-      await supabase.from('student_admissions').delete().eq('id', row.id);
-
-      const clone = {
-        child_name: row.child_name,
-        parent_name: row.parent_name,
-        email: row.email,
-        phone: row.phone || '7358293839',
-        relation: 'Admin Account',
+    // 1. Try updating dedicated admin_accounts table
+    try {
+      let query = supabase.from('admin_accounts').update({
         status: 'approved',
-        program: 'Administrator',
-        message: JSON.stringify(extra),
-      };
+        approved_by: superAdminEmail,
+        approved_at: nowIso,
+      });
+      if (isEmail) {
+        query = query.eq('email', cleanIdentifier);
+      } else {
+        query = query.eq('id', adminIdOrEmail);
+      }
+      await query;
+    } catch (_) {}
 
-      await supabase.from('student_admissions').insert([clone]);
-    }
+    // 2. Also update student_admissions for complete dual compatibility
+    try {
+      let q2 = supabase.from('student_admissions').select('*').eq('relation', 'Admin Account');
+      if (isEmail) {
+        q2 = q2.eq('email', cleanIdentifier);
+      } else {
+        q2 = q2.eq('id', adminIdOrEmail);
+      }
+      const { data: rows } = await q2.limit(1);
+      const row = rows && rows[0];
+      if (row) {
+        let extra = {};
+        if (row.message) {
+          try { extra = JSON.parse(row.message); } catch (_) {}
+        }
+        extra.approved_by = superAdminEmail;
+        extra.approved_at = nowIso;
+        await supabase.from('student_admissions').delete().eq('id', row.id);
+        await supabase.from('student_admissions').insert([{
+          child_name: row.child_name,
+          parent_name: row.parent_name,
+          email: row.email,
+          phone: row.phone || '7358293839',
+          relation: 'Admin Account',
+          status: 'approved',
+          program: 'Administrator',
+          message: JSON.stringify(extra),
+        }]);
+      }
+    } catch (_) {}
 
-    // 2. Update local storage
+    // 3. Update local storage
     const cached = localStorage.getItem('vt_registered_admins');
     if (cached) {
       const list = JSON.parse(cached).map((a) =>
         (a.id === adminIdOrEmail || (a.email && a.email.toLowerCase() === cleanIdentifier))
-          ? { ...a, status: 'approved', approved_by: superAdminEmail, approved_at: new Date().toISOString() }
+          ? { ...a, status: 'approved', approved_by: superAdminEmail, approved_at: nowIso }
           : a
       );
       localStorage.setItem('vt_registered_admins', JSON.stringify(list));
@@ -266,40 +336,51 @@ export async function approveAdmin(adminIdOrEmail, superAdminEmail = SUPER_ADMIN
 export async function rejectAdmin(adminId, superAdminEmail = SUPER_ADMIN_CREDENTIALS.email) {
   try {
     await ensureAuthenticatedSession();
-    const { data: row } = await supabase
-      .from('student_admissions')
-      .select('*')
-      .eq('id', adminId)
-      .single();
+    const nowIso = new Date().toISOString();
 
-    if (row) {
-      let extra = {};
-      if (row.message) {
-        try {
-          extra = JSON.parse(row.message);
-        } catch (_) {}
+    // 1. Try dedicated admin_accounts table
+    try {
+      await supabase
+        .from('admin_accounts')
+        .update({
+          status: 'rejected',
+          rejected_by: superAdminEmail,
+          rejected_at: nowIso,
+        })
+        .eq('id', adminId);
+    } catch (_) {}
+
+    // 2. Also update student_admissions legacy
+    try {
+      const { data: row } = await supabase
+        .from('student_admissions')
+        .select('*')
+        .eq('id', adminId)
+        .single();
+
+      if (row) {
+        let extra = {};
+        if (row.message) {
+          try { extra = JSON.parse(row.message); } catch (_) {}
+        }
+        extra.rejected_by = superAdminEmail;
+        extra.rejected_at = nowIso;
+
+        await supabase.from('student_admissions').delete().eq('id', adminId);
+        await supabase.from('student_admissions').insert([{
+          child_name: row.child_name,
+          parent_name: row.parent_name,
+          email: row.email,
+          phone: row.phone || '7358293839',
+          relation: 'Admin Account',
+          status: 'rejected',
+          program: 'Administrator',
+          message: JSON.stringify(extra),
+        }]);
       }
+    } catch (_) {}
 
-      extra.rejected_by = superAdminEmail;
-      extra.rejected_at = new Date().toISOString();
-
-      await supabase.from('student_admissions').delete().eq('id', adminId);
-
-      const clone = {
-        child_name: row.child_name,
-        parent_name: row.parent_name,
-        email: row.email,
-        phone: row.phone || '7358293839',
-        relation: 'Admin Account',
-        status: 'rejected',
-        program: 'Administrator',
-        message: JSON.stringify(extra),
-      };
-
-      await supabase.from('student_admissions').insert([clone]);
-    }
-
-    // Update local storage
+    // 3. Update local storage
     const cached = localStorage.getItem('vt_registered_admins');
     if (cached) {
       const list = JSON.parse(cached).map((a) =>
@@ -319,27 +400,31 @@ export async function rejectAdmin(adminId, superAdminEmail = SUPER_ADMIN_CREDENT
 export async function deleteAdmin(adminId, adminEmail = '') {
   try {
     await ensureAuthenticatedSession();
-
     const cleanEmail = (adminEmail || (typeof adminId === 'string' && adminId.includes('@') ? adminId : '')).toLowerCase().trim();
 
-    // 1. Delete by numeric/string ID if valid
-    if (adminId && !String(adminId).startsWith('local_')) {
-      const { error: idErr } = await supabase
-        .from('student_admissions')
-        .delete()
-        .eq('id', adminId);
-      if (idErr) console.warn('Supabase delete by id error:', idErr.message);
-    }
+    // 1. Delete from dedicated admin_accounts table
+    try {
+      if (adminId && !String(adminId).startsWith('local_')) {
+        await supabase.from('admin_accounts').delete().eq('id', adminId);
+      }
+      if (cleanEmail) {
+        await supabase.from('admin_accounts').delete().eq('email', cleanEmail);
+      }
+    } catch (_) {}
 
-    // 2. Delete by email to remove all related records in student_admissions
-    if (cleanEmail) {
-      const { error: emailErr } = await supabase
-        .from('student_admissions')
-        .delete()
-        .eq('relation', 'Admin Account')
-        .eq('email', cleanEmail);
-      if (emailErr) console.warn('Supabase delete by email error:', emailErr.message);
-    }
+    // 2. Delete from student_admissions legacy
+    try {
+      if (adminId && !String(adminId).startsWith('local_')) {
+        await supabase.from('student_admissions').delete().eq('id', adminId);
+      }
+      if (cleanEmail) {
+        await supabase
+          .from('student_admissions')
+          .delete()
+          .eq('relation', 'Admin Account')
+          .eq('email', cleanEmail);
+      }
+    } catch (_) {}
 
     // 3. Update localStorage cache
     const cached = localStorage.getItem('vt_registered_admins');
