@@ -43,7 +43,7 @@ export function getLockKey(email = '', isSuperAdmin = false) {
 /**
  * Check if another user/browser is actively logged in with this role/account.
  * Pure database check against Supabase - single source of truth.
- * Supports dedicated admin_sessions table with automatic student_admissions fallback.
+ * Supports dedicated admin_heartbeats API table with automatic fallback.
  * Returns: { isLocked: boolean, session_id?: string, lastHeartbeat?: string }
  */
 export async function checkSessionActive(email, isSuperAdmin) {
@@ -51,7 +51,37 @@ export async function checkSessionActive(email, isSuperAdmin) {
     const lockKey = getLockKey(email, isSuperAdmin);
     await ensureAuthenticatedSession();
 
-    // 1. Check dedicated admin_sessions API table first
+    // 1. Check dedicated admin_heartbeats API table first
+    const { data: hbRows, error: hbErr } = await supabase
+      .from('admin_heartbeats')
+      .select('*')
+      .eq('lock_key', lockKey)
+      .limit(1);
+
+    if (!hbErr && hbRows) {
+      if (hbRows.length === 0) return { isLocked: false };
+      const row = hbRows[0];
+      const now = Date.now();
+      const lastHbTime = row.last_heartbeat ? new Date(row.last_heartbeat).getTime() : 0;
+      const elapsed = now - lastHbTime;
+
+      if (row.is_active !== false && elapsed < SESSION_TIMEOUT_MS) {
+        return {
+          isLocked: true,
+          session_id: row.session_id,
+          lastHeartbeat: row.last_heartbeat,
+          elapsedSeconds: Math.floor(elapsed / 1000),
+        };
+      }
+
+      // Expired: cleanup
+      try {
+        await supabase.from('admin_heartbeats').delete().eq('id', row.id);
+      } catch (_) {}
+      return { isLocked: false, wasExpired: true };
+    }
+
+    // 2. Check dedicated admin_sessions API table
     const { data: dedicatedRows, error: dedicatedErr } = await supabase
       .from('admin_sessions')
       .select('*')
@@ -81,7 +111,7 @@ export async function checkSessionActive(email, isSuperAdmin) {
       return { isLocked: false, wasExpired: true };
     }
 
-    // 2. Fallback to legacy student_admissions table
+    // 3. Fallback to legacy student_admissions table
     const { data: rows, error } = await supabase
       .from('student_admissions')
       .select('*')
@@ -136,7 +166,21 @@ export async function acquireSessionLock(email, isSuperAdmin, sessionId) {
     const cleanEmail = (email || '').toLowerCase().trim();
     const nowIso = new Date().toISOString();
 
-    // 1. Try dedicated admin_sessions table
+    // 1. Try dedicated admin_heartbeats table
+    try {
+      await supabase.from('admin_heartbeats').delete().eq('lock_key', lockKey);
+      await supabase.from('admin_heartbeats').insert([{
+        lock_key: lockKey,
+        email: cleanEmail,
+        session_id: sessionId,
+        role: isSuperAdmin ? 'Super Administrator' : 'admin',
+        last_heartbeat: nowIso,
+        status: 'online',
+        is_active: true,
+      }]);
+    } catch (_) {}
+
+    // 2. Try dedicated admin_sessions table
     try {
       await supabase.from('admin_sessions').delete().eq('lock_key', lockKey);
       await supabase.from('admin_sessions').insert([{
@@ -150,7 +194,7 @@ export async function acquireSessionLock(email, isSuperAdmin, sessionId) {
       }]);
     } catch (_) {}
 
-    // 2. Also keep student_admissions in sync for complete dual compatibility
+    // 3. Also keep student_admissions in sync for complete dual compatibility
     await supabase
       .from('student_admissions')
       .delete()
@@ -196,7 +240,26 @@ export async function refreshHeartbeat(email, isSuperAdmin, sessionId) {
 
     await ensureAuthenticatedSession();
 
-    // 1. Try dedicated admin_sessions table
+    // 1. Try dedicated admin_heartbeats table
+    try {
+      const { data: hbRows, error: hbErr } = await supabase
+        .from('admin_heartbeats')
+        .select('id, session_id')
+        .eq('lock_key', lockKey)
+        .limit(1);
+
+      if (!hbErr && hbRows && hbRows.length > 0) {
+        if (hbRows[0].session_id && hbRows[0].session_id !== sessionId) {
+          return { isStillOwner: false };
+        }
+        await supabase
+          .from('admin_heartbeats')
+          .update({ last_heartbeat: nowIso, status: 'online', is_active: true })
+          .eq('id', hbRows[0].id);
+      }
+    } catch (_) {}
+
+    // 2. Try dedicated admin_sessions table
     try {
       const { data: dedicatedRows, error: dedicatedErr } = await supabase
         .from('admin_sessions')
@@ -215,7 +278,7 @@ export async function refreshHeartbeat(email, isSuperAdmin, sessionId) {
       }
     } catch (_) {}
 
-    // 2. Refresh student_admissions legacy
+    // 3. Refresh student_admissions legacy
     const { data: rows } = await supabase
       .from('student_admissions')
       .select('id, message')
@@ -262,12 +325,17 @@ export async function releaseSessionLock(email, isSuperAdmin, sessionId) {
     const lockKey = getLockKey(email, isSuperAdmin);
     await ensureAuthenticatedSession();
 
-    // 1. Delete from dedicated admin_sessions table
+    // 1. Delete from dedicated admin_heartbeats table
+    try {
+      await supabase.from('admin_heartbeats').delete().eq('lock_key', lockKey);
+    } catch (_) {}
+
+    // 2. Delete from dedicated admin_sessions table
     try {
       await supabase.from('admin_sessions').delete().eq('lock_key', lockKey);
     } catch (_) {}
 
-    // 2. Delete from student_admissions
+    // 3. Delete from student_admissions
     await supabase
       .from('student_admissions')
       .delete()
@@ -320,7 +388,17 @@ export function releaseSessionLockBeacon(email, isSuperAdmin) {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    // 1. Dispatch beacon to dedicated admin_sessions
+    // 1. Dispatch beacon to dedicated admin_heartbeats
+    const urlHeartbeat = `${supabaseUrl}/rest/v1/admin_heartbeats?lock_key=eq.${encodeURIComponent(lockKey)}`;
+    if (typeof fetch === 'function') {
+      fetch(urlHeartbeat, {
+        method: 'DELETE',
+        headers,
+        keepalive: true,
+      }).catch(() => {});
+    }
+
+    // 2. Dispatch beacon to dedicated admin_sessions
     const urlDedicated = `${supabaseUrl}/rest/v1/admin_sessions?lock_key=eq.${encodeURIComponent(lockKey)}`;
     if (typeof fetch === 'function') {
       fetch(urlDedicated, {
@@ -330,7 +408,7 @@ export function releaseSessionLockBeacon(email, isSuperAdmin) {
       }).catch(() => {});
     }
 
-    // 2. Dispatch beacon to legacy student_admissions
+    // 3. Dispatch beacon to legacy student_admissions
     const urlLegacy = `${supabaseUrl}/rest/v1/student_admissions?relation=eq.Active%20Session&child_name=eq.${encodeURIComponent(lockKey)}`;
     if (typeof fetch === 'function') {
       fetch(urlLegacy, {
