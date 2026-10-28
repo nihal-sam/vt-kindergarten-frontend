@@ -5,7 +5,7 @@ import { parseEnquiryEligibility, CUTOFF_LABEL } from "./utils/ageEligibility";
 import BillGeneration from "./components/BillGeneration";
 import LoginPage from "./components/LoginPage";
 import AdminManagement from "./components/AdminManagement";
-import { fetchRegisteredAdmins, ensureAuthenticatedSession } from "./utils/adminAuth";
+import { fetchRegisteredAdmins, ensureAuthenticatedSession, checkIfSuperAdmin } from "./utils/adminAuth";
 import {
   getOrCreateSessionId,
   acquireSessionLock,
@@ -232,7 +232,7 @@ function useAuth() {
     } catch {}
     try {
       const sid = getOrCreateSessionId();
-      const isSuper = Boolean(user?.isSuperAdmin || user?.email === 'superadmin@vtkindergarten.com');
+      const isSuper = checkIfSuperAdmin(user);
       await acquireSessionLock(user?.email, isSuper, sid);
     } catch {}
   };
@@ -241,7 +241,7 @@ function useAuth() {
     if (localAdmin) {
       try {
         const sid = getOrCreateSessionId();
-        const isSuper = Boolean(localAdmin?.isSuperAdmin || localAdmin?.email === 'superadmin@vtkindergarten.com');
+        const isSuper = checkIfSuperAdmin(localAdmin);
         await releaseSessionLock(localAdmin.email, isSuper, sid);
         releaseSessionLockBeacon(localAdmin.email, isSuper);
       } catch {}
@@ -581,7 +581,7 @@ function TablePaginationTop({ currentPage, totalItems, pageSize, onPageChange, o
    DASHBOARD MAIN COMPONENT
    ========================================================================== */
 function Dashboard({ admin, logout }) {
-  const isSuperAdmin = admin?.isSuperAdmin || admin?.email === 'superadmin@vtkindergarten.com';
+  const isSuperAdmin = checkIfSuperAdmin(admin);
   const [pendingAdminCount, setPendingAdminCount] = useState(0);
 
   const [tab, setTab] = useState('overview');
@@ -616,7 +616,7 @@ function Dashboard({ admin, logout }) {
     if (!admin) return;
 
     const sid = getOrCreateSessionId();
-    const isSuper = Boolean(admin?.isSuperAdmin || admin?.email === 'superadmin@vtkindergarten.com');
+    const isSuper = checkIfSuperAdmin(admin);
     const email = admin?.email || '';
 
     // Initial heartbeat refresh
@@ -2915,7 +2915,7 @@ export default function AdminApp() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const isSuperAdmin = Boolean(admin?.isSuperAdmin || admin?.email === 'superadmin@vtkindergarten.com');
+  const isSuperAdmin = checkIfSuperAdmin(admin);
 
   // Automatically synchronize URL pathname with the logged-in admin role:
   // Super Admin -> /superadmin
@@ -2953,7 +2953,7 @@ export default function AdminApp() {
 
   const handleLogin = async (user) => {
     await loginLocal(user);
-    const isSuper = Boolean(user?.isSuperAdmin || user?.email === 'superadmin@vtkindergarten.com');
+    const isSuper = checkIfSuperAdmin(user);
     if (isSuper) {
       navigate('/superadmin', { replace: true });
     } else {

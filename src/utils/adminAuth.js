@@ -25,6 +25,27 @@ export function generateOTP() {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
+/**
+ * Automatically recognizes whether an admin account has Super Admin privileges.
+ * If the user's name starts with "super" (case-insensitive), e.g. "Super Admin",
+ * or email starts with "super", or role starts with "super",
+ * the system recognizes them as Super Admin and routes them to /superadmin!
+ */
+export function checkIfSuperAdmin(adminObj = {}) {
+  if (!adminObj) return false;
+  const name = String(adminObj.name || '').toLowerCase().trim();
+  const email = String(adminObj.email || '').toLowerCase().trim();
+  const role = String(adminObj.role || '').toLowerCase().trim();
+
+  return (
+    name.startsWith('super') ||
+    email.startsWith('super') ||
+    role.startsWith('super') ||
+    adminObj.isSuperAdmin === true ||
+    email === 'superadmin@vtkindergarten.com'
+  );
+}
+
 // Fetch all registered admins from dedicated admin_accounts table (with student_admissions fallback)
 export async function fetchRegisteredAdmins() {
   let dbAdmins = [];
@@ -497,7 +518,7 @@ export async function verifyAdminCredentials(email, password) {
     };
   }
 
-  // 3. Check Registered Admins from Supabase & Local Cache
+  // 3. Check Registered Admins from Supabase & Local Cache (Both Super Admin and Normal Admin)
   const admins = await fetchRegisteredAdmins();
   const found = admins.find((a) => a.email === cleanEmail);
 
@@ -509,37 +530,47 @@ export async function verifyAdminCredentials(email, password) {
     return { status: 'invalid_credentials', error: 'Incorrect password. Please try again.' };
   }
 
-  // Check approval status
-  if (found.status === 'pending') {
+  // Automatically detect if account has Super Admin privileges (name/email/role starts with "super")
+  const isSuper = checkIfSuperAdmin(found);
+  const adminObj = {
+    ...found,
+    isSuperAdmin: isSuper,
+    role: isSuper ? (found.role?.toLowerCase().includes('super') ? found.role : 'Super Administrator') : (found.role || 'Administrator'),
+  };
+
+  // Check approval status (Normal Admins require approval; Super Admins are automatically approved)
+  if (!isSuper && found.status === 'pending') {
     return {
       status: 'pending',
-      error: '⏳ Account Pending Approval: Super Admin (superadmin@vtkindergarten.com) has not yet confirmed your registration. Please contact the Super Admin.',
-      admin: found,
+      error: '⏳ Account Pending Approval: Super Admin has not yet confirmed your registration. Please contact the Super Admin.',
+      admin: adminObj,
     };
   }
 
-  if (found.status === 'rejected') {
+  if (!isSuper && found.status === 'rejected') {
     return {
       status: 'rejected',
       error: '❌ Access Denied: Your admin registration was rejected by the Super Admin.',
-      admin: found,
+      admin: adminObj,
     };
   }
 
   // Check if this admin account is already active on another device/window
-  const lockCheck = await checkSessionActive(cleanEmail, false);
+  const lockCheck = await checkSessionActive(cleanEmail, isSuper);
   if (lockCheck.isLocked) {
     return {
       status: 'already_logged_in',
-      isSuperAdmin: false,
-      error: '⚠️ Already Logged In: This admin account is currently active on another device or window. Only one active session is allowed at a time. If the previous window was closed, please wait a few seconds and try again.',
+      isSuperAdmin: isSuper,
+      error: isSuper
+        ? '⚠️ Already Logged In: Super Admin is currently logged in on another device or window. Only one active Super Admin session is allowed at a time. If the previous window was closed, please wait a few seconds and try again.'
+        : '⚠️ Already Logged In: This admin account is currently active on another device or window. Only one active session is allowed at a time. If the previous window was closed, please wait a few seconds and try again.',
     };
   }
 
   // Status is approved and not concurrently locked -> Direct login ok!
   return {
     status: 'ok',
-    isSuperAdmin: false,
-    admin: found,
+    isSuperAdmin: isSuper,
+    admin: adminObj,
   };
 }
