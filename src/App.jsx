@@ -11,6 +11,7 @@ import { Footer } from "./components/Footer.jsx";
 import FloatingBubbles from "./components/FloatingBubbles";
 import InstagramSection from "./components/InstagramSection";
 import ScrollProgress from "./components/ScrollProgress";
+import SchoolChatbot from "./components/SchoolChatbot";
 
 import { supabase } from "./supabaseClient";
 
@@ -154,6 +155,7 @@ export default function App() {
         <section id="contact"><Contact /></section>
       </main>
       <Footer />
+      <SchoolChatbot />
     </div>
   );
 }
