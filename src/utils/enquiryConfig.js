@@ -2,7 +2,7 @@
  * Configuration for Online Admission Enquiries
  * Set IS_ENQUIRY_BLOCKED to true to temporarily block/pause all online enquiry submissions and API calls.
  */
-export const IS_ENQUIRY_BLOCKED = true;
+export const IS_ENQUIRY_BLOCKED = false;
 
 export const ENQUIRY_BLOCKED_NOTICE = {
   title: "Online Enquiries Temporarily Paused",
