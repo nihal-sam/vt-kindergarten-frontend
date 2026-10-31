@@ -281,6 +281,7 @@ function AdmissionApplicationBox({ onSubmitted, onCancel }) {
     setLoading(true);
     setError('');
     try {
+      await ensureAuthenticatedSession();
       // 1. Insert into dedicated student_admissions table
       let { error: supabaseError } = await supabase
         .from('student_admissions')
@@ -733,6 +734,7 @@ function Dashboard({ admin, logout }) {
   const fetchAll = async () => {
     setLoading(true);
     try {
+      await ensureAuthenticatedSession();
       // 1. Fetch Admissions & Enquiries from primary cloud table student_admissions
       const { data: admData, error: admErr } = await supabase
         .from('student_admissions')

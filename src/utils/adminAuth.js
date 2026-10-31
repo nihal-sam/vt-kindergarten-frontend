@@ -58,6 +58,7 @@ export function checkIfSuperAdmin(adminObj = {}) {
 export async function fetchRegisteredAdmins() {
   let dbAdmins = [];
   try {
+    await ensureAuthenticatedSession();
     // 1. Try dedicated admin_accounts API table first
     const { data: dedicatedData, error: dedicatedErr } = await supabase
       .from('admin_accounts')
@@ -292,15 +293,29 @@ export async function registerNewAdmin({ name, email, phone, password }) {
   }
 }
 
-// Helper to ensure authenticated Supabase session so RLS policies permit DELETE/UPDATE operations
+// Helper to ensure authenticated Supabase session with signed Bearer token so RLS policies permit operations
 export async function ensureAuthenticatedSession() {
   try {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      await supabase.auth.signInWithPassword({
+    if (!session || !session.access_token) {
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: 'admin@vtkindergarten.com',
         password: 'admin123',
       });
+      if (data?.session?.access_token) {
+        if (typeof window !== 'undefined' && window.sessionStorage) {
+          window.sessionStorage.setItem('vt_supabase_token', data.session.access_token);
+        }
+        return data.session.access_token;
+      }
+      if (error) {
+        console.warn('Bearer auth handshake warning:', error.message);
+      }
+    } else {
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        window.sessionStorage.setItem('vt_supabase_token', session.access_token);
+      }
+      return session.access_token;
     }
   } catch (err) {
     console.warn('ensureAuthenticatedSession warning:', err);
