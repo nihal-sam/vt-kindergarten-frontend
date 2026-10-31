@@ -323,6 +323,13 @@ export default function LoginPage({ onLocalLogin }) {
         return;
       }
 
+      if (res.status === 'rate_limited') {
+        setLoginError(res.error || 'Too many failed login attempts. Temporarily locked for security.');
+        refreshLoginCaptcha();
+        setLoginLoading(false);
+        return;
+      }
+
       if (res.status === 'invalid_credentials') {
         setLoginError(res.error || 'Invalid email or password.');
         refreshLoginCaptcha();

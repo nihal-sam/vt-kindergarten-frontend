@@ -1,5 +1,13 @@
 import { supabase } from '../supabaseClient.js';
 import { checkSessionActive, killAdminSession } from './sessionLock.js';
+import {
+  checkLoginRateLimit,
+  recordFailedLogin,
+  recordSuccessfulLogin,
+  sanitizeSecurityInput,
+  checkRegistrationRateLimit,
+  recordRegistrationAttempt,
+} from './cyberSecurity.js';
 
 export const SUPER_ADMIN_CREDENTIALS = {
   email: 'superadmin@vtkindergarten.com',
@@ -149,8 +157,24 @@ export async function fetchRegisteredAdmins() {
 
 // Register a new admin account (Pending Super Admin Approval)
 export async function registerNewAdmin({ name, email, phone, password }) {
-  const cleanEmail = email.toLowerCase().trim();
-  const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+  // 1. Anti-spam / bot rate limit check
+  const rateLimit = checkRegistrationRateLimit();
+  if (!rateLimit.allowed) {
+    return { success: false, error: rateLimit.error };
+  }
+
+  // 2. Cyber injection sanitization guard
+  const nameSec = sanitizeSecurityInput(name, 'Name');
+  if (!nameSec.isSafe) return { success: false, error: nameSec.error };
+
+  const emailSec = sanitizeSecurityInput(email, 'Email Address');
+  if (!emailSec.isSafe) return { success: false, error: emailSec.error };
+
+  const phoneSec = sanitizeSecurityInput(phone, 'Phone Number');
+  if (!phoneSec.isSafe) return { success: false, error: phoneSec.error };
+
+  const cleanEmail = emailSec.clean.toLowerCase().trim();
+  const cleanPhone = phoneSec.clean.replace(/\D/g, '').slice(-10);
 
   if (cleanEmail === SUPER_ADMIN_CREDENTIALS.email) {
     return { success: false, error: 'This email is reserved for the Super Admin.' };
@@ -162,6 +186,8 @@ export async function registerNewAdmin({ name, email, phone, password }) {
   if (exists) {
     return { success: false, error: 'An admin account with this email address already exists.' };
   }
+
+  recordRegistrationAttempt();
 
   try {
     await ensureAuthenticatedSession();
@@ -482,11 +508,47 @@ export async function deleteAdmin(adminId, adminEmail = '') {
   }
 }
 
-// Validate credentials for Login and ensure single active session policy
+// Validate credentials for Login and ensure single active session policy with Brute-Force Cyber Guard
 export async function verifyAdminCredentials(email, password) {
-  const cleanEmail = email.toLowerCase().trim();
+  const cleanEmail = (email || '').toLowerCase().trim();
 
-  // 1. Check Super Admin
+  // 1. Cyber Security: Check Brute-Force Rate Limiting Lockout
+  const rateLimit = checkLoginRateLimit(cleanEmail);
+  if (!rateLimit.allowed) {
+    return {
+      status: 'rate_limited',
+      error: rateLimit.error,
+      remainingSeconds: rateLimit.remainingSeconds,
+    };
+  }
+
+  // 2. Cyber Security: Sanitize against SQL/XSS/Command Injections
+  const emailSec = sanitizeSecurityInput(email, 'Email Address');
+  if (!emailSec.isSafe) {
+    recordFailedLogin(cleanEmail);
+    return { status: 'invalid_credentials', error: emailSec.error };
+  }
+  const passSec = sanitizeSecurityInput(password, 'Password');
+  if (!passSec.isSafe) {
+    recordFailedLogin(cleanEmail);
+    return { status: 'invalid_credentials', error: passSec.error };
+  }
+
+  // Helper for failed attempt feedback
+  const handleAuthFailure = (errorMsg) => {
+    recordFailedLogin(cleanEmail);
+    const updatedCheck = checkLoginRateLimit(cleanEmail);
+    if (!updatedCheck.allowed) {
+      return { status: 'rate_limited', error: updatedCheck.error };
+    }
+    const warning =
+      updatedCheck.attemptsRemaining <= 2
+        ? ` Warning: Only ${updatedCheck.attemptsRemaining} attempt(s) remaining before automatic security lockout.`
+        : '';
+    return { status: 'invalid_credentials', error: `${errorMsg}${warning}` };
+  };
+
+  // 3. Check Super Admin
   if (
     cleanEmail === SUPER_ADMIN_CREDENTIALS.email &&
     password === SUPER_ADMIN_CREDENTIALS.password
@@ -501,6 +563,7 @@ export async function verifyAdminCredentials(email, password) {
       };
     }
 
+    recordSuccessfulLogin(cleanEmail);
     return {
       status: 'ok',
       isSuperAdmin: true,
@@ -508,7 +571,7 @@ export async function verifyAdminCredentials(email, password) {
     };
   }
 
-  // 2. Check Legacy Master Admin
+  // 4. Check Legacy Master Admin
   if (
     (cleanEmail === 'admin@vtkindergarten.com' || cleanEmail === 'admin2@vtkindergarten.com') &&
     (password === 'admin123' || password === 'AdminPassword123!')
@@ -522,6 +585,7 @@ export async function verifyAdminCredentials(email, password) {
       };
     }
 
+    recordSuccessfulLogin(cleanEmail);
     return {
       status: 'ok',
       isSuperAdmin: false,
@@ -535,16 +599,16 @@ export async function verifyAdminCredentials(email, password) {
     };
   }
 
-  // 3. Check Registered Admins from Supabase & Local Cache (Both Super Admin and Normal Admin)
+  // 5. Check Registered Admins from Supabase & Local Cache (Both Super Admin and Normal Admin)
   const admins = await fetchRegisteredAdmins();
   const found = admins.find((a) => a.email === cleanEmail);
 
   if (!found) {
-    return { status: 'invalid_credentials', error: 'No admin account found with this email address.' };
+    return handleAuthFailure('No administrator account found with this email address.');
   }
 
   if (found.password !== password) {
-    return { status: 'invalid_credentials', error: 'Incorrect password. Please try again.' };
+    return handleAuthFailure('Incorrect password. Please verify and try again.');
   }
 
   // Automatically detect if account has Super Admin privileges (name/email/role starts with "super")
@@ -584,7 +648,7 @@ export async function verifyAdminCredentials(email, password) {
     };
   }
 
-  // Status is approved and not concurrently locked -> Direct login ok!
+  recordSuccessfulLogin(cleanEmail);
   return {
     status: 'ok',
     isSuperAdmin: isSuper,
