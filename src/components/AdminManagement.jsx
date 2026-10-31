@@ -74,7 +74,7 @@ export default function AdminManagement({ currentAdmin, onLogout }) {
           showNotification('error', `Failed to approve admin: ${res.error}`);
         }
       } else if (type === 'reject') {
-        const res = await rejectAdmin(admin.id, currentAdmin?.email || SUPER_ADMIN_CREDENTIALS.email);
+        const res = await rejectAdmin(admin.id, currentAdmin?.email || SUPER_ADMIN_CREDENTIALS.email, admin.email);
         if (res.success) {
           showNotification('info', `Admin "${admin.name}" has been moved to the Rejected list.`);
           await loadAdmins();

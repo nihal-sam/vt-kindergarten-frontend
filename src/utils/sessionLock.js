@@ -236,9 +236,54 @@ export async function acquireSessionLock(email, isSuperAdmin, sessionId) {
 export async function refreshHeartbeat(email, isSuperAdmin, sessionId) {
   try {
     const lockKey = getLockKey(email, isSuperAdmin);
+    const cleanEmail = (email || '').toLowerCase().trim();
     const nowIso = new Date().toISOString();
 
     await ensureAuthenticatedSession();
+
+    // Verification for normal admin accounts: Check if account was deleted or rejected by Super Admin
+    if (!isSuperAdmin && cleanEmail && cleanEmail !== 'superadmin@vtkindergarten.com') {
+      try {
+        let isApproved = false;
+        let accountExists = false;
+
+        // Check dedicated admin_accounts table first
+        const { data: accRows, error: accErr } = await supabase
+          .from('admin_accounts')
+          .select('id, status')
+          .eq('email', cleanEmail)
+          .limit(1);
+
+        if (!accErr && accRows && accRows.length > 0) {
+          accountExists = true;
+          isApproved = accRows[0].status === 'approved';
+        } else if (!accErr && accRows && accRows.length === 0) {
+          // If not in admin_accounts, check fallback legacy student_admissions
+          const { data: legacyRows, error: legErr } = await supabase
+            .from('student_admissions')
+            .select('id, status')
+            .eq('relation', 'Admin Account')
+            .eq('email', cleanEmail)
+            .limit(1);
+
+          if (!legErr && legacyRows && legacyRows.length > 0) {
+            accountExists = true;
+            isApproved = legacyRows[0].status === 'approved';
+          }
+        }
+
+        // If query succeeded and account was found to be deleted or rejected
+        if (!accErr) {
+          if (!accountExists || !isApproved) {
+            // Admin was deleted or rejected by Super Admin! Terminate active session immediately.
+            await releaseSessionLock(cleanEmail, false, sessionId);
+            return { isStillOwner: false, isRevoked: true, reason: !accountExists ? 'deleted' : 'rejected' };
+          }
+        }
+      } catch (_) {
+        // Network glitch, don't falsely revoke
+      }
+    }
 
     // 1. Try dedicated admin_heartbeats table
     try {
@@ -351,6 +396,25 @@ export async function releaseSessionLock(email, isSuperAdmin, sessionId) {
   } catch (err) {
     console.warn('releaseSessionLock note:', err);
     return { success: false };
+  }
+}
+
+/**
+ * Super Admin action: Forcefully terminate any active sessions and heartbeats for an admin
+ */
+export async function killAdminSession(email = '') {
+  try {
+    const cleanEmail = (email || '').toLowerCase().trim();
+    if (!cleanEmail) return;
+    const lockKey = getLockKey(cleanEmail, false);
+    await ensureAuthenticatedSession();
+    try { await supabase.from('admin_heartbeats').delete().eq('lock_key', lockKey); } catch (_) {}
+    try { await supabase.from('admin_sessions').delete().eq('lock_key', lockKey); } catch (_) {}
+    try {
+      await supabase.from('student_admissions').delete().eq('relation', 'Active Session').eq('child_name', lockKey);
+    } catch (_) {}
+  } catch (err) {
+    console.warn('killAdminSession note:', err);
   }
 }
 

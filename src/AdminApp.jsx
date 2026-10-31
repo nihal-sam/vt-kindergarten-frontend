@@ -625,9 +625,13 @@ function Dashboard({ admin, logout }) {
     // Reliable unthrottled Web Worker timer sends heartbeat every 4s (even in background tabs)
     const stopTimer = startHeartbeatTimer(async () => {
       const res = await refreshHeartbeat(email, isSuper, sid);
-      if (res && res.isStillOwner === false) {
+      if (res && (res.isStillOwner === false || res.isRevoked)) {
         stopTimer();
-        alert('⚠️ Session Ended: This account was logged into from another window or device. You have been signed out.');
+        if (res.isRevoked) {
+          alert('⚠️ Access Revoked: Your admin account has been removed or deactivated by the Super Admin. You have been logged out.');
+        } else {
+          alert('⚠️ Session Ended: This account was logged into from another window or device. You have been signed out.');
+        }
         logout();
       }
     }, HEARTBEAT_INTERVAL_MS);

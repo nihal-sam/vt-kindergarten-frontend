@@ -1,5 +1,5 @@
 import { supabase } from '../supabaseClient.js';
-import { checkSessionActive } from './sessionLock.js';
+import { checkSessionActive, killAdminSession } from './sessionLock.js';
 
 export const SUPER_ADMIN_CREDENTIALS = {
   email: 'superadmin@vtkindergarten.com',
@@ -354,21 +354,27 @@ export async function approveAdmin(adminIdOrEmail, superAdminEmail = SUPER_ADMIN
 }
 
 // Reject admin registration (by Super Admin)
-export async function rejectAdmin(adminId, superAdminEmail = SUPER_ADMIN_CREDENTIALS.email) {
+export async function rejectAdmin(adminId, superAdminEmail = SUPER_ADMIN_CREDENTIALS.email, adminEmail = '') {
   try {
     await ensureAuthenticatedSession();
     const nowIso = new Date().toISOString();
+    let cleanEmail = (adminEmail || (typeof adminId === 'string' && adminId.includes('@') ? adminId : '')).toLowerCase().trim();
 
     // 1. Try dedicated admin_accounts table
     try {
-      await supabase
+      const { data: accData } = await supabase
         .from('admin_accounts')
         .update({
           status: 'rejected',
           rejected_by: superAdminEmail,
           rejected_at: nowIso,
         })
-        .eq('id', adminId);
+        .eq('id', adminId)
+        .select('email');
+
+      if (!cleanEmail && accData && accData[0]?.email) {
+        cleanEmail = accData[0].email.toLowerCase().trim();
+      }
     } catch (_) {}
 
     // 2. Also update student_admissions legacy
@@ -380,6 +386,7 @@ export async function rejectAdmin(adminId, superAdminEmail = SUPER_ADMIN_CREDENT
         .single();
 
       if (row) {
+        if (!cleanEmail && row.email) cleanEmail = row.email.toLowerCase().trim();
         let extra = {};
         if (row.message) {
           try { extra = JSON.parse(row.message); } catch (_) {}
@@ -401,7 +408,12 @@ export async function rejectAdmin(adminId, superAdminEmail = SUPER_ADMIN_CREDENT
       }
     } catch (_) {}
 
-    // 3. Update local storage
+    // 3. Immediately kill active sessions and heartbeats
+    if (cleanEmail) {
+      await killAdminSession(cleanEmail);
+    }
+
+    // 4. Update local storage
     const cached = localStorage.getItem('vt_registered_admins');
     if (cached) {
       const list = JSON.parse(cached).map((a) =>
@@ -447,7 +459,12 @@ export async function deleteAdmin(adminId, adminEmail = '') {
       }
     } catch (_) {}
 
-    // 3. Update localStorage cache
+    // 3. Immediately kill active sessions and heartbeats
+    if (cleanEmail) {
+      await killAdminSession(cleanEmail);
+    }
+
+    // 4. Update localStorage cache
     const cached = localStorage.getItem('vt_registered_admins');
     if (cached) {
       const list = JSON.parse(cached).filter((a) => {
