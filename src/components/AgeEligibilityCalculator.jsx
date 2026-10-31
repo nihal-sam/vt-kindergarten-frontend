@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { supabase } from "../supabaseClient";
+import { IS_ENQUIRY_BLOCKED, ENQUIRY_BLOCKED_NOTICE } from "../utils/enquiryConfig";
 import {
   CUTOFF_DATE,
   CUTOFF_LABEL,
@@ -72,6 +73,12 @@ export default function AgeEligibilityCalculator({ onInteraction }) {
       grade: grade?.grade || "",
       minYears: grade?.minYears || null,
     });
+
+    // If online enquiries are blocked, show calculated age but strictly block the Supabase enquiry API
+    if (IS_ENQUIRY_BLOCKED) {
+      setLoading(false);
+      return;
+    }
 
     // Send Enquiry to Supabase admissions table
     setLoading(true);
@@ -154,6 +161,70 @@ export default function AgeEligibilityCalculator({ onInteraction }) {
             </div>
           </div>
 
+          {IS_ENQUIRY_BLOCKED && (
+            <div
+              className="enquiry-blocked-banner"
+              style={{
+                background: '#FEF2F2',
+                border: '1.5px solid #FCA5A5',
+                borderRadius: '16px',
+                padding: '14px 16px',
+                marginBottom: '18px',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '12px',
+              }}
+            >
+              <span style={{ fontSize: '22px', lineHeight: 1 }}>🔒</span>
+              <div style={{ flex: 1 }}>
+                <strong style={{ display: 'block', color: '#991B1B', fontSize: '14px', marginBottom: '4px' }}>
+                  {ENQUIRY_BLOCKED_NOTICE.title}
+                </strong>
+                <p style={{ margin: '0 0 10px', color: '#B91C1C', fontSize: '12.5px', lineHeight: 1.5 }}>
+                  {ENQUIRY_BLOCKED_NOTICE.message}
+                </p>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <a
+                    href={`tel:${ENQUIRY_BLOCKED_NOTICE.phone}`}
+                    style={{
+                      background: '#DC2626',
+                      color: '#FFFFFF',
+                      padding: '6px 14px',
+                      borderRadius: '999px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      textDecoration: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    📞 Call Admissions ({ENQUIRY_BLOCKED_NOTICE.phone})
+                  </a>
+                  <a
+                    href={ENQUIRY_BLOCKED_NOTICE.whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      background: '#25D366',
+                      color: '#FFFFFF',
+                      padding: '6px 14px',
+                      borderRadius: '999px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      textDecoration: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    💬 WhatsApp Us
+                  </a>
+                </div>
+              </div>
+            </div>
+          )}
+
           <form className="eligibility-form" onSubmit={calculateEligibility}>
             <div className="form-row">
               <div className="form-group">
@@ -230,7 +301,13 @@ export default function AgeEligibilityCalculator({ onInteraction }) {
             {error && <div className="eligibility-error">{error}</div>}
 
             <button className="btn-primary eligibility-submit" type="submit" disabled={loading}>
-              <span>{loading ? 'Processing...' : 'Check Eligibility & Send Enquiry'}</span>
+              <span>
+                {loading
+                  ? 'Processing...'
+                  : IS_ENQUIRY_BLOCKED
+                  ? 'Check Age Eligibility Only (Enquiries Paused)'
+                  : 'Check Eligibility & Send Enquiry'}
+              </span>
               <span className="btn-arrow">&rarr;</span>
             </button>
           </form>

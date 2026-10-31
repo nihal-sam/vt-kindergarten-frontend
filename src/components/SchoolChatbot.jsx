@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../supabaseClient";
+import { IS_ENQUIRY_BLOCKED, ENQUIRY_BLOCKED_NOTICE } from "../utils/enquiryConfig";
 import "./SchoolChatbot.css";
 
 const QUICK_ACTIONS = [
   { id: "location", label: "📍 Location & Maps" },
   { id: "classes", label: "🏫 Classes & Age Limit" },
   { id: "timings", label: "⏰ School Timings" },
-  { id: "enquiry", label: "📝 Admission Enquiry" },
+  { id: "enquiry", label: IS_ENQUIRY_BLOCKED ? "📞 Admissions Desk" : "📝 Admission Enquiry" },
   { id: "facilities", label: "🎒 Facilities & Safety" },
   { id: "fees", label: "💳 Fees Information" },
   { id: "transport", label: "🚌 Van & Transport" },
@@ -174,6 +175,34 @@ export default function SchoolChatbot() {
 
     // Enquiry / Admission Form
     if (act.includes("enquiry") || act.includes("admission") || act.includes("apply") || act.includes("join") || act.includes("register") || act.includes("seat") || act.includes("form")) {
+      if (IS_ENQUIRY_BLOCKED) {
+        appendBotResponse({
+          text: "🔒 **Online Admission Enquiries are Temporarily Paused:**\n\nWe are currently not accepting new online enquiries through the website. For admission availability, syllabus information, or to schedule a campus visit, please connect with our admissions office directly:",
+          actions: [
+            {
+              type: "link",
+              label: "📞 Call Admissions (+91 73582 93839)",
+              url: "tel:+917358293839",
+              btnClass: "phone",
+            },
+            {
+              type: "link",
+              label: "💬 WhatsApp Coordinator",
+              url: ENQUIRY_BLOCKED_NOTICE.whatsappUrl,
+              btnClass: "whatsapp",
+            },
+            {
+              type: "link",
+              label: "🗺️ Visit Campus (Karaikkudi)",
+              url: "https://maps.google.com/?q=VT+Kindergarten,+Play+school+and+Pre+school,+11,+7th+St,+near+Reliance+Smart+Bazaar,+Subramaniapuram,+south+extension,+Vairavapuram,+Karaikkudi+(M.Corp),+Tamil+Nadu+630002",
+              btnClass: "maps",
+            },
+          ],
+          quickPills: ["📍 School Location", "🏫 Classes Offered", "⏰ School Timings"],
+        });
+        return;
+      }
+
       appendBotResponse({
         text: "📝 **VT Kindergarten Admission Enquiry Form**\nPlease fill out your details below. Our admissions desk will call you back with full syllabus details and fee breakdown:",
         showForm: true,
@@ -359,6 +388,11 @@ export default function SchoolChatbot() {
   // Handle Enquiry Form Submission to Supabase
   const handleEnquirySubmit = async (e) => {
     e.preventDefault();
+
+    if (IS_ENQUIRY_BLOCKED) {
+      alert("Online enquiries are currently paused. Please contact our admissions desk at +91 73582 93839.");
+      return;
+    }
 
     if (!enquiryForm.parentName.trim()) {
       alert("Please enter the parent/guardian's name.");
