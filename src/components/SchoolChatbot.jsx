@@ -4,13 +4,16 @@ import { IS_ENQUIRY_BLOCKED, ENQUIRY_BLOCKED_NOTICE } from "../utils/enquiryConf
 import "./SchoolChatbot.css";
 
 const QUICK_ACTIONS = [
-  { id: "location", label: "📍 Location & Maps" },
+  { id: "founder", label: "🏛️ Founders & Vision" },
   { id: "classes", label: "🏫 Classes & Age Limit" },
+  { id: "about", label: "🌸 About VT School" },
   { id: "timings", label: "⏰ School Timings" },
   { id: "enquiry", label: IS_ENQUIRY_BLOCKED ? "📞 Admissions Desk" : "📝 Admission Enquiry" },
+  { id: "location", label: "📍 Location & Maps" },
   { id: "facilities", label: "🎒 Facilities & Safety" },
   { id: "fees", label: "💳 Fees Information" },
   { id: "transport", label: "🚌 Van & Transport" },
+  { id: "activities", label: "🎉 Joyful Activities" },
   { id: "contact", label: "📞 Contact & WhatsApp" },
 ];
 
@@ -37,8 +40,8 @@ export default function SchoolChatbot({ onNavigateToEnquiry }) {
       id: 1,
       sender: "bot",
       time: "Just now",
-      text: "👋 Hello! Welcome to **VT Kindergarten**, Karaikudi! How can I help you today?",
-      quickPills: ["📍 School Location", "🏫 Classes Offered", "📝 Admission Enquiry", "⏰ Timings"],
+      text: "👋 Vanakkam & Welcome to **VT Kindergarten**, Karaikudi!\n\nI can help you with real information about our **founders**, **classes & age criteria**, **school timings**, **campus facilities**, or **admission enquiry**. How can I help you today?",
+      quickPills: ["🏛️ Founders & Vision", "🏫 Classes & Age Limit", "🌸 About School", "📝 Admission Enquiry", "⏰ Timings"],
     },
   ]);
 
@@ -155,8 +158,111 @@ export default function SchoolChatbot({ onNavigateToEnquiry }) {
       return;
     }
 
+    // Founders & Leadership
+    if (
+      act.includes("founder") ||
+      act.includes("owner") ||
+      act.includes("started") ||
+      act.includes("trustee") ||
+      act.includes("management") ||
+      act.includes("venkatachalam") ||
+      act.includes("chettiar") ||
+      act.includes("meyyammai") ||
+      act.includes("achi") ||
+      act.includes("who founded") ||
+      act.includes("who built") ||
+      act.includes("who started") ||
+      (act.includes("who") && (act.includes("run") || act.includes("head") || act.includes("lead") || act.includes("director")))
+    ) {
+      appendBotResponse({
+        text: "🏛️ **Founders of VT Kindergarten:**\n\nVT Kindergarten was founded by **Thiru Venkatachalam Chettiar** and **Mrs. Meyyammai Achi** with a noble vision to make early childhood education joyful, caring, and deeply meaningful in Karaikkudi.",
+        card: {
+          title: "✨ Founders' Vision & Philosophy",
+          items: [
+            "🌟 **Core Belief**: The early years mark the zenith of a child's grasping power.",
+            "🧸 **Nurturing Space**: Creating an environment where every child feels cherished, safe, and encouraged to shine.",
+            "🧩 **Montessori Pedagogy**: Blending authentic Montessori methods with playful exploration to foster unshakeable confidence, creativity, and a lifelong love for learning.",
+          ],
+        },
+        actions: [
+          {
+            type: "action",
+            label: "📝 Submit Admission Enquiry",
+            actionKey: "enquiry",
+            btnClass: "primary",
+          },
+          {
+            type: "action",
+            label: "🌸 About Our School",
+            actionKey: "about",
+            btnClass: "maps",
+          },
+          {
+            type: "link",
+            label: "💬 WhatsApp Founders' Desk",
+            url: "https://wa.me/917358293839?text=Hello%20VT%20Kindergarten,%20I%20would%20like%20to%20learn%20more%20about%20your%20school%20and%20founders.",
+            btnClass: "whatsapp",
+          },
+        ],
+        quickPills: ["🌸 About School", "🏫 Classes Offered", "⏰ School Timings", "📍 School Location"],
+      });
+      return;
+    }
+
+    // About School & Highlights
+    if (
+      act.includes("about") ||
+      act.includes("why vt") ||
+      act.includes("why choose") ||
+      act.includes("special") ||
+      act.includes("curriculum") ||
+      act.includes("montessori") ||
+      act.includes("pedagogy") ||
+      act.includes("blossom") ||
+      act.includes("reputation") ||
+      act.includes("feedback") ||
+      act.includes("best playschool")
+    ) {
+      appendBotResponse({
+        text: "🌸 **About VT Kindergarten — Where Every Child Blossoms:**\n\n*Caring foundation, safe learning, confident futures.*\n\nParents across Karaikkudi place their highest trust in VT Kindergarten as one of the leading, best playschools. We prioritize safety, confidence-building, and holistic growth in every child's journey.",
+        card: {
+          title: "🌟 Key School Highlights",
+          items: [
+            "🧩 **Play-based learning & Montessori methodology** for sensory development.",
+            "🎨 **Activity-enriched curriculum** designed to spark natural curiosity.",
+            "🏃 **Gross & fine motor skills** development programs.",
+            "💬 **Close parent-teacher communication** & regular developmental updates.",
+            "❄️ **Spacious, air-conditioned classrooms** with toddler-safe soft flooring.",
+            "💖 **Parent Feedback**: Caring and safe environment, nurturing confidence, fostering holistic development.",
+          ],
+        },
+        actions: [
+          {
+            type: "action",
+            label: "📝 Apply for Admission",
+            actionKey: "enquiry",
+            btnClass: "primary",
+          },
+          {
+            type: "action",
+            label: "🏛️ Meet the Founders",
+            actionKey: "founder",
+            btnClass: "maps",
+          },
+          {
+            type: "link",
+            label: "📞 Call School (+91 73582 93839)",
+            url: "tel:+917358293839",
+            btnClass: "phone",
+          },
+        ],
+        quickPills: ["🏛️ Founders & Vision", "🏫 Classes Offered", "🎒 Campus Facilities", "📍 School Location"],
+      });
+      return;
+    }
+
     // Location
-    if (act.includes("location") || act.includes("address") || act.includes("map") || act.includes("where") || act.includes("directions")) {
+    if (act.includes("location") || act.includes("address") || act.includes("map") || act.includes("where") || act.includes("directions") || act.includes("reach") || act.includes("karaikkudi") || act.includes("subramaniapuram")) {
       appendBotResponse({
         text: "📍 **VT Kindergarten Campus Location:**\n\nNo 11, 7th Street, Subramaniapuram, South Extension, Vairavapuram, Karaikkudi – 630002, Tamil Nadu.\n*(Near Reliance Smart Bazaar)*",
         card: {
@@ -187,16 +293,16 @@ export default function SchoolChatbot({ onNavigateToEnquiry }) {
     }
 
     // Classes & Programs
-    if (act.includes("class") || act.includes("program") || act.includes("age") || act.includes("eligible") || act.includes("grade") || act.includes("pre kg") || act.includes("lkg") || act.includes("ukg") || act.includes("playgroup")) {
+    if (act.includes("class") || act.includes("program") || act.includes("age") || act.includes("eligible") || act.includes("grade") || act.includes("pre kg") || act.includes("lkg") || act.includes("ukg") || act.includes("playgroup") || act.includes("play group") || act.includes("cutoff") || act.includes("syllabus")) {
       appendBotResponse({
-        text: "🏫 **Classes & Age Eligibility at VT Kindergarten:**\nWe offer nurturing, child-centric early education programs:",
+        text: "🏫 **Classes & Age Eligibility at VT Kindergarten (Cutoff: 31 March 2026):**\n\nWe offer four specialized early education programs structured by the child's age on **31 March 2026**:",
         card: {
           title: "📚 Academic Programs & Age Criteria",
           items: [
-            "🌱 **Play Group**: Age 2+ Years (Sensory play, habit formation & motor skills)",
-            "🌸 **Pre-KG**: Age 3+ Years (Phonics, rhymes, storytelling & creative art)",
-            "📖 **LKG**: Age 4+ Years (Reading readiness, handwriting & basic math)",
-            "🎓 **UKG**: Age 5+ Years (Primary school transition, fluency & logic)",
+            "🌱 **Play Group**: Age 2+ Years *(Born on or before 31 March 2024)* — Sensory play, habit formation & motor skills.",
+            "🌸 **Pre-KG**: Age 3+ Years *(Born on or before 31 March 2023)* — Phonics, rhymes, storytelling & creative art.",
+            "📖 **LKG**: Age 4+ Years *(Born on or before 31 March 2022)* — Reading readiness, handwriting & foundational math.",
+            "🎓 **UKG**: Age 5+ Years *(Born on or before 31 March 2021)* — Primary transition, verbal fluency & logic.",
           ],
         },
         actions: [
@@ -214,6 +320,86 @@ export default function SchoolChatbot({ onNavigateToEnquiry }) {
           },
         ],
         quickPills: ["⏰ School Timings", "🎒 Facilities & Safety", "💳 Fees Information"],
+      });
+      return;
+    }
+
+    // Joyful Activities & Celebrations
+    if (
+      act.includes("activit") ||
+      act.includes("event") ||
+      act.includes("celebrat") ||
+      act.includes("sport") ||
+      act.includes("festival") ||
+      act.includes("photo") ||
+      act.includes("gallery") ||
+      act.includes("life")
+    ) {
+      appendBotResponse({
+        text: "🎉 **Joyful Activities & Campus Life at VT Kindergarten:**\n\nA glimpse into our activity-filled school environment where beautiful memories and happy childhoods are made!",
+        card: {
+          title: "📸 Student Life & Celebrations",
+          items: [
+            "🎨 **Creative Arts & Sensory Play**: Finger painting, craftwork, clay modeling, and color-themed days.",
+            "📚 **Phonics & Story Circles**: Interactive rhymes, puppetry, and active vocabulary games.",
+            "🏃 **Sports & Gross Motor Fun**: Child-friendly obstacle courses, balancing beams, and soft-play gym.",
+            "🎭 **Cultural Festivals & Annual Day**: Pongal, Navratri, Grandparents Day, and stage confidence performances.",
+            "🤝 **Good Habits & Social Etiquette**: Mealtime manners, sharing, clean-up habits, and kindness.",
+          ],
+        },
+        actions: [
+          {
+            type: "link",
+            label: "📸 Open Instagram (@vt_kindergarten)",
+            url: "https://www.instagram.com/vt_kindergarten/",
+            btnClass: "whatsapp",
+          },
+          {
+            type: "action",
+            label: "📝 Submit Admission Enquiry",
+            actionKey: "enquiry",
+            btnClass: "primary",
+          },
+        ],
+        quickPills: ["🏫 Classes Offered", "🎒 Campus Facilities", "⏰ School Timings", "📍 Location"],
+      });
+      return;
+    }
+
+    // Email, Instagram & Social Channels
+    if (
+      act.includes("instagram") ||
+      act.includes("ig") ||
+      act.includes("email") ||
+      act.includes("mail") ||
+      act.includes("social")
+    ) {
+      appendBotResponse({
+        text: "🌐 **Official Online & Social Channels:**\n\nConnect with VT Kindergarten across our official communication channels:",
+        card: {
+          title: "📱 Digital Channels",
+          items: [
+            "📧 **Official Email**: vtkindergarten@gmail.com",
+            "📸 **Instagram Profile**: @vt_kindergarten",
+            "💬 **Official WhatsApp**: +91 73582 93839",
+            "📞 **Office Phone**: +91 73582 93839",
+          ],
+        },
+        actions: [
+          {
+            type: "link",
+            label: "📸 Open Instagram (@vt_kindergarten)",
+            url: "https://www.instagram.com/vt_kindergarten/",
+            btnClass: "whatsapp",
+          },
+          {
+            type: "link",
+            label: "✉️ Send Email",
+            url: "mailto:vtkindergarten@gmail.com",
+            btnClass: "phone",
+          },
+        ],
+        quickPills: ["📍 School Location", "🏛️ Founders & Vision", "📝 Admission Enquiry"],
       });
       return;
     }
@@ -450,7 +636,7 @@ export default function SchoolChatbot({ onNavigateToEnquiry }) {
           btnClass: "phone",
         },
       ],
-      quickPills: ["📍 School Location", "🏫 Classes & Age Limit", "📝 Admission Enquiry", "⏰ School Timings"],
+      quickPills: ["🏛️ Founders & Vision", "🏫 Classes Offered", "🌸 About School", "📝 Admission Enquiry", "⏰ School Timings"],
     });
   };
 
@@ -610,7 +796,7 @@ export default function SchoolChatbot({ onNavigateToEnquiry }) {
         sender: "bot",
         time: getCurrentTime(),
         text: "🔄 Chat restarted! How may I assist you with VT Kindergarten?",
-        quickPills: ["📍 School Location", "🏫 Classes Offered", "📝 Admission Enquiry", "⏰ Timings"],
+        quickPills: ["🏛️ Founders & Vision", "🏫 Classes Offered", "🌸 About School", "📝 Admission Enquiry", "⏰ Timings"],
       },
     ]);
   };
