@@ -40,7 +40,7 @@ export default function SchoolChatbot({ onNavigateToEnquiry }) {
       id: 1,
       sender: "bot",
       time: "Just now",
-      text: "👋 Vanakkam & Welcome to **VT Kindergarten**, Karaikudi!\n\nI can help you with real information about our **founders**, **classes & age criteria**, **school timings**, **campus facilities**, or **admission enquiry**. How can I help you today?",
+      text: "👋 Vanakkam & Welcome to **VT Kindergarten**, Karaikudi! How can I help you today?",
       quickPills: ["🏛️ Founders & Vision", "🏫 Classes & Age Limit", "🌸 About School", "📝 Admission Enquiry", "⏰ Timings"],
     },
   ]);
