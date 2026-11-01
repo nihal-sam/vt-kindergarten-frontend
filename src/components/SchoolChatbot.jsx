@@ -14,7 +14,7 @@ const QUICK_ACTIONS = [
   { id: "contact", label: "📞 Contact & WhatsApp" },
 ];
 
-export default function SchoolChatbot() {
+export default function SchoolChatbot({ onNavigateToEnquiry }) {
   const [isOpen, setIsOpen] = useState(false);
   const [hasUnread, setHasUnread] = useState(true);
   const [inputValue, setInputValue] = useState("");
@@ -79,9 +79,81 @@ export default function SchoolChatbot() {
     }, 450);
   };
 
+  // Navigate seamlessly to the official Admission Enquiry Box with mobile app spotlight
+  const navigateToEnquirySection = (immediate = false) => {
+    const executeScrollAndSpotlight = () => {
+      // 1. Smoothly minimize chatbot modal to ensure full screen view
+      setIsOpen(false);
+
+      if (typeof onNavigateToEnquiry === "function") {
+        onNavigateToEnquiry();
+        return;
+      }
+
+      // 2. Fallback navigation if callback not provided
+      setTimeout(() => {
+        const eligibilitySec = document.getElementById("eligibility");
+        const enquiryBox =
+          document.getElementById("enquiry-box") ||
+          eligibilitySec?.querySelector(".eligibility-panel") ||
+          eligibilitySec;
+
+        if (!eligibilitySec && !enquiryBox) return;
+
+        const navbar = document.querySelector(".navbar");
+        const navbarHeight = navbar ? navbar.getBoundingClientRect().height : 85;
+        const navbarOffset = navbarHeight + 20;
+
+        const target = enquiryBox || eligibilitySec;
+        const targetTop = target.getBoundingClientRect().top + window.scrollY - navbarOffset;
+
+        window.scrollTo({
+          top: Math.max(targetTop, 0),
+          behavior: "smooth",
+        });
+        window.history.replaceState(null, "", "#eligibility");
+
+        // 3. Highlight the enquiry box with modern mobile-app spotlight pulse
+        if (enquiryBox) {
+          enquiryBox.classList.remove("vt-enquiry-box-spotlight");
+          void enquiryBox.offsetWidth; // Force CSS reflow to replay animation
+          enquiryBox.classList.add("vt-enquiry-box-spotlight");
+
+          setTimeout(() => {
+            enquiryBox.classList.remove("vt-enquiry-box-spotlight");
+          }, 4500);
+        }
+
+        // 4. Auto-focus the child's name field
+        setTimeout(() => {
+          const firstInput =
+            enquiryBox?.querySelector("input[autoComplete='name']") ||
+            enquiryBox?.querySelector("input") ||
+            eligibilitySec?.querySelector("input");
+          if (firstInput) {
+            firstInput.focus({ preventScroll: true });
+          }
+        }, 650);
+      }, 200);
+    };
+
+    if (immediate) {
+      executeScrollAndSpotlight();
+    } else {
+      // Allow user to briefly see the bot confirmation card before transition
+      setTimeout(executeScrollAndSpotlight, 750);
+    }
+  };
+
   // Handle Quick Action Clicks or Keyword Matches
   const handleAction = (actionId) => {
     const act = actionId.toLowerCase();
+
+    // Direct navigation button click
+    if (act === "go_to_enquiry" || act === "direct_enquiry_scroll") {
+      navigateToEnquirySection(true);
+      return;
+    }
 
     // Location
     if (act.includes("location") || act.includes("address") || act.includes("map") || act.includes("where") || act.includes("directions")) {
@@ -173,8 +245,19 @@ export default function SchoolChatbot() {
       return;
     }
 
-    // Enquiry / Admission Form
-    if (act.includes("enquiry") || act.includes("admission") || act.includes("apply") || act.includes("join") || act.includes("register") || act.includes("seat") || act.includes("form")) {
+    // Enquiry / Admission Navigation (Mobile Application Pattern)
+    if (
+      act.includes("enquiry") ||
+      act.includes("admission") ||
+      act.includes("apply") ||
+      act.includes("join") ||
+      act.includes("register") ||
+      act.includes("seat") ||
+      act.includes("form") ||
+      act.includes("fill") ||
+      act.includes("enroll") ||
+      act.includes("enrol")
+    ) {
       if (IS_ENQUIRY_BLOCKED) {
         appendBotResponse({
           text: "🔒 **Online Admission Enquiries are Temporarily Paused:**\n\nWe are currently not accepting new online enquiries through the website. For admission availability, syllabus information, or to schedule a campus visit, please connect with our admissions office directly:",
@@ -204,24 +287,32 @@ export default function SchoolChatbot() {
       }
 
       appendBotResponse({
-        text: "📝 **VT Kindergarten Admission Enquiry Form**\nPlease fill out your details below. Our admissions desk will call you back with full syllabus details and fee breakdown:",
-        showForm: true,
+        text: "✨ **Directing you to the Admission Enquiry Box...**\n\nI am navigating you straight to our official Admission Enquiry & Eligibility section below so you can enter your child's details directly!",
+        actions: [
+          {
+            type: "action",
+            label: "👉 Open Admission Enquiry Box",
+            actionKey: "go_to_enquiry",
+            btnClass: "enquiry-nav",
+          },
+          {
+            type: "link",
+            label: "💬 WhatsApp Us Instead",
+            url: "https://wa.me/917358293839?text=Hello%20VT%20Kindergarten,%20I%20would%20like%20to%20enquire%20about%20admission.",
+            btnClass: "whatsapp",
+          },
+        ],
+        quickPills: ["📍 School Location", "🏫 Classes Offered", "⏰ School Timings"],
       });
+
+      // Smooth auto-scroll to the highlighted enquiry box just like in a modern mobile app
+      navigateToEnquirySection(false);
       return;
     }
 
     // Age Calculator scroll
     if (act === "calculator") {
-      const calcSec = document.getElementById("eligibility");
-      if (calcSec) {
-        calcSec.scrollIntoView({ behavior: "smooth" });
-        setIsOpen(false);
-      } else {
-        appendBotResponse({
-          text: "You can find our interactive **Age Eligibility Calculator** on our homepage right below the hero banner!",
-          quickPills: ["📝 Submit Admission Enquiry", "🏫 Classes Offered"],
-        });
-      }
+      navigateToEnquirySection(false);
       return;
     }
 
@@ -635,94 +726,43 @@ export default function SchoolChatbot() {
                     </div>
                   )}
 
-                  {/* Embedded Admission Enquiry Form */}
+                  {/* Embedded Admission Enquiry Box Card */}
                   {msg.showForm && !enquirySubmitted && (
-                    <form className="vt-chat-form" onSubmit={handleEnquirySubmit}>
-                      <div className="vt-chat-form-title">📝 Quick Admission Form</div>
-
-                      <div className="vt-chat-form-group">
-                        <label className="vt-chat-form-label">Parent / Guardian Name *</label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="e.g. Anand Kumar"
-                          value={enquiryForm.parentName}
-                          onChange={(e) =>
-                            setEnquiryForm({ ...enquiryForm, parentName: e.target.value })
-                          }
-                          className="vt-chat-form-input"
-                        />
-                      </div>
-
-                      <div className="vt-chat-form-group">
-                        <label className="vt-chat-form-label">Child's Name *</label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="e.g. Diya Anand"
-                          value={enquiryForm.childName}
-                          onChange={(e) =>
-                            setEnquiryForm({ ...enquiryForm, childName: e.target.value })
-                          }
-                          className="vt-chat-form-input"
-                        />
-                      </div>
-
-                      <div className="vt-chat-form-group">
-                        <label className="vt-chat-form-label">Applying For Class *</label>
-                        <select
-                          value={enquiryForm.grade}
-                          onChange={(e) =>
-                            setEnquiryForm({ ...enquiryForm, grade: e.target.value })
-                          }
-                          className="vt-chat-form-select"
-                        >
-                          <option value="Play Group (2+ yrs)">Play Group (Age 2+)</option>
-                          <option value="Pre KG (3+ yrs)">Pre-KG (Age 3+)</option>
-                          <option value="LKG (4+ yrs)">LKG (Age 4+)</option>
-                          <option value="UKG (5+ yrs)">UKG (Age 5+)</option>
-                        </select>
-                      </div>
-
-                      <div className="vt-chat-form-group">
-                        <label className="vt-chat-form-label">Mobile Number *</label>
-                        <input
-                          type="tel"
-                          required
-                          maxLength="10"
-                          placeholder="10-digit mobile number"
-                          value={enquiryForm.phone}
-                          onChange={(e) =>
-                            setEnquiryForm({
-                              ...enquiryForm,
-                              phone: e.target.value.replace(/\D/g, ""),
-                            })
-                          }
-                          className="vt-chat-form-input"
-                        />
-                      </div>
-
-                      <div className="vt-chat-form-group">
-                        <label className="vt-chat-form-label">Note / Query (Optional)</label>
-                        <input
-                          type="text"
-                          placeholder="e.g. Looking for van facility"
-                          value={enquiryForm.notes}
-                          onChange={(e) =>
-                            setEnquiryForm({ ...enquiryForm, notes: e.target.value })
-                          }
-                          className="vt-chat-form-input"
-                        />
-                      </div>
-
-                      <button
-                        type="submit"
-                        disabled={isSubmittingEnquiry}
-                        className="vt-chat-form-submit"
+                    <div
+                      className="vt-chat-direct-box-card"
+                      style={{
+                        background: "#FFF7ED",
+                        border: "1.5px solid #FFEDD5",
+                        borderRadius: "16px",
+                        padding: "16px",
+                        marginTop: "10px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontWeight: 800,
+                          fontSize: "14px",
+                          color: "#C2410C",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          marginBottom: "6px",
+                        }}
                       >
-                        {isSubmittingEnquiry ? "Saving Enquiry..." : "🚀 Submit Enquiry"}
+                        <span>📝</span> Official Admission Enquiry Form Box
+                      </div>
+                      <p style={{ margin: "0 0 12px", fontSize: "13px", color: "#475569", lineHeight: 1.5 }}>
+                        Please enter your child's details directly in our official Enquiry Form Box highlighted on the page.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => navigateToEnquirySection(true)}
+                        className="vt-chat-action-btn primary enquiry-nav"
+                        style={{ width: "100%", justifyContent: "center" }}
+                      >
+                        👉 Open Enquiry Form Box
                       </button>
-                    </form>
+                    </div>
                   )}
 
                   {/* Message Action Buttons */}

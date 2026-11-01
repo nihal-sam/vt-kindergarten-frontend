@@ -116,10 +116,15 @@ export default function App() {
     markAgeCalculatorTouched();
 
     const eligibilitySection = document.getElementById("eligibility");
-    if (!eligibilitySection) return;
+    const enquiryBox = document.getElementById("enquiry-box") || eligibilitySection?.querySelector(".eligibility-panel") || eligibilitySection;
+    if (!eligibilitySection && !enquiryBox) return;
 
-    const navbarOffset = 90;
-    const targetTop = eligibilitySection.getBoundingClientRect().top + window.scrollY - navbarOffset;
+    const navbar = document.querySelector(".navbar");
+    const navbarHeight = navbar ? navbar.getBoundingClientRect().height : 85;
+    const navbarOffset = navbarHeight + 20;
+
+    const target = enquiryBox || eligibilitySection;
+    const targetTop = target.getBoundingClientRect().top + window.scrollY - navbarOffset;
 
     window.scrollTo({
       top: Math.max(targetTop, 0),
@@ -127,8 +132,18 @@ export default function App() {
     });
     window.history.replaceState(null, "", "#eligibility");
 
+    // Modern mobile application box highlight effect
+    if (enquiryBox) {
+      enquiryBox.classList.remove("vt-enquiry-box-spotlight");
+      void enquiryBox.offsetWidth; // Force CSS reflow to replay animation
+      enquiryBox.classList.add("vt-enquiry-box-spotlight");
+      setTimeout(() => {
+        enquiryBox.classList.remove("vt-enquiry-box-spotlight");
+      }, 4500);
+    }
+
     window.setTimeout(() => {
-      const firstField = eligibilitySection.querySelector("input");
+      const firstField = target.querySelector("input[autoComplete='name']") || target.querySelector("input");
       firstField?.focus({ preventScroll: true });
     }, 650);
   };
@@ -155,7 +170,7 @@ export default function App() {
         <section id="contact"><Contact /></section>
       </main>
       <Footer />
-      <SchoolChatbot />
+      <SchoolChatbot onNavigateToEnquiry={goToEligibility} />
     </div>
   );
 }

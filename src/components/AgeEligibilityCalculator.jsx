@@ -152,7 +152,7 @@ export default function AgeEligibilityCalculator({ onInteraction }) {
       </div>
 
       <div className="eligibility-shell">
-        <div className="eligibility-panel">
+        <div className="eligibility-panel" id="enquiry-box">
           <div className="eligibility-panel-heading">
             <span className="eligibility-step-number">1</span>
             <div>
