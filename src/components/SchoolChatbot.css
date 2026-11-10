@@ -419,6 +419,72 @@
   box-shadow: 0 6px 18px rgba(255, 107, 53, 0.45);
 }
 
+.vt-chat-action-btn.locate {
+  background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+  color: #FFFFFF !important;
+  font-weight: 800;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+}
+
+.vt-chat-action-btn.locate:hover {
+  background: linear-gradient(135deg, #4338CA 0%, #6D28D9 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(79, 70, 229, 0.45);
+}
+
+/* Floating Viewing Section Pill */
+.vt-chatbot-viewing-pill {
+  position: fixed;
+  bottom: 96px;
+  right: 24px;
+  background: #0F172A;
+  color: #FFFFFF;
+  padding: 10px 16px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.25);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 9998;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  animation: vtSlideUpPill 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: all 0.2s ease;
+}
+
+.vt-chatbot-viewing-pill:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.35);
+  border-color: #FF6B35;
+}
+
+.vt-viewing-back-badge {
+  background: linear-gradient(135deg, #FF6B35 0%, #FF8A00 100%);
+  color: #FFFFFF;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+}
+
+@keyframes vtSlideUpPill {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 /* Quick Suggestion Pills (Horizontal Scroll) */
 .vt-chatbot-quick-pills {
   background: #FFFFFF;

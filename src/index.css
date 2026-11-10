@@ -835,6 +835,48 @@ body {
   }
 }
 
+/* ==========================================================================
+   UNIVERSAL SECTION SPOTLIGHT ANIMATION (For Local AI Page Navigation)
+   ========================================================================== */
+@keyframes vtUniversalSectionGlow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 107, 53, 0);
+  }
+  20% {
+    box-shadow: 0 0 0 6px rgba(255, 107, 53, 0.55), 0 0 35px rgba(255, 107, 53, 0.35);
+  }
+  40% {
+    box-shadow: 0 0 0 12px rgba(255, 107, 53, 0.25), 0 0 45px rgba(255, 107, 53, 0.2);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(255, 107, 53, 0.35), 0 0 25px rgba(255, 107, 53, 0.15);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 107, 53, 0);
+  }
+}
+
+.vt-section-spotlight {
+  position: relative !important;
+  animation: vtUniversalSectionGlow 3.8s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+  outline: 3px solid #FF6B35 !important;
+  outline-offset: 8px;
+  border-radius: 20px;
+  transition: all 0.3s ease;
+  z-index: 25;
+}
+
+.founder-card-premium.vt-section-spotlight {
+  border-color: #FF6B35 !important;
+}
+
+.programs-grid.vt-section-spotlight,
+.about-grid.vt-section-spotlight,
+.contact-container.vt-section-spotlight,
+.gallery-section.vt-section-spotlight {
+  border-radius: 24px;
+}
+
 .eligibility-panel-heading {
   display: flex;
   align-items: center;
