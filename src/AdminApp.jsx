@@ -197,21 +197,7 @@ function useAuth() {
   // Background Supabase authentication ONLY when an admin is actively logged in
   useEffect(() => {
     if (localAdmin) {
-      supabase.auth.getSession().then(async ({ data: { session } }) => {
-        if (!session) {
-          try {
-            const { data } = await supabase.auth.signInWithPassword({
-              email: 'admin@vtkindergarten.com',
-              password: 'admin123',
-            });
-            if (data?.session?.access_token) {
-              sessionStorage.setItem('vt_supabase_token', data.session.access_token);
-            }
-          } catch {}
-        } else if (session?.access_token) {
-          sessionStorage.setItem('vt_supabase_token', session.access_token);
-        }
-      });
+      ensureAuthenticatedSession();
     }
   }, [localAdmin]);
 
@@ -222,13 +208,7 @@ function useAuth() {
     } catch {}
     setLocalAdmin(user);
     try {
-      const { data } = await supabase.auth.signInWithPassword({
-        email: 'admin@vtkindergarten.com',
-        password: 'admin123',
-      });
-      if (data?.session?.access_token) {
-        sessionStorage.setItem('vt_supabase_token', data.session.access_token);
-      }
+      await ensureAuthenticatedSession();
     } catch {}
     try {
       const sid = getOrCreateSessionId();
